@@ -47,9 +47,9 @@
 - **[P1] The sitemap indexes pages/posts/products and NOTHING else** — no Works, no chapters, no
   events. The whole Library is invisible to search: 1189 Bible chapters plus WDEG, none of it
   submitted. This is the single biggest SEO win available and it needs no translation work at all.
-  *Where:* `src/app/sitemap.ts`. *Next:* add `events` (cheap) and Works chapters (needs care — the
-  chapter list lives in the Work JSON, so enumerating it per request wants a sitemap INDEX, not one
-  giant file). `260824`
+  *Where:* `src/app/sitemap.ts`. *Next:* add `events` (cheap) and Works chapters — now a trivial
+  query against `work-chapters` (260826), still wanting a sitemap INDEX rather than one giant file.
+  `260826`
 
 - **[P0→FIXED 260731] Scheduled work is running again** — the Payload jobs queue replaced the retired crond
   container (`cf35d34`), `JOBS_AUTORUN=true` set on Railway Core, deployed and verified: nine tasks scheduled,
@@ -132,40 +132,50 @@
 
 ## 🟡 Gaps — features to build (P1)
 
-- **[P1] Works chapters are rows in `messages` — this is why there is no chapter editor.** A chapter
-  is `metadata.kind = 'work_chapter'` on a Messages row, filed under a `channel` STRING. There are
-  **zero `work-*` rows in `channels`**, so every chapter's `channelRef` is null and the channel it
-  claims to live in does not exist. Consequences, all live: no editor (Payload gives you an editor
-  per COLLECTION, and chapters have none); **27% of the Messages table is book content** (1,245 of
-  4,687 rows, 5.5 MB); every read is `overrideAccess: true` because chapters borrow space-visibility
-  RBAC and then have to defeat it; and `getWorkJson` must read **all 1,189 Bible chapters** to serve
-  one page, because `order` is a JSON key rather than a column.
-  *Next (step B, designed 260825):* a `work-chapters` collection — `work` (relationship), `order`,
-  `slug`, `title`, `body`, `image`, plus the per-type extras; backfill the 1,245 rows; rewrite
-  `getWorkJson` (the single reader, 7 importers) and the three write paths in `endpoints/works.ts`.
-  Keep the message rows until the reader has run on rows for a week.
-  ⚠️ NOT a redesign — `WORKS_AS_JSON.md` already says storage-of-record is swappable behind the JSON
-  contract ("files (today), DB rows, or messages"). Verses stay JSON on the chapter; a verse is not
-  a document. `260825`
-- **[P1] `works.content` should fold into chapters once step B lands** — it exists only because
-  chapters had no editable home when the course player shipped. A lesson is a chapter with a video.
-  **Free to do right now** (all six works have `content = null`, so there are zero courses to
-  migrate); expensive the day someone builds one. `260825`
+- **[P1→SHIPPED 260826] Works chapters are ROWS, and have an editor** — `work-chapters`:
+  `work`, `order`, `slug`, `title`, `body` (markdown), `image`, `module`/`video` for courses, the
+  document extras, the scripture hierarchy, and `translations` (verses stay JSON — a verse is not a
+  document). Backfilled by joining on `works.storage_ref` (space AND channel, not the channel name),
+  which drops the duplicate Handbook copy for free: **1,238 rows**, verified live. `getWorkJson` is
+  still the single reader and all 7 importers are unchanged; it reads rows and falls back to the
+  message rows for anything not moved. The message rows are NOT deleted — `storage_ref.messagesRef`
+  is the rollback; **delete them after ~260902**. The prize landed too: an optional `range` makes
+  `/api/works-ops/text` a real windowed query, so the 5.5 MB per-request read is gone.
+  *Where:* `collections/WorkChapters`, `utilities/getWorkJson.ts`, `20260826_100000`. `2c4247b` `260826`
+- **[P1→SHIPPED 260826] `works.content` folded into chapters** — a lesson is a chapter with a video;
+  a module is the `module` text field. Flat storage, two-level rail: consecutive chapters sharing a
+  module are one module. The in-memory `CourseContent` shape is unchanged, so the player and the
+  studio learned nothing. Column dropped. *Where:* `utilities/courseChapters.ts`, `20260826_120000`.
+  `f9ea161` `260826`
+- **[P2] The Handbook duplicate is now unreachable, not gone** — the space-30 copy was excluded by
+  the backfill join, so nothing reads it. *Next:* delete those 7 message rows with the rest of the
+  old chapter rows after 260902. `260826`
 - **[P1] Quizzes should be AI-generated** — a `generate_quiz` LEO tool that reads a chapter and emits
   a ```quiz fence is the natural shape: the author reviews and edits markdown rather than writing
   multiple choice by hand. Fits the LEO-factory principle (tool first, UI second) and needs nothing
   new — the fence format and renderer shipped 260825. *Where:* `leo-data-tools.ts`,
   `utilities/workQuiz.ts`. `260825`
-- **[P1] Badges / completion** — a quiz attempt already lands as a Message with a score; a badge is
-  what you award off the back of it. Decide where a badge LIVES before building it (a Work-scoped
-  achievement vs the existing karma/token rails) — this is the one open modelling question in the
-  LMS layer. `260825`
-- **[P1] Bind a Product to a course (buy a Training)** — Ken: "not an edge case, pretty much
-  Antonio's NextLMS". Three of the four pieces shipped: Products, Memberships, and page-level
-  gating (260814). What is missing is the BINDING — a course Work naming the product that unlocks
-  it, so `<CoursePlayer>` can send a non-purchaser to checkout instead of relying on whoever placed
-  the block having gated the page correctly. *Next:* one relationship field, then reuse the
-  existing checkout. `260825`
+- **[P1→SHIPPED 260826] Badges, and a profile to put them on** — no collection. The DEFINITION is a
+  `badge` group on `works` (the Work already IS the thing you earn it for); the AWARD is a `badges`
+  array on `users`, riding along with `/api/users/me` like `readState`. Awarded where `workProgress`
+  hits 100 — a course ends at 100% and that number is already there, so there is no completion event
+  to invent. Checked before insert; a failed write is swallowed. `users.badges` is in
+  `APPROVED_PUBLIC` **deliberately** — a badge is meant to be seen. Profiles at `/u/<handle>`, with
+  `profileVisibility` defaulting to **`members`** (private → 404 to all but the owner, public is
+  opt-in — nobody becomes world-visible because of a deploy). Handles backfilled in SQL with numeric
+  suffixing: 25 users, 25 unique handles. *Where:* `utilities/awardBadge.ts`, `app/[locale]/(app)/u/`,
+  `20260826_130000`. `f9ea161` `260826`
+- **[P1→SHIPPED 260826] Buy or sign up for a training** — `resolveTrainingAccess`: public → in;
+  can edit the Work → in; membership standing satisfies `works.access` → in, via the SAME
+  `isPageViewable` the page gating uses; a PAID order containing `works.product` → in; otherwise out
+  **with the product**, so `<CoursePlayer>` offers a price and a way in instead of a locked door.
+  Entitlement is DERIVED — no enrollments collection, because an enrolment row is a cache of a
+  question a paid order already answers. New on works: `access` (PAGE_ACCESS_OPTIONS + `purchase`)
+  and `product`. First thing on the platform to read Orders for access.
+  *Where:* `utilities/trainingAccess.ts`, `blocks/CoursePlayer`, `20260826_110000`. `260826`
+  ⚠️ *Still open, and the money is here:* nothing is BOUND yet — no Work has a product, and the
+  demo-site/apex Stripe-price holes below are unchanged. Binding one course to one priced product is
+  the next revenue step.
 - **[P2] The Handbook is duplicated** — 7 chapters in space 6 AND 7 in space 30, identical text.
   `storageRef` points at space 6, so the space-30 copy (newer, 260713) is dead weight nobody can
   see because there is no list view. *Next:* confirm identical, delete one. `260825`
