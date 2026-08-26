@@ -84,6 +84,7 @@ import * as migration_20260825_150000_works_course_content from './20260825_1500
 import * as migration_20260825_160000_course_blocks from './20260825_160000_course_blocks'
 import * as migration_20260825_170000_works_editable_fields from './20260825_170000_works_editable_fields'
 import * as migration_20260826_100000_work_chapters from './20260826_100000_work_chapters';
+import * as migration_20260826_110000_works_access_product from './20260826_110000_works_access_product';
 import * as migration_20260821_110000_availability_house_hours from './20260821_110000_availability_house_hours'
 import * as migration_20260821_100000_portal_plan_demo from './20260821_100000_portal_plan_demo'
 import * as migration_20260821_090000_open_community_spaces from './20260821_090000_open_community_spaces'
@@ -558,5 +559,10 @@ export const migrations = [
     up: migration_20260826_100000_work_chapters.up,
     down: migration_20260826_100000_work_chapters.down,
     name: '20260826_100000_work_chapters',
+  },
+  {
+    up: migration_20260826_110000_works_access_product.up,
+    down: migration_20260826_110000_works_access_product.down,
+    name: '20260826_110000_works_access_product',
   },
 ];

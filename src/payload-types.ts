@@ -6602,6 +6602,14 @@ export interface Work {
    */
   availableGlobally?: boolean | null;
   /**
+   * Who may read this. "Purchase" means they buy the product below.
+   */
+  access?: ('public' | 'authenticated' | 'members' | 'good_standing' | 'purchase') | null;
+  /**
+   * What unlocks this. A paid order containing it lets someone in.
+   */
+  product?: (number | null) | Product;
+  /**
    * Badge text on the Library card.
    */
   status?: string | null;
@@ -10255,6 +10263,8 @@ export interface WorksSelect<T extends boolean = true> {
   published?: T;
   owner?: T;
   availableGlobally?: T;
+  access?: T;
+  product?: T;
   status?: T;
   statusColor?: T;
   subscribers?: T;

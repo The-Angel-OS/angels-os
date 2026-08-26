@@ -16,6 +16,7 @@
  * @see docs/planning/WORKS_AS_JSON.md
  */
 import type { CollectionConfig } from 'payload'
+import { PAGE_ACCESS_OPTIONS } from '@/utilities/pageAccess'
 
 export const Works: CollectionConfig = {
   slug: 'works',
@@ -86,6 +87,14 @@ export const Works: CollectionConfig = {
       admin: { position: 'sidebar', description: 'Owning endeavor — a tenant SLUG (federation-stable, not an id).' } },
     { name: 'availableGlobally', type: 'checkbox', defaultValue: false,
       admin: { position: 'sidebar', description: 'Offered to EVERY portal on top of subscribers (e.g. the Handbook). A portal can still opt out.' } },
+    { name: 'access', type: 'select', defaultValue: 'public', index: true,
+      admin: { position: 'sidebar', description: 'Who may read this. "Purchase" means they buy the product below.' },
+      options: [
+        ...PAGE_ACCESS_OPTIONS,
+        { label: 'Purchase — buy the product below', value: 'purchase' },
+      ] },
+    { name: 'product', type: 'relationship', relationTo: 'products',
+      admin: { position: 'sidebar', description: 'What unlocks this. A paid order containing it lets someone in.' } },
     { name: 'status', type: 'text', admin: { position: 'sidebar', description: 'Badge text on the Library card.' } },
     { name: 'statusColor', type: 'text', admin: { position: 'sidebar' } },
 
