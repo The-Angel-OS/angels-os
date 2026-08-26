@@ -3,9 +3,10 @@
  *
  * On the FIRST transition to paid, decrement each line item's product inventory
  * (clamped at 0; products with no numeric inventory = unlimited/digital are
- * skipped), then mark the order paid. Idempotent via the order's status: a
+ * skipped), then advance the order to `completed`. Idempotent via that status: a
  * Stripe `payment_intent.succeeded` retry (which fires for both direct AND
- * platform charges) sees status==='paid' and does nothing — no double-decrement.
+ * platform charges) sees status==='completed' and does nothing.
+ * There is no `paid` status — see orderPaid.ts.
  *
  * Inventory is the single source of truth across every channel (online, kiosk,
  * QR self-checkout, Nimue POS) — this is what prevents overselling Hays's 100
@@ -15,6 +16,7 @@
  * market/roadside volume; a true high-concurrency seller would want row locking.
  */
 import type { Payload } from 'payload'
+import { isOrderPaid } from './orderPaid'
 
 interface OrderItem {
   product?: number | string | { id: number | string; inventory?: number | null }
@@ -31,7 +33,7 @@ export async function markOrderPaidAndDecrementInventory(
 
   if (!order) return { applied: false, decremented: [] }
   // Already paid → inventory was applied on the first event. Idempotent no-op.
-  if (order.status === 'paid') return { applied: false, decremented: [] }
+  if (order.status === 'completed') return { applied: false, decremented: [] }
 
   const items = Array.isArray(order.items) ? order.items : []
   const decremented: Array<{ product: number | string; from: number; to: number }> = []
@@ -61,6 +63,6 @@ export async function markOrderPaidAndDecrementInventory(
     decremented.push({ product: productId, from: current, to: next })
   }
 
-  await payload.update({ collection: 'orders', id: orderId, data: { status: 'paid' } as never, overrideAccess: true })
+  await payload.update({ collection: 'orders', id: orderId, data: { status: 'completed' } as never, overrideAccess: true })
   return { applied: true, decremented }
 }

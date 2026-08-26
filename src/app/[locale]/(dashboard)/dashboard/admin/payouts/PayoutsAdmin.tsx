@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { isOrderPaid } from '@/utilities/orderPaid'
 import Link from 'next/link'
 
 interface PayoutsAdminProps {
@@ -26,7 +27,7 @@ export function PayoutsAdmin({
   recentOrders,
   tenantName,
 }: PayoutsAdminProps) {
-  const paidOrders = recentOrders.filter((o) => o.status === 'paid' || o.status === 'fulfilled')
+  const paidOrders = recentOrders.filter((o) => isOrderPaid(o.status))
   const totalRevenue = paidOrders.reduce((sum, o) => sum + (o.total || 0), 0)
 
   return (

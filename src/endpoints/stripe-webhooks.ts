@@ -637,7 +637,7 @@ async function handlePaymentIntentFailed(
 
       // Only update if order is still in a pending/processing state
       const currentStatus = order?.status
-      if (currentStatus && !['paid', 'fulfilled', 'cancelled'].includes(currentStatus)) {
+      if (currentStatus && !['completed', 'cancelled', 'refunded'].includes(currentStatus)) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (payload.update as any)({
           collection: 'orders',

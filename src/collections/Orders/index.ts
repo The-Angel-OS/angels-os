@@ -1,5 +1,6 @@
 import { CollectionOverride } from '@payloadcms/plugin-ecommerce/types'
 import { attachReferral } from './hooks/attachReferral'
+import { setTenantFromItems } from './hooks/setTenantFromItems'
 
 /**
  * Orders Collection Override — Sprint 4 + Angel Tokens
@@ -30,6 +31,9 @@ export const OrdersCollection: CollectionOverride = ({ defaultCollection }) => (
     ...defaultCollection?.hooks,
     // Spread first: the plugin's own beforeChange hooks must keep running.
     beforeChange: [...(defaultCollection?.hooks?.beforeChange ?? []), attachReferral],
+    // The multi-tenant plugin requires `tenant`; nothing in the checkout path
+    // sets it. See the hook — this is why zero orders existed.
+    beforeValidate: [...(defaultCollection?.hooks?.beforeValidate ?? []), setTenantFromItems],
   },
   fields: [
     ...defaultCollection.fields,

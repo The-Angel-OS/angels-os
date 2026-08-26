@@ -21,6 +21,7 @@
 import type { Payload } from 'payload'
 import { isPageViewable, resolveViewerStanding } from './pageAccess'
 import { canManageWork } from '@/access/canManageWork'
+import { PAID_ORDER_STATUSES } from './orderPaid'
 
 export type TrainingAccessReason =
   | 'open'
@@ -62,7 +63,7 @@ async function hasPaidFor(payload: Payload, userId: number | string, productId: 
     where: {
       and: [
         { customer: { equals: userId } },
-        { status: { equals: 'paid' } },
+        { status: { in: PAID_ORDER_STATUSES as unknown as string[] } },
         { 'items.product': { equals: productId } },
       ],
     },
