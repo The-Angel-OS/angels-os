@@ -17,7 +17,7 @@
  * appends rather than replaces — an existing quiz is someone's work.
  */
 import { generateText } from 'ai'
-import { getModel, getFallbackModel } from '@/utilities/ai-gateway'
+import { getSmartModel } from '@/utilities/ai-gateway'
 import { parseQuiz, type QuizQuestion } from '@/utilities/workQuiz'
 
 export type QuizModelFn = (prompt: string, system: string) => Promise<string>
@@ -33,9 +33,17 @@ const SYSTEM = [
 ].join(' ')
 
 export const gatewayQuizModel: QuizModelFn = async (prompt, system) => {
-  const model = getModel() || getFallbackModel()
-  if (!model) throw new Error('No model available (AI gateway not configured)')
-  const { text } = await generateText({ model, system, prompt, maxOutputTokens: 2000 })
+  // 'low' on purpose: writing four plausible options from supplied text is
+  // mechanical, and this routes the free lanes before the metered gateway.
+  const smart = await getSmartModel('low', { intent: 'default' })
+  if (!smart) throw new Error('No model available (no AI provider configured)')
+  const { text } = await generateText({
+    model: smart.model,
+    providerOptions: smart.providerOptions,
+    system,
+    prompt,
+    maxOutputTokens: 2000,
+  })
   return text
 }
 
