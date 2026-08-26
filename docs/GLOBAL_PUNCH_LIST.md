@@ -168,6 +168,18 @@
 
 ## 🟡 Gaps — features to build (P1)
 
+- **[SHIPPED 260825] Who has finished which training** — `/dashboard/works/completions`:
+  every active member against every training the portal carries. Three queries, no join
+  table — progress already lives as ONE `settings` row per user holding
+  `{ workSlug: { percent } }`. Gated like the Works Studio; attendance is staff data.
+  *Where:* `src/utilities/trainingCompletion.ts`.  `260825`
+- **[P1] The employee-training story, what is still missing** — a manager can now publish
+  trainings, have LEO write the quizzes, edit them by hand and see who has finished. Not yet:
+  **assigning** a set of trainings to a new hire (today they see everything the portal
+  carries), a due date, and a nudge when someone hasn't started. *Next:* an `assignments`
+  array on tenant-memberships would cover all three without a new collection.  `260825`
+
+
 - **[SHIPPED 260825] The Library is in the sitemap** — ~1,250 Work + chapter URLs, PUBLIC
   works only (submitting a paywalled URL earns a soft-404), scoped to what the portal
   carries. One file, not an index: the cap is 50,000 URLs. *Where:* `src/app/sitemap.ts`,
