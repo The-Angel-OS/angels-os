@@ -16,6 +16,31 @@
 
 ## 🔴 Bugs & broken (P0–P1)
 
+- **[P0→FIXED 260825] Nothing on this platform could be bought — three separate defects,
+  zero orders ever created.** (1) There is no `paid` order status and there never was:
+  `enum_orders_status` is the ecommerce plugin's four values (processing · completed ·
+  cancelled · refunded), yet five places read or wrote `'paid'`, so each was a silent
+  no-op — a purchased training stayed locked, the payouts dashboard summed an empty list,
+  and `markOrderPaidAndDecrementInventory` would have failed validation. (2) An order could
+  not be created at all: Orders is in `multiTenantPlugin`, so `tenant` is REQUIRED and its
+  only auto-resolution is the `payload-tenant` cookie — an admin-panel artefact no shopper
+  has — and the plugin's `confirmOrder` never sets it, so the create threw AFTER Stripe had
+  captured the card. (3) Nothing was bound to the entitlement rail that shipped 260826.
+  Fixed: `src/utilities/orderPaid.ts` is now the one vocabulary (a test parses the migration
+  and fails if a status we use isn't in the enum); `Orders/hooks/setTenantFromItems.ts` reads
+  the seller off the first line item; The Angel OS Handbook is product 76 at $49,
+  `access: 'purchase'`. Proven against the LIVE database: refused with `purchase_required`,
+  an order in exactly confirmOrder's shape flips it to `purchased`, cleanup re-queried.
+  ⚠️ **Not exercised: a real card.** Live Stripe keys — that charge is Ken's to make.
+  `8d96bac` `260825`
+- **[P1] The webhook registered in Stripe is a Connect *application* endpoint** — the only
+  endpoint on the account is `we_1T4alu…` (`application: ca_…`), pointed at
+  `https://www.spacesangels.com/api/stripe/webhooks`. `STRIPE_WEBHOOKS_SIGNING_SECRET` IS set
+  on Railway (Ken's 260726 TODO is done), but nothing has verified that secret matches THAT
+  endpoint, and the web checkout path doesn't depend on the webhook anyway — the plugin's
+  `confirmOrder` is client-triggered. *Next:* first real purchase, watch both.  `260825`
+
+
 - **[P1→FIXED 260824] Everyone who is not an admin saw "Unknown" instead of names** — `Users.read`
   was `adminOrSelf`, so a non-admin could read exactly ONE user row: their own, and every `depth: 1`
   author population returned a bare id. Ken is super_admin so he never saw it; on Tyler's screen the
@@ -131,6 +156,15 @@
   `docs/DEPLOY_RAILWAY.md` §1/§2. *Next:* Ken runs the Railway steps (no CLI here). `260723`
 
 ## 🟡 Gaps — features to build (P1)
+
+- **[SHIPPED 260825] LEO writes the quiz** — `generate_quiz` reads a chapter and appends a
+  ```quiz fence to it: same format a human authors, same reader, same attempt endpoint, no
+  new collection. Every generated quiz is round-tripped through `parseQuiz` before it is
+  saved, so an unrenderable quiz never lands. *Where:* `src/utilities/generateQuiz.ts`,
+  `src/utilities/leoQuizTool.ts`. *Still missing for the employee-training story:* the Works
+  Studio cannot EDIT an existing Work (it can only hide/show), so a manager can't fix a
+  generated question by hand yet. That is the next real gap.  `260825`
+
 
 - **[P1→SHIPPED 260826] Works chapters are ROWS, and have an editor** — `work-chapters`:
   `work`, `order`, `slug`, `title`, `body` (markdown), `image`, `module`/`video` for courses, the
