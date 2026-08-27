@@ -73,6 +73,32 @@ Stack files live in `/opt/angelos`:
 /opt/angelos/backups/
 ```
 
+## Watching it work
+
+**Logs, live, with a UI** — `lazydocker` is installed (`/usr/local/bin/lazydocker`).
+SSH in or use the RDP session's terminal and run `lazydocker`: containers on the
+left, logs streaming on the right, arrow keys to switch, `q` to quit. No web
+service, no port, nothing to secure.
+
+Plain-terminal equivalents, when a UI is more than the question deserves:
+
+```bash
+docker logs -f --tail 100 angelos-core     # just Core, following
+cd /opt/angelos/stack && docker compose logs -f   # everything, interleaved
+journalctl -u cloudflared -f                # the tunnel
+systemctl list-timers angel-heartbeat.timer # is telemetry still beating
+```
+
+**In the dashboard**: the box registers itself with Core every 2 minutes via
+`/opt/angelos/node-heartbeat.sh` (systemd timer `angel-heartbeat.timer`), so it
+appears in **/dashboard/telemetry** beside Merlin with CPU, RAM, disk, uptime,
+tunnel state and the container roll-call. Registration also mints its bus
+identity — channel `node:platform:angel-node-01` — so LEO can address it.
+
+The script is `docs/selfhost/thinkpad/node-heartbeat.sh` in the repo; it uses
+only `/proc`, `df` and `curl`, and `/node-ops/register` is idempotent, so a
+timer posting JSON *is* the whole telemetry client.
+
 ## Remote access — three ways in, and they are not interchangeable
 
 **1. SSH** — headless work. Always available.
