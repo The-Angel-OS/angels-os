@@ -23,6 +23,7 @@
 import type { Payload, Where } from 'payload'
 import { GENERATE_QUIZ_TOOL, generateQuizTool } from '@/utilities/leoQuizTool'
 import { markdownToLexical } from '@/utilities/markdownToLexical'
+import { stripModelHtml } from '@/utilities/stripModelHtml'
 import type { ExecutionTrace } from '@/utilities/executionTrace'
 import {
   MEMBER_TOOLS,
@@ -8409,7 +8410,9 @@ async function handleDraftReviewResponse(
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function textToLexical(text: string): any {
-  return markdownToLexical(text)
+  // Models emit HTML here often enough that the converter has to be defensive.
+  // @see stripModelHtml
+  return markdownToLexical(stripModelHtml(text))
 }
 
 /** Wrap richText in a full-width Content block for the layout field */
