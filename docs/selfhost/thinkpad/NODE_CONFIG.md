@@ -51,9 +51,10 @@ built-in UPS, which is the cheapest clean-shutdown insurance available.
 |---|---|---|
 | Ubuntu | 26.04 LTS | unattended security updates on |
 | Docker | 29.7.2, Compose v5.5.0 | |
+| **Registry** | ✅ `angelos-registry`, 127.0.0.1:5000 | so a rev ships only changed layers |
 | **Postgres 18** | ✅ healthy | container `angelos-pg`, bound to 127.0.0.1:5432 |
 | **PgBouncer** | ✅ healthy | container `angelos-pgbouncer`, 127.0.0.1:6432, transaction mode |
-| **Core** | ⬜ not yet | needs a prebuilt image (see below) |
+| **Core** | ✅ serving | `angelos-core:local`, health 200 local and public |
 | KDE Plasma 6.6.6 | ✅ Wayland, SDDM | |
 | KRdp (RDP server) | ✅ autostart | shares the LIVE Plasma session |
 | Chrome Remote Desktop | ✅ enabled | its OWN virtual X session, not the physical one |
@@ -222,19 +223,46 @@ falls back. Pinned in `/etc/environment.d/99-libva.conf` — note that
 attempt had no effect. This removes a failed probe; it was not the cause of the
 one-frame RDP freeze (a reboot and fresh login fixed that).
 
-## What is left to make it serve
+## Shipping a revision — one command from the desktop
 
-1. **A Core image.** Built elsewhere — `next build` will thrash 7 GB:
-   ```bash
-   docker build -t angelos-core:local C:/Dev/angels-os
-   docker save angelos-core:local | gzip | ssh -i ~/.ssh/angel_node angel@<node> 'gunzip | docker load'
-   ```
-   At the measured 200/160 that transfer is minutes. The durable answer is CI
-   building and pushing a tag the node pulls.
-2. **A database.** Restore a Railway `pg_dump` into `angelos-pg`, then run
-   `db-repair-sequences` (id sequence drift after any restore) and
-   `db-repair-locks`.
-3. **`docker compose up -d`** and the tunnel serves it.
+```
+docs/selfhost/thinkpad/push-to-node.cmd     (double-click, or run the .sh in WSL)
+```
+
+Pulls the latest COMMITTED main into WSL, builds there, pushes to the node's
+registry, restarts Core, waits for health, prints the local and public status
+codes, and dumps Core's logs and exits non-zero if it does not come back.
+
+**Docker Desktop is NOT required and should not be reinstated.** It is a paid GUI
+over an engine that `apt install docker.io` provides free, and on this desktop
+its engine would not start at all (WSL distro stopped, no pipe). The build runs
+inside WSL Ubuntu 22.04 — 11 GB and 6 CPUs, which is what the ThinkPad lacks.
+`wsl -u root` needs no password, so nothing had to be bought or unlocked.
+
+**Why a registry rather than `docker save | ssh docker load`:** save writes every
+layer, so a one-line change re-sends 400 MB and takes six minutes — and a
+six-minute deploy is one you stop using. A push sends only what changed. The
+registry is bound to 127.0.0.1 on the node and reached over an SSH forward;
+Docker exempts localhost from its TLS rule, so there are no certificates and no
+`insecure-registries` edits on either machine.
+
+⚠️ It builds from a **clean clone of pushed main**, never the working tree —
+shipping uncommitted work is how a node ends up running something no commit
+describes.
+
+`.github/workflows/node-image.yml` does the same thing in CI and is the better
+answer the day the GitHub account's billing lock clears; it needs no machine and
+makes clones #2 and #3 a `docker pull`.
+
+## Still open
+
+- `db-repair-sequences` and `db-repair-locks` — id sequence drift is guaranteed
+  after any restore, and should be run before anything writes here.
+- Merlin stays on the DESKTOP by Ken's call (260827): it serves media off an
+  external drive plugged in there, and `merlin.spacesangels.com` already works.
+  `merlin.kendev.co` is staged in the desktop's `~/.cloudflared/config.yml`
+  above the `*.kendev.co` wildcard, inert until a CNAME exists.
+- Clones #2 and #3.
 
 ## Making clones #2 and #3
 

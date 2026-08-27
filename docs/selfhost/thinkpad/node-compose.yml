@@ -117,5 +117,20 @@ services:
       # tunnel config points at 127.0.0.1:3001.
       - "127.0.0.1:3001:3000"
 
+  # A private registry, so pushing a new revision ships only the LAYERS that
+  # changed instead of re-sending the whole 400 MB image every time. Bound to
+  # localhost and reached over an SSH forward from the build host — Docker
+  # exempts localhost from its TLS requirement, so there are no certificates and
+  # no `insecure-registries` edits on either end.
+  registry:
+    image: registry:2
+    container_name: angelos-registry
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - angelos_registry:/var/lib/registry
+
 volumes:
   angelos_pgdata:
+  angelos_registry:
