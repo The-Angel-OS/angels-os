@@ -181,8 +181,13 @@ ssh -i ~/.ssh/angel_node angel@<node> 'bash /opt/angelos/tunnel-setup.sh node01.
 Railway is live and serves `*.spacesangels.com`. This box serves a **restore** of
 the same data on its own hostname — same tenants, same content, two admin panels.
 
-- `ENV_LABEL` renders a blue "second node" banner. That banner is the only thing
-  telling the two apart on screen.
+- `ENV_LABEL` renders a blue "second node" strip — but ONLY inside the Payload
+  admin panel, after sign-in: it is mounted at `admin.components.beforeNav`
+  (`src/components/EnvBanner`). It does NOT appear on the public site or on the
+  /admin login screen, so its absence there proves nothing. To tell the two
+  nodes apart without signing in, ask the container:
+  `docker exec angelos-core printenv | grep -E 'ENV_LABEL|DATABASE_URI'` — a
+  DATABASE_URI pointing at `pgbouncer` is the local restore, by definition.
 - **`COOKIE_DOMAIN` is scoped to `node01.spacesangels.com`, NOT `.spacesangels.com`.**
   An apex cookie would be sent to Railway too, and against a restored database
   the same session id means a different user row on each side.

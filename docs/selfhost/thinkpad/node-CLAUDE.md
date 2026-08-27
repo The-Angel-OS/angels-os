@@ -36,7 +36,7 @@ The full picture — hardware, history, every scar — is in the repo at
 ⚠️ **This node is NOT production.** Railway serves `*.spacesangels.com`. This box
 serves a RESTORE on `node01.spacesangels.com` — same tenants, same content, a
 different database. Two admin panels that look identical. The blue `ENV_LABEL`
-banner is the only thing telling them apart on screen.
+strip tells them apart — but ONLY inside the admin panel after sign-in.
 
 ⚠️ **`COOKIE_DOMAIN` is the HOST, never `.spacesangels.com`.** An apex cookie
 would be sent to Railway too, and against a restored database the same session
@@ -71,32 +71,30 @@ for a delete or a restore.
 |---|---|
 | Postgres 18 | ✅ `angelos-pg`, 127.0.0.1:5432 |
 | PgBouncer | ✅ `angelos-pgbouncer`, 127.0.0.1:6432, transaction mode |
-| Core | ⬜ waiting on an image |
-| Database | ⬜ empty — needs a Railway dump restored |
+| Core | ✅ up — image loaded, /api/health 200, public 200 |
+| Database | ✅ restored — 22 tenants, 26 users, 6 works, 4,697 messages |
 | Cloudflare tunnel | `angel-node-01` → `node01.spacesangels.com`, script at `/opt/angelos/tunnel-setup.sh` |
 | Wi-Fi | NetworkManager-managed on purpose; the `99-angel-unmanaged.conf` fence is DELETED and must stay so |
 | KRdp | autostart on; shares the RUNNING Plasma session, so a reboot needs a console login first |
 | ufw | inactive — every service port is bound to 127.0.0.1 and the tunnel is the only ingress |
 
-## The three jobs left, in order
+## Done as of 260827 — the node serves
 
-**1. Finish the tunnel** (once `~/.cloudflared/cert.pem` exists):
-```bash
-bash /opt/angelos/tunnel-setup.sh node01.spacesangels.com
-sudo systemctl status cloudflared
-```
+Tunnel up (4 edges, enabled at boot), database restored, Core running, and
+`https://node01.spacesangels.com` returns 200 through the tunnel.
 
-**2. Get the image** — ask Ken to run the build+ship line above from the desktop.
-Then `docker compose up -d` in `/opt/angelos/stack`.
+Still open: `db-repair-sequences` (id sequence drift is guaranteed after any
+restore) and `db-repair-locks`, both needing `CRON_SECRET` from
+`/opt/angelos/.env.local`. Then Merlin, which wants a clone + `npm ci` +
+`npm run build` + a systemd unit, and an ingress entry in
+`/etc/cloudflared/config.yml` above the catch-all.
 
-**3. Restore a database.** Dump from Railway (`DATABASE_PUBLIC_URL` via
-`railway variables -s Postgres --kv` on the desktop), load into `angelos-pg`,
-then hit `db-repair-sequences` (id sequence drift is guaranteed after a restore)
-and `db-repair-locks`.
-
-Verify by asking for the tunnel hostname and reading the banner — if it is not
-blue and does not say second node, stop and work out which database you are
-looking at.
+Verify identity by asking the CONTAINER, not the page: `docker exec angelos-core
+printenv | grep -E 'ENV_LABEL|DATABASE_URI'`. A DATABASE_URI pointing at
+`pgbouncer` is the local restore by definition — there is no network path from
+here to Railway's database. The blue ENV_LABEL strip is mounted at
+`admin.components.beforeNav`, so it renders ONLY inside the admin panel after
+sign-in; its absence on the public site or the login screen means nothing.
 
 ## Repo conventions that still apply here
 
