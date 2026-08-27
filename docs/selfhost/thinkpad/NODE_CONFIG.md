@@ -177,7 +177,39 @@ Set up (idempotent) with:
 ssh -i ~/.ssh/angel_node angel@<node> 'bash /opt/angelos/tunnel-setup.sh node01.spacesangels.com'
 ```
 
-## This is a SECOND NODE, not production
+## ⚠️ 260827 — this node IS production, temporarily
+
+Railway's trial expired and `railway up` refuses, so 19 commits could not ship.
+The wildcard was moved here on 260827. **Intended to move BACK on the 1st**, when
+Railway can be paid.
+
+What was changed, and how to put it back:
+
+| Thing | Now | Revert to |
+|---|---|---|
+| `*.spacesangels.com` CNAME | this tunnel | `qh3cy3sm.up.railway.app` |
+| `spacesangels.com` (apex) | **still Railway** — an explicit record beat the wildcard and cloudflared would not overwrite it | — |
+| `COOKIE_DOMAIN` (compose L102) | `.spacesangels.com` | `node01.spacesangels.com` |
+| `NEXT_PUBLIC_SERVER_URL` (compose L97) | `https://spacesangels.com` | `https://node01.spacesangels.com` |
+| `ENV_LABEL` (compose L95) | PRIMARY while Railway is frozen | second node, restore of production |
+| `/etc/cloudflared/config.yml` | wildcard ingress, **no** `httpHostHeader` | `config.yml.bak-260827` |
+| DB | fresh restore of Railway, 260827 | `angels_old_260827` is the pre-cutover copy |
+
+`httpHostHeader` had to go: it rewrote every request's Host to node01, so every
+portal resolved as node01. A multi-tenant origin must receive the Host intact.
+
+The DNS flip itself:
+
+```bash
+cloudflared tunnel --origincert /home/angel/.cloudflared/cert.pem   route dns --overwrite-dns <tunnel-id> "*.spacesangels.com"
+```
+
+`--origincert` is required — the service runs as root and the cert lives in
+`/home/angel/.cloudflared`.
+
+---
+
+## This was a SECOND NODE, not production (pre-260827)
 
 Railway is live and serves `*.spacesangels.com`. This box serves a **restore** of
 the same data on its own hostname — same tenants, same content, two admin panels.
