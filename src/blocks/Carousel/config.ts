@@ -1,4 +1,5 @@
 import type { Block } from 'payload'
+import { tenantFilterOptions } from '@/fields/tenantFilterOptions'
 
 export const Carousel: Block = {
   slug: 'carousel',
@@ -42,6 +43,7 @@ export const Carousel: Block = {
       hasMany: true,
       label: 'Categories To Show',
       relationTo: 'categories',
+      filterOptions: tenantFilterOptions,
     },
     {
       name: 'limit',
@@ -62,6 +64,7 @@ export const Carousel: Block = {
       hasMany: true,
       label: 'Selection',
       relationTo: ['products'],
+      filterOptions: tenantFilterOptions,
     },
     {
       name: 'populatedDocs',

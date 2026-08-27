@@ -7,6 +7,8 @@ import {
   lexicalEditor,
 } from '@payloadcms/richtext-lexical'
 
+import { tenantFilterOptions } from '@/fields/tenantFilterOptions'
+
 export const Archive: Block = {
   slug: 'archive',
   interfaceName: 'ArchiveBlock',
@@ -69,6 +71,7 @@ export const Archive: Block = {
       hasMany: true,
       label: 'Categories To Show',
       relationTo: 'categories',
+      filterOptions: tenantFilterOptions,
     },
     {
       name: 'limit',
@@ -103,6 +106,7 @@ export const Archive: Block = {
       hasMany: true,
       label: 'Selection',
       relationTo: ['products', 'posts'],
+      filterOptions: tenantFilterOptions,
     },
   ],
   labels: {
