@@ -736,7 +736,9 @@ export default buildConfig({
     {
       path: '/capture',
       method: 'post',
-      handler: captureHandler,
+      // A lost lead is silent otherwise: this arrives from embed.js on somebody
+      // else's website, and nobody is watching the response.
+      handler: withEventLedger('capture', captureHandler),
     },
     // Drip sends run off the heartbeat, not off a browser tab left open.
     { path: '/sequence-ops/tick', method: 'get', handler: sequenceTickHandler },
@@ -1621,7 +1623,7 @@ export default buildConfig({
     {
       path: '/bridge/inbound',
       method: 'post',
-      handler: bridgeInboundHandler,
+      handler: withEventLedger('bridge', bridgeInboundHandler),
     },
     // ─── Connector Health Probe ───────────────────────────────────
     // NOTE: paths MUST NOT start with `/connectors` — that's a collection slug,
