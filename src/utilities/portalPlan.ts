@@ -16,8 +16,6 @@ export type PortalCapabilityKey =
   | 'customDomain'
   /** The "Powered by The Angel OS" footer credit removed. */
   | 'hideFooterCredit'
-  /** Customers book online and leave a deposit. */
-  | 'onlineBooking'
   /** Contact list and follow-up sequences. */
   | 'crm'
   /** The assistant answering customer questions on their behalf. */
@@ -28,7 +26,6 @@ export type PortalCapabilityKey =
 const BUSINESS: PortalCapabilityKey[] = [
   'customDomain',
   'hideFooterCredit',
-  'onlineBooking',
   'crm',
   'customerAssistant',
   'memberships',

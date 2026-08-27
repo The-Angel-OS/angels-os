@@ -19,21 +19,20 @@ describe('portalCan', () => {
     const free = { portalPlan: 'free' }
     expect(portalCan(free, 'customDomain')).toBe(false)
     expect(portalCan(free, 'hideFooterCredit')).toBe(false)
-    expect(portalCan(free, 'onlineBooking')).toBe(false)
+    expect(portalCan(free, 'crm')).toBe(false)
   })
 
-  it('gives Site the domain and the clean footer, but not booking', () => {
+  it('gives Site the domain and the clean footer, but not the CRM', () => {
     const site = { portalPlan: 'site' }
     expect(portalCan(site, 'customDomain')).toBe(true)
     expect(portalCan(site, 'hideFooterCredit')).toBe(true)
-    // Booking is the $149 line. Site must not cross it.
-    expect(portalCan(site, 'onlineBooking')).toBe(false)
+    // The CRM is the Business line. Site must not cross it.
     expect(portalCan(site, 'crm')).toBe(false)
   })
 
   it('gives Business everything', () => {
     const biz = { portalPlan: 'business' }
-    for (const cap of ['customDomain', 'hideFooterCredit', 'onlineBooking', 'crm', 'customerAssistant', 'memberships'] as const) {
+    for (const cap of ['customDomain', 'hideFooterCredit', 'crm', 'customerAssistant', 'memberships'] as const) {
       expect(portalCan(biz, cap)).toBe(true)
     }
   })
@@ -42,7 +41,7 @@ describe('portalCan', () => {
 describe('planRequiredFor', () => {
   it('names the cheapest plan that unlocks a capability', () => {
     expect(planRequiredFor('customDomain')).toBe('site')
-    expect(planRequiredFor('onlineBooking')).toBe('business')
+    expect(planRequiredFor('crm')).toBe('business')
   })
 })
 
@@ -50,7 +49,6 @@ describe('the demo tier', () => {
   it('grants the working features — the demo IS the pitch', () => {
     for (const cap of [
       'customDomain',
-      'onlineBooking',
       'crm',
       'customerAssistant',
       'memberships',
@@ -70,9 +68,9 @@ describe('the demo tier', () => {
   it('is a plan, not a bypass — an unknown value still falls back to free', () => {
     // The whole point of doing this as a tier: one map answers "what may this
     // portal do", so a typo cannot silently unlock the paid features.
-    expect(portalCan({ portalPlan: 'demoo' }, 'onlineBooking')).toBe(false)
-    expect(portalCan({ portalPlan: 'DEMO' }, 'onlineBooking')).toBe(false)
-    expect(portalCan({}, 'onlineBooking')).toBe(false)
+    expect(portalCan({ portalPlan: 'demoo' }, 'crm')).toBe(false)
+    expect(portalCan({ portalPlan: 'DEMO' }, 'crm')).toBe(false)
+    expect(portalCan({}, 'crm')).toBe(false)
   })
 
   it('is distinguishable from a paying customer', async () => {
