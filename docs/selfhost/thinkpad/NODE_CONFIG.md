@@ -216,7 +216,7 @@ What was changed, and how to put it back:
 | `*.spacesangels.com` CNAME | this tunnel | `qh3cy3sm.up.railway.app` |
 | `spacesangels.com` (apex) | **still Railway** — an explicit record beat the wildcard and cloudflared would not overwrite it | — |
 | `COOKIE_DOMAIN` (compose L102) | `.spacesangels.com` | `node01.spacesangels.com` |
-| `NEXT_PUBLIC_SERVER_URL` (compose L97) | `https://spacesangels.com` | `https://node01.spacesangels.com` |
+| `NEXT_PUBLIC_SERVER_URL` (compose L97) | `https://www.spacesangels.com` (www — Google OAuth is registered on it) | `https://node01.spacesangels.com` |
 | `ENV_LABEL` (compose L95) | PRIMARY while Railway is frozen | second node, restore of production |
 | `/etc/cloudflared/config.yml` | wildcard ingress, **no** `httpHostHeader` | `config.yml.bak-260827` |
 | DB | fresh restore of Railway, 260827 | `angels_old_260827` is the pre-cutover copy |
