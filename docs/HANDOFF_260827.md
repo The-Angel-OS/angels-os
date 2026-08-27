@@ -16,8 +16,11 @@ copy: a visitor to a church website should never learn what we are.
 
 ## Ground rules
 
-**LIVE = Railway** (`railway up -s Core --detach`), and it costs **$7.75/month** for all 22
-portals. Ken has almost no cash and cannot clear a GitHub billing lock, so **GitHub Actions
+**LIVE = Railway TODAY** (`railway up -s Core --detach`), at **$7.75/month** for all 22 portals —
+but Ken has decided to trial the ThinkPad as primary with Railway as the backup (see **The trial**
+below). Confirm which box is actually serving before you touch anything: compare `uptime` from
+`/api/health` on `www.spacesangels.com` and `node01.spacesangels.com`; the same number means the
+node is primary. Ken has almost no cash and cannot clear a GitHub billing lock, so **GitHub Actions
 refuses to start any job** — do not plan around CI. Live DB via
 `railway variables -s Postgres --kv` → `DATABASE_PUBLIC_URL`, used with `pg` from the repo's
 node_modules (no `psql` on the desktop; keep the script IN the repo dir so node resolves `pg`).
@@ -149,10 +152,12 @@ with 651 machine messages.
 
 ## Decided, do not re-litigate
 
-- **Production stays on Railway.** $7.75/month against a node that would save $8 and add a build
-  pipeline, a restore problem, a residential uplink and a laptop someone can close.
-- **The ThinkPad is a second node, Merlin's future home, and a workstation** — not production.
-  Run it in parallel for two weeks before any cutover conversation.
+- **The ThinkPad gets a real trial as PRIMARY** — Ken's call, 260827, reversing the "stays a
+  second node" line. The reasoning against it was that $7.75/month is not worth a build pipeline
+  and a residential uplink; the pipeline now exists and the uplink measures 200/160, so the only
+  honest way to settle it is to run it and watch. See **The trial** below.
+- **Railway becomes the BACKUP during the trial**, not decommissioned. It keeps running and
+  keeps costing its $7.75 — that is the price of being able to fail back in minutes.
 - **Merlin stays on the DESKTOP** — it serves media off an external drive plugged in there, and
   `merlin.spacesangels.com` already works, so payloadnuke can be retired for it with no DNS
   change at all. `merlin.kendev.co` is staged in the desktop's `~/.cloudflared/config.yml` above
@@ -160,6 +165,91 @@ with 651 machine messages.
 - **`wheredideveryonego.net`** goes on Railway as a fourth domain when Ken wants it; the Work's
   `canonical.origin` is a DB field now, so pointing Ron's canonical at his own domain is an edit,
   not a deploy.
+
+## ⭐ The trial — the ThinkPad as primary, Railway as backup
+
+Ken's decision 260827: stop arguing about whether the laptop can carry it and find out. This is a
+TIME-BOXED TEST, not a decommissioning — Railway stays up and stays paid for the whole window.
+
+### Before flipping anything
+
+1. **Plug in the ethernet cable.** Wi-Fi is fine for a shadow node and is not what you want under
+   22 portals. `enp0s25` is already configured and DOWN only because nothing is plugged in.
+2. **Re-restore the database immediately before the flip.** The node's copy is from 260826 19:13
+   and every hour it ages is an hour of production writes that would be lost. Dump Railway, restore
+   to `angelos-pg`, then run `db-repair-sequences` — **id sequence drift after a restore is
+   guaranteed**, and the first symptom is "unique on id" on the first write.
+3. **`db-repair-locks`** — the `payload_locked_documents_rels` columns, or admin saves fail.
+4. **Set `JOBS_AUTORUN=true` on the node.** It is set on Railway and NOT in the node's compose.
+   Without it the platform has no heartbeat on the node: no inbound email, no connector health,
+   no nightly self-heal, no log consolidation. This is the single easiest thing to forget.
+5. **Change the node's identity vars** in `docs/selfhost/thinkpad/node-compose.yml`:
+   - `NEXT_PUBLIC_SERVER_URL` → `https://www.spacesangels.com`
+   - `COOKIE_DOMAIN` → `.spacesangels.com` (the apex — it IS production now; the "never the apex"
+     rule existed only because it was a shadow against a different database)
+   - `ENV_LABEL` → something honest like `angel-node-01 — LIVE (trial)`. The component's design is
+     that production runs unlabelled, but during a trial the label is the point.
+6. **Add the production hostnames to the node's tunnel ingress** (`/etc/cloudflared/config.yml`),
+   SPECIFIC ABOVE WILDCARD or the wildcard swallows them:
+   ```yaml
+     - hostname: www.spacesangels.com
+       service: http://127.0.0.1:3001
+     - hostname: spacesangels.com
+       service: http://127.0.0.1:3001
+     - hostname: "*.spacesangels.com"
+       service: http://127.0.0.1:3001
+   ```
+   then `sudo systemctl restart cloudflared`.
+
+### The flip (DNS, ~2 minutes)
+
+In the spacesangels.com zone, repoint three records from Railway to the node's tunnel:
+
+| Name | New target | Proxy |
+|---|---|---|
+| `*` | `7ec2ed85-6fda-4648-9257-0bfbd1a86cac.cfargotunnel.com` | **ON** |
+| `@` | same | **ON** |
+| `www` | same | **ON** |
+
+⚠️ **Proxy must be ON.** A `cfargotunnel.com` CNAME cannot work grey-clouded. The current Railway
+records are deliberately cf-proxied:false; the tunnel records are the opposite.
+
+Write the OLD values down before changing them — that list is the fail-back.
+
+### Watching it
+
+`node01.spacesangels.com` keeps working throughout and is the honest health probe (it bypasses
+nothing — same Core, same tunnel). Compare `uptime` on `/api/health` to know which box answered:
+during the trial, `www.spacesangels.com` and `node01` should report the SAME uptime. If they
+differ, DNS has not fully moved.
+
+Watch for: memory pressure (7.1 GB total, and KDE takes 1.3 — consider logging out of Plasma),
+tunnel reconnects in `journalctl -u cloudflared`, and Postgres connection counts through
+PgBouncer.
+
+### Failing back
+
+**The thing that makes this irreversible if you are careless: once the node is primary, writes
+land there and Railway is stale from that moment.** Failing back is therefore NOT just a DNS
+flip — it is:
+
+1. Dump the node (`/opt/angelos/backup.sh` writes a verified archive).
+2. Restore that dump INTO Railway.
+3. Repoint the three DNS records to their old Railway values.
+4. `db-repair-sequences` on Railway.
+
+If the laptop dies unexpectedly, step 1 is unavailable and you lose whatever was written since the
+last nightly backup. **That is the real cost of the trial, and it is why the nightly backup was
+fixed first** (it had been writing 20-byte files for two nights, silently). Consider running
+`backup.sh` hourly for the duration.
+
+### What would end the trial
+
+Decide these BEFORE starting, so the answer is not argued at 3am:
+- More than one unplanned outage, or any outage longer than ~15 minutes.
+- Any data loss event at all.
+- Sustained memory pressure or swap thrash under real traffic.
+- Ken being away and unable to fail back for an extended period.
 
 ## Live portals
 
