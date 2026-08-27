@@ -31,6 +31,10 @@ const SELF_SCOPED: Record<string, string> = {
   'token-ledger': 'owner-scoped: a user reads their own ledger rows',
   'agent-transactions': 'platform admins only',
   'tenant-memberships': 'membershipReadAccess — own rows plus rosters of your tenants',
+  'system-events':
+    'super_admin only, and never tenant-scoped by design: most webhooks arrive ' +
+    'BEFORE a tenant is resolved, so a tenant filter would hide exactly the ' +
+    'arrivals worth reading — the ones that failed before they knew who they were for',
 }
 
 function pluginCollections(): Set<string> {

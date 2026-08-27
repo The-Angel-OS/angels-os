@@ -101,6 +101,7 @@ export interface Config {
     'holon-capabilities': HolonCapability;
     'justice-fund-transactions': JusticeFundTransaction;
     'processed-stripe-events': ProcessedStripeEvent;
+    'system-events': SystemEvent;
     'application-logs': ApplicationLog;
     'cost-events': CostEvent;
     'site-visits': SiteVisit;
@@ -193,6 +194,7 @@ export interface Config {
     'holon-capabilities': HolonCapabilitiesSelect<false> | HolonCapabilitiesSelect<true>;
     'justice-fund-transactions': JusticeFundTransactionsSelect<false> | JusticeFundTransactionsSelect<true>;
     'processed-stripe-events': ProcessedStripeEventsSelect<false> | ProcessedStripeEventsSelect<true>;
+    'system-events': SystemEventsSelect<false> | SystemEventsSelect<true>;
     'application-logs': ApplicationLogsSelect<false> | ApplicationLogsSelect<true>;
     'cost-events': CostEventsSelect<false> | CostEventsSelect<true>;
     'site-visits': SiteVisitsSelect<false> | SiteVisitsSelect<true>;
@@ -5097,6 +5099,54 @@ export interface ProcessedStripeEvent {
   processedAt: string;
 }
 /**
+ * Every inbound webhook and trigger, recorded on arrival.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "system-events".
+ */
+export interface SystemEvent {
+  id: number;
+  /**
+   * Who sent it — stripe, twilio, telegram, slack, cron…
+   */
+  source: string;
+  /**
+   * The sender's own event name, when it gives one.
+   */
+  eventType?: string | null;
+  /**
+   * The sender's id for this event (evt_…, MessageSid…). Not unique: a redelivery is a SECOND arrival and deserves its own row.
+   */
+  externalId?: string | null;
+  status: 'received' | 'done' | 'failed';
+  /**
+   * The endpoint it arrived on.
+   */
+  path?: string | null;
+  /**
+   * How long the handler took.
+   */
+  durationMs?: number | null;
+  /**
+   * What we answered the sender with.
+   */
+  statusCode?: number | null;
+  /**
+   * Why it failed, when it did.
+   */
+  error?: string | null;
+  /**
+   * The raw payload, truncated. Enough to see what arrived and to replay it by hand.
+   */
+  body?: string | null;
+  /**
+   * Set when the handler resolved one. Many webhooks arrive before a tenant is known.
+   */
+  tenant?: (number | null) | Tenant;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "application-logs".
  */
@@ -7749,6 +7799,10 @@ export interface PayloadLockedDocument {
         value: number | ProcessedStripeEvent;
       } | null)
     | ({
+        relationTo: 'system-events';
+        value: number | SystemEvent;
+      } | null)
+    | ({
         relationTo: 'application-logs';
         value: number | ApplicationLog;
       } | null)
@@ -9596,6 +9650,24 @@ export interface ProcessedStripeEventsSelect<T extends boolean = true> {
   eventId?: T;
   eventType?: T;
   processedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "system-events_select".
+ */
+export interface SystemEventsSelect<T extends boolean = true> {
+  source?: T;
+  eventType?: T;
+  externalId?: T;
+  status?: T;
+  path?: T;
+  durationMs?: T;
+  statusCode?: T;
+  error?: T;
+  body?: T;
+  tenant?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

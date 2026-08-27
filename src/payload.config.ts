@@ -58,6 +58,7 @@ import { Users } from '@/collections/Users'
 import { HolonCapabilities } from '@/collections/HolonCapabilities'
 import { JusticeFundTransactions } from '@/collections/JusticeFundTransactions'
 import { ProcessedStripeEvents } from '@/collections/ProcessedStripeEvents'
+import { SystemEvents } from '@/collections/SystemEvents'
 import { ApplicationLogs } from '@/collections/ApplicationLogs'
 import { CostEvents } from '@/collections/CostEvents'
 import { SiteVisits } from '@/collections/SiteVisits'
@@ -213,6 +214,7 @@ import { stripeConnectCallbackHandler } from '@/endpoints/stripe-connect-callbac
 import { stripeConnectDashboardHandler } from '@/endpoints/stripe-connect-dashboard'
 import { stripeConnectDisconnectHandler } from '@/endpoints/stripe-connect-disconnect'
 import { stripeWebhooksHandler } from '@/endpoints/stripe-webhooks'
+import { withEventLedger } from '@/utilities/eventLedger'
 import { donationCreateIntentHandler } from '@/endpoints/donation-create-intent'
 import { donationRoutingHandler } from '@/endpoints/donation-routing'
 import { worksSealHandler, worksManifestHandler } from '@/endpoints/works-seal'
@@ -400,6 +402,7 @@ export default buildConfig({
     HolonCapabilities,
     JusticeFundTransactions,
     ProcessedStripeEvents,
+    SystemEvents,
     ApplicationLogs,
     CostEvents,
     SiteVisits,
@@ -1533,7 +1536,7 @@ export default buildConfig({
     {
       path: '/stripe/webhooks',
       method: 'post',
-      handler: stripeWebhooksHandler,
+      handler: withEventLedger('stripe', stripeWebhooksHandler),
     },
     // ─── Donations (Sprint 43) ────────────────────────────────────
     {
@@ -1596,7 +1599,7 @@ export default buildConfig({
     {
       path: '/vapi/webhook',
       method: 'post',
-      handler: vapiWebhookHandler,
+      handler: withEventLedger('vapi', vapiWebhookHandler),
     },
     {
       path: '/vapi/setup',
@@ -1875,7 +1878,7 @@ export default buildConfig({
     {
       path: '/discord/webhook',
       method: 'post',
-      handler: discordWebhookHandler,
+      handler: withEventLedger('discord', discordWebhookHandler),
     },
     // ─── Sprint 37: GitHub Integration ──────────────────────
     {
@@ -1897,24 +1900,24 @@ export default buildConfig({
     {
       path: '/whatsapp/webhook',
       method: 'post',
-      handler: whatsappWebhookHandler,
+      handler: withEventLedger('whatsapp', whatsappWebhookHandler),
     },
     // ─── Telegram Bot API Webhook ─────────────────────────────
     {
       path: '/telegram/webhook',
       method: 'post',
-      handler: telegramWebhookHandler,
+      handler: withEventLedger('telegram', telegramWebhookHandler),
     },
     // ─── Twilio SMS Webhook ─────────────────────────────────
     {
       path: '/sms/webhook',
       method: 'post',
-      handler: smsWebhookHandler,
+      handler: withEventLedger('twilio', smsWebhookHandler),
     },
     {
       path: '/slack/webhook',
       method: 'post',
-      handler: slackWebhookHandler,
+      handler: withEventLedger('slack', slackWebhookHandler),
     },
     // ─── CIC Status (Sprint 40) ───────────────────────────────
     {
@@ -1942,7 +1945,7 @@ export default buildConfig({
     {
       path: '/webhooks/livekit',
       method: 'post',
-      handler: livekitWebhookHandler,
+      handler: withEventLedger('livekit', livekitWebhookHandler),
     },
     // ─── Admin: Update All Nav ───────────────────────────────
     {
@@ -1954,7 +1957,7 @@ export default buildConfig({
     {
       path: '/webhooks/vercel-spend',
       method: 'post',
-      handler: vercelSpendWebhookHandler,
+      handler: withEventLedger('vercel', vercelSpendWebhookHandler),
     },
   ],
   globals: [],
