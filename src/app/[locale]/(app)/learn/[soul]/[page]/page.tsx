@@ -176,7 +176,30 @@ export default async function DeepLinkPage({
         title: soul.title,
         subtitle: soul.subtitle ?? null,
         pageCount: work.pages.length,
-        pages: work.pages.map((p: { image: string | null }, i: number) => ({ order: i, image: p.image ?? undefined })),
+        // Carry the hierarchy fields through. Dropping them here left `isCollection`
+        // false on every DB-backed book, so the Book -> Chapter nav never rendered and
+        // the Bible was a bare 1/1189 pager. @see BookReader.pageBook
+        pages: work.pages.map(
+          (
+            p: {
+              image: string | null
+              title?: string | null
+              book?: string | null
+              bookName?: string | null
+              chapter?: number | null
+              ref?: string | null
+            },
+            i: number,
+          ) => ({
+            order: i,
+            image: p.image ?? undefined,
+            title: p.title ?? undefined,
+            book: p.book ?? undefined,
+            bookName: p.bookName ?? undefined,
+            chapter: p.chapter ?? undefined,
+            ref: p.ref ?? undefined,
+          }),
+        ),
         languages: work.languages ?? [],
         defaultLanguage: work.baseLanguage ?? 'en',
       }
