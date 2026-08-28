@@ -16,6 +16,30 @@
 
 ## 🔴 Bugs & broken (P0–P1)
 
+- **[P0→RESOLVED 260827] Railway's trial expired — production MOVED to angel-node-01.**
+  19 commits could not ship, so `*.spacesangels.com` was repointed to the ThinkPad's
+  Cloudflare tunnel. All 23 portals verified serving. Deploy is now
+  `docs/selfhost/thinkpad/push-to-node.sh`, NOT `railway up`. Railway's Postgres still
+  serves and the node runs a fresh 260827 restore of it. **Move back on Sep 1**; the full
+  revert table is in `docs/selfhost/thinkpad/NODE_CONFIG.md`.
+  *Still open:* the apex `spacesangels.com` record needs a manual Cloudflare delete before
+  cloudflared can route it — `www` is already on the node.  `260827`
+- **[P0→FIXED 260827] The node signed JWTs with the wrong secret** — `.env.local` values
+  carry literal quotes through `env_file: format: raw`, so `PAYLOAD_SECRET` reached the
+  container as `"74e…"`. Sign-in died the moment the node became production. Ten variables
+  affected. ⚠️ `C:\Dev\datacenter\stack` shares the shape and still has it — it also
+  explains the "system email auth fails silently" mystery (`SYSTEM_EMAIL_PASSWORD` is one
+  of the ten).  `260827`
+- **[P1→FIXED 260827] Merlin looked dead for 62 days while serving fine.** Three faults,
+  one root: the port. The tunnel gate validated sessions against `:3000` while the task
+  runs Merlin on `:3002` (infinite redirect that reads as a wrong password); the node-bus
+  heartbeat only started when something *visited* an endpoint, so restarts left it silent;
+  and it advertised a quick tunnel pointed at the dead port, which 502'd every proxied
+  file. Ports are read from `process.env.PORT` now.  `260827`
+- **[P1 — OPEN] Merlin's shared roots disagree with `media-roots.json`.** The file lists
+  `DCIM (E:)`, `DCIM (G:)`, `Movies (E:)`; the live config has only `Videos (Home)`. Same
+  file-versus-database split that made the tunnel URL keep reverting.  `260828`
+
 - **[P0 — KEN, BLOCKING] Railway's trial has EXPIRED — nothing can deploy.** `railway up` now
   answers *"Your trial has expired. Please select a plan to continue using Railway."* The node is
   still **Online** and serving (deployment `a0844b4e`), and DB writes still land, so the platform
