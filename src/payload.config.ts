@@ -183,7 +183,7 @@ import { fitnessTemplateHandler } from '@/endpoints/fitness-template'
 import { marketVendorTemplateHandler } from '@/endpoints/market-vendor-template'
 import { linkMarketHandler } from '@/endpoints/link-market'
 import { ticketSubmitHandler } from '@/endpoints/tickets-ops'
-import { nodeRegisterHandler, nodeListHandler, nodeTelemetryHandler, nodeChatPostHandler, nodeChatGetHandler, nodeMediaHandler, nodeMediaListHandler, nodeFilesPostHandler, nodeFilesGetHandler, nodeFileProxyHandler, aiBrokerResolveHandler, nodeUsageHandler, nodeDispatchHandler } from '@/endpoints/node-ops'
+import { nodeRegisterHandler, nodeListHandler, nodeTelemetryHandler, nodeChatPostHandler, nodeChatGetHandler, nodeMediaHandler, nodeMediaListHandler, nodeFilesPostHandler, nodeFilesGetHandler, nodeFileProxyHandler, nodeBrowseHandler, aiBrokerResolveHandler, nodeUsageHandler, nodeDispatchHandler } from '@/endpoints/node-ops'
 import { policyPagesHandler } from '@/endpoints/policy-pages'
 import { pagesFromSpecHandler } from '@/endpoints/pages-from-spec'
 import { membershipCheckoutHandler } from '@/endpoints/membership-checkout'
@@ -1366,6 +1366,7 @@ export default buildConfig({
     // Phase 1 of distributed-nodes adoption. super_admin or ?key=.
     { path: '/node-ops/register', method: 'post', handler: nodeRegisterHandler },
     { path: '/node-ops/list', method: 'get', handler: nodeListHandler },
+    { path: '/node-ops/browse', method: 'get', handler: nodeBrowseHandler },
     // CIC telemetry feed — endeavor-member-scoped node roster + vitals + AI-bus activity.
     { path: '/node-ops/telemetry', method: 'get', handler: nodeTelemetryHandler },
     // Merlin Console — talk to a node's local brain over the bus (authed endeavor member).

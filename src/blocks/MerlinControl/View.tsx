@@ -228,209 +228,196 @@ type BrowsableFile = {
 }
 
 /**
- * FileBrowser — the directory browser (Thread 4 killer-app). Asks the node to list
- * its SHARED files over the bus (dispatch + poll), renders a filterable table, and
- * links each file tunnel-first (direct off the node, zero Core bandwidth) with a
- * Core-proxy fallback when the node has no public tunnel.
+ * FileBrowser — a real directory browser, not a dump of paths.
+ *
+ * What this replaced: a bus round-trip. Core posted a `list_files` command to
+ * the node's channel, the node answered with a message, and this component
+ * polled every 1.5s for up to 30 seconds hoping the reply had landed. On an
+ * eventually-consistent mailbox the only renderable answer is a flat, capped,
+ * newest-first list — so that is what it drew, and it cached the result in
+ * localStorage because asking again was so expensive.
+ *
+ * Now it is one synchronous request through the node's tunnel, so the UI can be
+ * what it should always have been: folders, a breadcrumb, and files you open.
+ * No cache — a stale listing is how you get "not found" on something you just
+ * recorded, and at ~100ms there is nothing to hide.
+ *
+ * Links stay INDIRECT — (endeavor, nodeId, ref) resolved through Core at click
+ * time, never a stored tunnel URL. Core looks up the node's current address per
+ * request, so a rotating tunnel cannot rot a link. @see /api/node-ops/browse
  */
+type BrowseDir = { name: string; ref: string; online?: boolean }
+type BrowseResult = {
+  ok: boolean
+  error?: string
+  ref: string
+  trail: BrowseDir[]
+  dirs: BrowseDir[]
+  files: BrowsableFile[]
+}
+
+const IMAGE_RE = /\.(jpe?g|png|gif|webp|avif|bmp|heic)$/i
+const VIDEO_RE = /\.(mp4|m4v|mkv|webm|mov|avi|wmv|flv)$/i
+
 function FileBrowser({ endeavor, nodeId, nodeName }: { endeavor: string; nodeId: string; nodeName: string }) {
-  const [query, setQuery] = React.useState('')
-  const [files, setFiles] = React.useState<BrowsableFile[]>([])
-  const [roots, setRoots] = React.useState<string[]>([])
-  const [tunnelUrl, setTunnelUrl] = React.useState<string | undefined>()
-  const [lanUrl, setLanUrl] = React.useState<string | undefined>()
-  const [status, setStatus] = React.useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  const [ref, setRef] = React.useState('')
+  const [data, setData] = React.useState<BrowseResult | null>(null)
+  const [status, setStatus] = React.useState<'loading' | 'ready' | 'error'>('loading')
   const [error, setError] = React.useState<string | null>(null)
-  const filesCacheKey = (e: string, n: string) => `merlin.files.${e}.${n}`
+  const [viewing, setViewing] = React.useState<BrowsableFile | null>(null)
+
+  const hrefFor = React.useCallback(
+    (r: string) =>
+      `/api/node-ops/file?endeavor=${encodeURIComponent(endeavor)}&nodeId=${encodeURIComponent(nodeId)}&ref=${encodeURIComponent(r)}`,
+    [endeavor, nodeId],
+  )
 
   const load = React.useCallback(
-    async (q: string, silent = false) => {
-      // silent = revalidate without tearing down the currently-shown (cached) list.
-      if (!silent) setStatus('loading')
+    async (next: string) => {
+      setStatus('loading')
       setError(null)
       try {
-        const post = await fetch('/api/node-ops/files', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ endeavor, nodeId, query: q }),
-        })
-        const pd = await post.json()
-        if (!post.ok || !pd.requestId) {
+        const res = await fetch(
+          `/api/node-ops/browse?endeavor=${encodeURIComponent(endeavor)}&nodeId=${encodeURIComponent(nodeId)}&ref=${encodeURIComponent(next)}`,
+          { credentials: 'include' },
+        )
+        const d = (await res.json()) as BrowseResult
+        if (!d.ok) {
           setStatus('error')
-          setError(pd.error || 'Could not reach node')
+          // The node distinguishes "drive not connected" from "folder not found";
+          // showing its own words beats a generic failure.
+          setError(d.error || `Could not read ${nodeName}`)
           return
         }
-        const requestId = pd.requestId as string
-        // Poll up to ~30s for the node's structured reply.
-        const started = Date.now()
-        while (Date.now() - started < 30000) {
-          await new Promise((r) => setTimeout(r, 1500))
-          const g = await fetch(
-            `/api/node-ops/files?endeavor=${encodeURIComponent(endeavor)}&nodeId=${encodeURIComponent(nodeId)}&requestId=${encodeURIComponent(requestId)}`,
-            { credentials: 'include' },
-          )
-          const gd = await g.json()
-          if (gd.ready) {
-            if (gd.error) {
-              setStatus('error')
-              setError(gd.error)
-              return
-            }
-            const nextFiles = Array.isArray(gd.files) ? gd.files : []
-            const nextRoots = Array.isArray(gd.roots) ? gd.roots : []
-            const nextTunnel = typeof gd.tunnelUrl === 'string' ? gd.tunnelUrl : undefined
-            const nextLan = typeof gd.lanUrl === 'string' ? gd.lanUrl : undefined
-            setFiles(nextFiles)
-            setRoots(nextRoots)
-            setTunnelUrl(nextTunnel)
-            setLanUrl(nextLan)
-            setStatus('ready')
-            // Cache the DEFAULT listing (empty query) so reopening the tab paints
-            // instantly instead of re-polling the node over the async bus (~seconds).
-            if (!q) {
-              try {
-                window.localStorage.setItem(
-                  filesCacheKey(endeavor, nodeId),
-                  JSON.stringify({ files: nextFiles, roots: nextRoots, tunnelUrl: nextTunnel, lanUrl: nextLan, at: new Date().toISOString() }),
-                )
-              } catch {
-                /* storage full / disabled — non-fatal */
-              }
-            }
-            return
-          }
-        }
-        setStatus('error')
-        setError('Node did not respond in time (it may be offline)')
+        setData(d)
+        setRef(d.ref)
+        setStatus('ready')
       } catch {
         setStatus('error')
         setError('Network error')
       }
     },
-    [endeavor, nodeId],
+    [endeavor, nodeId, nodeName],
   )
 
   React.useEffect(() => {
-    // Cache-first: paint the last-known listing instantly, then revalidate behind.
-    try {
-      const raw = window.localStorage.getItem(filesCacheKey(endeavor, nodeId))
-      if (raw) {
-        const c = JSON.parse(raw) as { files?: BrowsableFile[]; roots?: string[]; tunnelUrl?: string; lanUrl?: string }
-        if (Array.isArray(c.files) && c.files.length) {
-          setFiles(c.files)
-          setRoots(Array.isArray(c.roots) ? c.roots : [])
-          setTunnelUrl(c.tunnelUrl)
-          setLanUrl(c.lanUrl)
-          setStatus('ready')
-          // Revalidate silently — keep the cached list on screen, no spinner.
-          void load('', true)
-          return
-        }
-      }
-    } catch {
-      /* no/invalid cache — fall through to a live load */
-    }
     void load('')
   }, [load])
 
-  // Link resolution — every link is an INDIRECT (endeavor, nodeId, ref) reference
-  // resolved through Core at CLICK time, never a persisted/direct tunnel URL. Core
-  // looks up the node's CURRENT tunnel per request, so links survive a rotating /
-  // dynamic tunnel (the old `f.tunnelUrl` direct link went dead the moment the
-  // tunnel changed or for any remote viewer — the "media links don't work" bug).
-  //   • LAN-direct stays as a faster path ONLY when the node has no tunnel and
-  //     advertises a LAN url (same-network viewing; Core can't reach a LAN address).
-  //   • Otherwise → Core proxy, which resolves the live tunnel server-side.
-  const hrefFor = (f: BrowsableFile) => {
-    if (!tunnelUrl && lanUrl) return `${lanUrl.replace(/\/$/, '')}/api/shared/file?ref=${encodeURIComponent(f.ref)}`
-    return `/api/node-ops/file?endeavor=${encodeURIComponent(endeavor)}&nodeId=${encodeURIComponent(nodeId)}&ref=${encodeURIComponent(f.ref)}`
-  }
-
-  const reachability = tunnelUrl
-    ? { label: 'Tunnel — streams direct off the node', tone: 'text-green-600 dark:text-green-400' }
-    : lanUrl
-      ? { label: `LAN direct (${lanUrl.replace(/^https?:\/\//, '')}) — open from this network`, tone: 'text-muted-foreground' }
-      : { label: 'No tunnel — files open only from the node\u2019s own network', tone: 'text-amber-600 dark:text-amber-400' }
+  const trail = data?.trail ?? []
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <form
-        className="flex shrink-0 items-center gap-2"
-        onSubmit={(e) => {
-          e.preventDefault()
-          void load(query.trim())
-        }}
-      >
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={`Filter ${nodeName}'s shared files…`}
-          className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-sm"
-        />
+      {/* Breadcrumb — the sense of place the flat list never had. */}
+      <nav className="flex shrink-0 flex-wrap items-center gap-1 text-xs text-muted-foreground">
         <button
-          type="submit"
-          disabled={status === 'loading'}
-          className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          onClick={() => void load('')}
+          className="rounded px-1.5 py-0.5 font-medium hover:bg-muted/50 hover:text-foreground"
         >
-          {status === 'loading' ? 'Searching…' : 'Search'}
+          {nodeName}
         </button>
-      </form>
-
-      {status === 'ready' && (
-        <p className="mt-2 shrink-0 text-xs">
-          {roots.length > 0 && (
-            <span className="text-muted-foreground">
-              Shared roots: <span className="font-mono">{roots.join(', ')}</span> ·{' '}
-            </span>
-          )}
-          <span className={reachability.tone}>{reachability.label}</span>
-        </p>
-      )}
+        {trail.map((t) => (
+          <React.Fragment key={t.ref}>
+            <span aria-hidden>/</span>
+            <button
+              onClick={() => void load(t.ref)}
+              className="rounded px-1.5 py-0.5 hover:bg-muted/50 hover:text-foreground"
+            >
+              {t.name}
+            </button>
+          </React.Fragment>
+        ))}
+      </nav>
 
       <div className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-lg border border-border">
-        {status === 'loading' && (
-          <p className="p-4 text-sm text-muted-foreground">Asking {nodeName} for its shared files…</p>
-        )}
+        {status === 'loading' && <p className="p-4 text-sm text-muted-foreground">Reading {nodeName}…</p>}
+
         {status === 'error' && (
           <div className="p-4 text-sm">
-            <p className="text-red-500">{error}</p>
-            <button onClick={() => void load(query.trim())} className="mt-2 text-xs font-medium text-primary hover:underline">
+            <p className="text-amber-600 dark:text-amber-400">{error}</p>
+            <button onClick={() => void load(ref)} className="mt-2 text-xs font-medium text-primary hover:underline">
               Retry
             </button>
           </div>
         )}
-        {status === 'ready' && files.length === 0 && (
-          <p className="p-4 text-sm text-muted-foreground">No shared files match.</p>
-        )}
-        {status === 'ready' && files.length > 0 && (
-          <table className="w-full text-sm">
-            <tbody className="divide-y divide-border">
-              {files.map((f) => (
-                <tr key={f.ref} className="hover:bg-muted/30">
-                  <td className="px-3 py-2">
-                    <a href={hrefFor(f)} target="_blank" rel="noreferrer" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
-                      {f.name}
-                    </a>
-                    <p className="truncate text-xs text-muted-foreground" title={f.path}>
-                      {f.root} · {f.path}
-                    </p>
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2 text-right text-xs tabular-nums text-muted-foreground">
-                    {f.sizeMB} MB
-                  </td>
-                  <td className="hidden whitespace-nowrap px-3 py-2 text-right text-xs text-muted-foreground sm:table-cell">
-                    {new Date(f.mtime).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+        {status === 'ready' && data && (
+          <ul className="divide-y divide-border">
+            {data.dirs.map((d) => (
+              <li key={d.ref}>
+                <button
+                  onClick={() => d.online !== false && void load(d.ref)}
+                  disabled={d.online === false}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted/30 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span aria-hidden>{d.online === false ? '\u26a0' : '\ud83d\udcc1'}</span>
+                  <span className="font-medium">{d.name}</span>
+                  {d.online === false && (
+                    <span className="text-xs text-amber-600 dark:text-amber-400">drive not connected</span>
+                  )}
+                </button>
+              </li>
+            ))}
+
+            {data.files.map((f) => (
+              <li key={f.ref} className="flex items-center gap-2 px-3 py-2 hover:bg-muted/30">
+                <span aria-hidden>{VIDEO_RE.test(f.name) ? '\ud83c\udfac' : IMAGE_RE.test(f.name) ? '\ud83d\uddbc' : '\ud83d\udcc4'}</span>
+                <button
+                  onClick={() => setViewing(f)}
+                  className="min-w-0 flex-1 text-left text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+                >
+                  <span className="block truncate">{f.name}</span>
+                </button>
+                <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">{f.sizeMB} MB</span>
+                <span className="hidden whitespace-nowrap text-xs text-muted-foreground sm:inline">
+                  {new Date(f.mtime).toLocaleDateString()}
+                </span>
+              </li>
+            ))}
+
+            {data.dirs.length === 0 && data.files.length === 0 && (
+              <li className="p-4 text-sm text-muted-foreground">This folder is empty.</li>
+            )}
+          </ul>
         )}
       </div>
+
+      {/* Viewer — plays or shows in place; the file never lands on Core's disk. */}
+      {viewing && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setViewing(null)}
+          role="dialog"
+          aria-label={viewing.name}
+        >
+          <div className="max-h-full w-full max-w-4xl overflow-auto" onClick={(e) => e.stopPropagation()}>
+            {VIDEO_RE.test(viewing.name) ? (
+              <video src={hrefFor(viewing.ref)} controls autoPlay className="max-h-[80vh] w-full rounded-lg bg-black" />
+            ) : IMAGE_RE.test(viewing.name) ? (
+              // eslint-disable-next-line @next/next/no-img-element -- a node file, not a Payload upload
+              <img src={hrefFor(viewing.ref)} alt={viewing.name} className="max-h-[80vh] w-full rounded-lg object-contain" />
+            ) : (
+              <p className="rounded-lg bg-background p-4 text-sm">
+                No preview for this type —{' '}
+                <a href={hrefFor(viewing.ref)} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                  open it directly
+                </a>
+                .
+              </p>
+            )}
+            <div className="mt-2 flex items-center justify-between text-xs text-white/80">
+              <span className="truncate">{viewing.name}</span>
+              <button onClick={() => setViewing(null)} className="rounded px-2 py-1 hover:bg-white/10">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+
 
 /** CPU sparkline — fixed 0–100% scale, last point marked. */
 function Sparkline({ values }: { values: number[] }) {

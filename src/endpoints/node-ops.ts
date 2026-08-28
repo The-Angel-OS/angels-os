@@ -699,6 +699,99 @@ export const aiBrokerResolveHandler: PayloadHandler = async (req) => {
  * Core bandwidth); this is the no-tunnel path. Requires the node to advertise a
  * tunnelUrl OR localIp reachable from Core — if neither, returns 502 (open on LAN).
  */
+/**
+ * The node address Core can actually reach.
+ *
+ * Core can only dial a PUBLIC origin — the node's cloudflared tunnel. Private
+ * LAN addresses (192.168.x / 10.x / localhost) are unreachable from here, so we
+ * must not pretend to proxy them; a same-network viewer hits the node's lanUrl
+ * directly instead, with no Core and no install.
+ */
+function publicOriginOf(node: { tunnelUrl?: string; url?: string }): string {
+  const isPublic = (u: string) => {
+    try {
+      const h = new URL(u).hostname
+      if (h === 'localhost' || h.startsWith('127.')) return false
+      if (h.startsWith('192.168.') || h.startsWith('10.') || h.startsWith('169.254.')) return false
+      // 172.16.0.0–172.31.255.255 private range
+      const m = /^172\.(\d+)\./.exec(h)
+      if (m && Number(m[1]) >= 16 && Number(m[1]) <= 31) return false
+      return true
+    } catch {
+      return false
+    }
+  }
+  const candidates = [node.tunnelUrl, node.url].filter((u): u is string => typeof u === 'string' && Boolean(u))
+  return candidates.find(isPublic) || ''
+}
+
+/**
+ * Directory browse — GET /api/node-ops/browse?endeavor=&nodeId=&ref=
+ *
+ * Proxies ONE level of the node's shared tree, synchronously, over its public
+ * tunnel. Same auth shape as the file proxy: a signed-in user who belongs to the
+ * endeavor, then a machine-keyed call to the node.
+ *
+ * Why not the AI Bus, which already carries `list_files`? Because that is a
+ * mailbox: Core posts a command, the node answers with a message, Core polls for
+ * it. You cannot build folder navigation on an eventually-consistent round-trip,
+ * which is why Merlin Control ended up rendering a flat dump of paths. When the
+ * node has a tunnel this is a single request; the bus stays for nodes that do
+ * not (see `no_public_origin` below).
+ *
+ * ponytail: no cache. A stale listing is worse than a slow one — it is how you
+ * get "file not found" on something you just recorded. Thumbnails are the only
+ * thing worth caching and the browser does that for us via cache headers.
+ */
+export const nodeBrowseHandler: PayloadHandler = async (req) => {
+  const { payload, user } = req
+  if (!user) return Response.json({ error: 'authentication required' }, { status: 401 })
+
+  const url = new URL(req.url || '', 'http://localhost')
+  const endeavor = url.searchParams.get('endeavor') || ''
+  const nodeId = url.searchParams.get('nodeId') || ''
+  const ref = url.searchParams.get('ref') || ''
+  if (!endeavor || !nodeId) return Response.json({ error: 'endeavor and nodeId are required' }, { status: 400 })
+
+  try {
+    const tenant = await resolveEndeavorTenant(payload, endeavor)
+    if (!userCanAccessEndeavor(user, tenant.id)) return Response.json({ error: 'forbidden' }, { status: 403 })
+
+    const node = (await listEndeavorNodes(payload, endeavor)).find((n) => n.id === nodeId) as
+      | (Record<string, unknown> & { tunnelUrl?: string; url?: string })
+      | undefined
+    if (!node) return Response.json({ error: 'node not found' }, { status: 404 })
+
+    const origin = publicOriginOf(node)
+    if (!origin) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            'This node has no public tunnel, so Core can\u2019t browse it. Open it from a device on the node\u2019s network, or enable tunnel sharing on the node.',
+          code: 'no_public_origin',
+        },
+        { status: 409 },
+      )
+    }
+
+    const target = `${origin.replace(/\/$/, '')}/api/shared/list?ref=${encodeURIComponent(ref)}`
+    const upstream = await fetch(target, { headers: { 'x-node-key': 'core-proxy' } })
+    const body = await upstream.text()
+    return new Response(body, {
+      // The node answers 404 for "folder not found" AND for "drive not
+      // connected"; both carry a readable `error`, so pass the status through
+      // rather than flattening it to a 502 that says nothing.
+      status: upstream.status,
+      headers: { 'content-type': 'application/json', 'cache-control': 'no-store' },
+    })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    payload.logger?.error?.(`[node-browse] ${msg}`)
+    return Response.json({ ok: false, error: msg }, { status: 500 })
+  }
+}
+
 export const nodeFileProxyHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
   if (!user) return Response.json({ error: 'authentication required' }, { status: 401 })
@@ -718,25 +811,7 @@ export const nodeFileProxyHandler: PayloadHandler = async (req) => {
       | undefined
     if (!node) return Response.json({ error: 'node not found' }, { status: 404 })
 
-    // Core (Vercel) can only reach a PUBLIC origin — i.e. the node's cloudflared
-    // tunnel. Private LAN addresses (192.168.x / 10.x / localhost) are unreachable
-    // from Core, so we must NOT pretend to proxy them; the browser handles the
-    // same-LAN case by hitting the node's lanUrl directly (no Core, no install).
-    const isPublic = (u: string) => {
-      try {
-        const h = new URL(u).hostname
-        if (h === 'localhost' || h.startsWith('127.')) return false
-        if (h.startsWith('192.168.') || h.startsWith('10.') || h.startsWith('169.254.')) return false
-        // 172.16.0.0–172.31.255.255 private range
-        const m = /^172\.(\d+)\./.exec(h)
-        if (m && Number(m[1]) >= 16 && Number(m[1]) <= 31) return false
-        return true
-      } catch {
-        return false
-      }
-    }
-    const candidates = [node.tunnelUrl, node.url].filter((u): u is string => typeof u === 'string' && Boolean(u))
-    const origin = candidates.find(isPublic) || ''
+    const origin = publicOriginOf(node)
     if (!origin) {
       return Response.json(
         {
