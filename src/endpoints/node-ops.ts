@@ -750,7 +750,15 @@ export const nodeFileProxyHandler: PayloadHandler = async (req) => {
 
     const target = `${origin.replace(/\/$/, '')}/api/shared/file?ref=${encodeURIComponent(ref)}`
     const range = req.headers?.get('range') || undefined
-    const upstream = await fetch(target, { headers: range ? { range } : {} })
+    // x-node-key marks this as a machine call so the node's tunnel gate lets it
+    // through. Without it Merlin's middleware sees an unauthenticated request on
+    // its public host and 401s every file — the proxy reached the node and was
+    // turned away at the door. The node still applies its own access rules:
+    // /api/shared/file only serves paths inside a root the operator shared, and
+    // only while media sharing is on.
+    const upstream = await fetch(target, {
+      headers: { 'x-node-key': 'core-proxy', ...(range ? { range } : {}) },
+    })
     if (!upstream.ok && upstream.status !== 206) {
       return Response.json({ error: `node returned ${upstream.status}` }, { status: 502 })
     }
