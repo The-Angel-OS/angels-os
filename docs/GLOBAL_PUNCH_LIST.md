@@ -22,8 +22,12 @@
   `docs/selfhost/thinkpad/push-to-node.sh`, NOT `railway up`. Railway's Postgres still
   serves and the node runs a fresh 260827 restore of it. **Move back on Sep 1**; the full
   revert table is in `docs/selfhost/thinkpad/NODE_CONFIG.md`.
-  *Still open:* the apex `spacesangels.com` record needs a manual Cloudflare delete before
-  cloudflared can route it — `www` is already on the node.  `260827`
+  *Apex CLOSED 260828:* the bare `spacesangels.com` CNAME to `brdq7dq2.up.railway.app`
+  was deleted by hand (cloudflared will not overwrite an existing apex record), then
+  `route dns --overwrite-dns` wrote it onto the node's tunnel. Verified: `Server:
+  cloudflare` and `/api/health` reports the node's uptime, not a fresh deploy. The whole
+  zone is now on the node. `_acme-challenge` → `railwaydns.net` and `_railway-verify` are
+  left in place until the Sep 1 stay-or-return call.  `260828`
 - **[P0→FIXED 260827] The node signed JWTs with the wrong secret** — `.env.local` values
   carry literal quotes through `env_file: format: raw`, so `PAYLOAD_SECRET` reached the
   container as `"74e…"`. Sign-in died the moment the node became production. Ten variables
