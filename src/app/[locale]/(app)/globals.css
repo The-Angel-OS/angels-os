@@ -578,3 +578,46 @@ button {
 .angel-lk-unmirrored .lk-participant-media-video[data-lk-local-participant='true'][data-lk-source='camera'] {
   transform: none !important;
 }
+
+/* ─── Block reveal ──────────────────────────────────────────────────────────
+
+   Every block on a page/post fades and lifts as it scrolls into view — the
+   thing that makes a WordPress marketing site feel alive.
+
+   Done in CSS, not framer-motion, and the reason is the boundary: RenderBlocks
+   is a SERVER component. Wrapping each block in <motion.div> makes every public
+   page a client tree and ships ~40kb of animation runtime to a visitor reading
+   a church's service times. `animation-timeline: view()` is the platform's own
+   scroll-driven animation — zero JS, zero hydration, and the browser runs it
+   off the main thread.
+
+   Guarded by @supports, and the ONLY thing inside the guard is the hidden
+   starting state. A browser without scroll-driven animations (Firefox, as of
+   2026) never hides the block at all — it just doesn't animate. Content is
+   never at the mercy of an animation that might not run.
+
+   ponytail: no stagger, no variants, no per-block config. If an editor ever
+   needs to turn it off on one block, that's a checkbox on the block and a
+   class here — not an animation system. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .block-reveal {
+      animation: block-reveal-in linear both;
+      animation-timeline: view();
+      /* Starts as the block's top edge enters, finishes a fifth of the way up.
+         Short on purpose: a reveal you have to wait for reads as a slow page. */
+      animation-range: entry 0% cover 20%;
+    }
+  }
+}
+
+@keyframes block-reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

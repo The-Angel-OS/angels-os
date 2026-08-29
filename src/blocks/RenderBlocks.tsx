@@ -113,7 +113,15 @@ export const RenderBlocks: React.FC<{
                    page of short Content blocks read as a column of islands. The
                    inner margins are gone; blocks that need their own band still
                    carry py-* internally, which butts them right up against this. */
-                <div className={FULL_BLEED_BLOCKS.has(blockType) ? undefined : 'my-8'} key={index}>
+                <div
+                  className={[
+                    'block-reveal',
+                    FULL_BLEED_BLOCKS.has(blockType) ? undefined : 'my-8',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  key={index}
+                >
                   <Block id={toKebabCase(blockName!)} {...blockProps} />
                 </div>
               )
