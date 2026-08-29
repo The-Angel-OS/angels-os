@@ -123,6 +123,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           referrer: headersList.get('referer'),
           userAgent: headersList.get('user-agent'),
           ip: headersList.get('x-real-ip') || headersList.get('x-forwarded-for'),
+          country: headersList.get('cf-ipcountry'),
           userId: (user as { id?: number | string } | null)?.id ?? null,
         })
         // Reaching a portal is what enrolls you in it. The dashboard layout has

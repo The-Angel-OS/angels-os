@@ -10,6 +10,7 @@
  *   pages         page popularity
  *   referrers     where visitors came from (DNN "Site Referrals")
  *   agents        browser / OS / device breakdown (DNN "User Agents")
+ *   countries     where in the world the traffic came from
  *   by-day        page views and unique visitors per calendar day
  *   by-weekday    which days of the week are busy
  *   by-hour       which hours of the day are busy
@@ -35,6 +36,7 @@ export const REPORT_TYPES = [
   'pages',
   'referrers',
   'agents',
+  'countries',
   'by-day',
   'by-weekday',
   'by-hour',
@@ -67,7 +69,12 @@ export function buildAggregateSql(
 ): string {
   const botClause = includeBots ? '' : 'AND (is_bot IS NOT TRUE)'
   const tenantClause = platformScope ? 'tenant_id IS NOT NULL AND $1::int IS NOT NULL' : 'tenant_id = $1'
-  const base = `FROM site_visits WHERE ${tenantClause} AND created_at >= $2 ${botClause}`
+  // $2 MUST carry an explicit cast. It binds as an ISO string, and pg types a
+  // bare parameter as `text` — `timestamptz >= text` has no operator, so every
+  // aggregate report 500'd while the detail view (a plain payload.find) worked.
+  // That asymmetry is exactly what "all the options error except the main one"
+  // looks like from the outside.
+  const base = `FROM site_visits WHERE ${tenantClause} AND created_at >= $2::timestamptz ${botClause}`
 
   const queries: Record<Exclude<ReportType, 'detail'>, string> = {
     pages: `SELECT path AS label, COUNT(*)::int AS views,
@@ -77,6 +84,11 @@ export function buildAggregateSql(
     referrers: `SELECT COALESCE(referrer_host, '(direct)') AS label, COUNT(*)::int AS views,
                   COUNT(DISTINCT visitor_hash)::int AS visitors
                 ${base} GROUP BY 1 ORDER BY views DESC LIMIT $3`,
+
+    countries: `SELECT country AS label, COUNT(*)::int AS views,
+                  COUNT(DISTINCT visitor_hash)::int AS visitors
+                ${base} AND country IS NOT NULL
+                GROUP BY country ORDER BY views DESC LIMIT $3`,
 
     agents: `SELECT browser || ' on ' || os AS label, device, COUNT(*)::int AS views,
                COUNT(DISTINCT visitor_hash)::int AS visitors

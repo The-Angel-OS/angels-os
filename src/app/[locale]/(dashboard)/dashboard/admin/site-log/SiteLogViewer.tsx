@@ -15,6 +15,7 @@ const REPORTS = [
   { id: 'pages', label: 'Page popularity', blurb: 'Which pages get read.' },
   { id: 'referrers', label: 'Referrers', blurb: 'Where your visitors came from.' },
   { id: 'agents', label: 'Browsers & devices', blurb: 'What they viewed it on.' },
+  { id: 'countries', label: 'Countries', blurb: 'Where in the world they are.' },
   { id: 'by-day', label: 'Views by day', blurb: 'Traffic over the period.' },
   { id: 'by-weekday', label: 'Views by day of week', blurb: 'Which days are busy.' },
   { id: 'by-hour', label: 'Views by hour', blurb: 'What time of day they visit.' },
@@ -73,7 +74,7 @@ export function SiteLogViewer({
   const [total, setTotal] = useState<number | null>(null)
   const [hasMore, setHasMore] = useState(false)
   const [wholeNode, setWholeNode] = useState(false)
-  const PAGE = 100
+  const [PAGE, setPage] = useState(50)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -100,13 +101,13 @@ export function SiteLogViewer({
     } finally {
       setLoading(false)
     }
-  }, [report, days, includeBots, offset, wholeNode, canSeeWholeNode])
+  }, [report, days, includeBots, offset, wholeNode, canSeeWholeNode, PAGE])
 
   // Any change to WHAT is being asked resets WHERE we are in it — otherwise
   // switching report while on page 4 shows an empty page 4 of something else.
   useEffect(() => {
     setOffset(0)
-  }, [report, days, includeBots, wholeNode])
+  }, [report, days, includeBots, wholeNode, PAGE])
 
   useEffect(() => {
     void load()
@@ -156,6 +157,19 @@ export function SiteLogViewer({
             </button>
           ))}
         </div>
+
+        <select
+          value={PAGE}
+          onChange={(e) => setPage(Number(e.target.value))}
+          className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+          title="Rows per page"
+        >
+          {[25, 50, 100, 200].map((n) => (
+            <option key={n} value={n}>
+              {n} rows
+            </option>
+          ))}
+        </select>
 
         <label className="flex items-center gap-2 text-sm">
           <input
@@ -233,7 +247,10 @@ export function SiteLogViewer({
             />
           </>
         ) : (
-          <AggregateTable rows={rows as AggregateRow[]} report={report} />
+          <>
+            <ReportChart rows={rows as AggregateRow[]} report={report} />
+            <AggregateTable rows={rows as AggregateRow[]} report={report} />
+          </>
         )}
       </div>
     </div>
@@ -291,12 +308,74 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
   )
 }
 
+/**
+ * "US" means nothing to a portal owner; "United States" does. Intl.DisplayNames
+ * is in every browser we support, so the country list needs no lookup table and
+ * speaks the reader's own language for free.
+ */
+function countryName(code: string): string {
+  try {
+    return new Intl.DisplayNames(undefined, { type: 'region' }).of(code) || code
+  } catch {
+    return code
+  }
+}
+
+/** The reports that are a shape over time — the ones DNN drew as a graph. */
+const TIME_SERIES = new Set<ReportId>(['by-day', 'by-hour', 'by-weekday'])
+
+/**
+ * The graph half of the Site Log. A column per period, drawn as plain divs.
+ *
+ * ponytail: no charting library. This is one series of non-negative numbers on a
+ * shared baseline — flex + percentage heights say it exactly, in about thirty
+ * lines, with no bundle and no theming layer to reconcile against the app's
+ * tokens. Reach for a real chart library when there are two series and an axis
+ * to negotiate.
+ *
+ * Labels thin out as the bars get thin, because forty overlapping dates is worse
+ * than none — the tooltip and the table underneath both still carry every value.
+ */
+function ReportChart({ rows, report }: { rows: AggregateRow[]; report: ReportId }) {
+  if (!TIME_SERIES.has(report) || rows.length < 2) return null
+  const max = Math.max(...rows.map((r) => r.views), 1)
+  // Show roughly a dozen labels however long the range is.
+  const every = Math.ceil(rows.length / 12)
+
+  return (
+    <div className="mb-6 rounded-lg border border-border bg-muted/10 p-4">
+      <div className="flex h-40 items-end gap-[2px]">
+        {rows.map((r, i) => (
+          <div key={i} className="group relative flex h-full flex-1 flex-col justify-end">
+            <div
+              className="w-full rounded-t bg-primary/80 transition-colors group-hover:bg-primary"
+              style={{ height: `${Math.max(2, Math.round((r.views / max) * 100))}%` }}
+            />
+            <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded bg-foreground px-2 py-1 text-xs text-background group-hover:block">
+              {r.label} · {r.views.toLocaleString()} view{r.views === 1 ? '' : 's'}
+              {typeof r.visitors === 'number' ? ` · ${r.visitors.toLocaleString()} visitors` : ''}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="mt-2 flex gap-[2px] text-[10px] text-muted-foreground">
+        {rows.map((r, i) => (
+          <div key={i} className="flex-1 overflow-hidden text-center">
+            {i % every === 0 ? r.label.replace(/^\d{4}-/, '') : ''}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function AggregateTable({ rows, report }: { rows: AggregateRow[]; report: ReportId }) {
   const max = Math.max(...rows.map((r) => r.views), 1)
   const firstHeader =
     report === 'pages' ? 'Page'
     : report === 'referrers' ? 'Source'
     : report === 'agents' ? 'Browser'
+    : report === 'countries' ? 'Country'
     : report === 'visitors' ? 'Visitor'
     : 'Period'
 
@@ -319,7 +398,11 @@ function AggregateTable({ rows, report }: { rows: AggregateRow[]; report: Report
               <td className="py-2 pr-4 font-medium">
                 {/* A visitor hash is 32 characters of noise — show enough to tell
                     two visitors apart and no more. */}
-                {report === 'visitors' ? `Visitor ${r.label.slice(0, 6)}` : r.label}
+                {report === 'visitors'
+                  ? `Visitor ${r.label.slice(0, 6)}`
+                  : report === 'countries'
+                    ? countryName(r.label)
+                    : r.label}
               </td>
               <td className="py-2 pr-4 text-right tabular-nums">{r.views.toLocaleString()}</td>
               <td className="py-2 pr-4 text-right tabular-nums text-muted-foreground">

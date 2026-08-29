@@ -36,6 +36,8 @@ export interface VisitInput {
   referrer?: string | null
   userAgent?: string | null
   ip?: string | null
+  /** Two-letter code from Cloudflare's CF-IPCountry header. */
+  country?: string | null
   userId?: number | string | null
 }
 
@@ -108,6 +110,19 @@ export function visitorHashOf(ip: string, userAgent: string, day = new Date()): 
   return crypto.createHash('sha256').update(`${salt}:${ip}:${userAgent}`).digest('hex').slice(0, 32)
 }
 
+/**
+ * Cloudflare sends CF-IPCountry on every proxied request — the country it already
+ * derived from the IP at the edge. Free, no lookup, no dependency, and it is the
+ * answer to "where is our traffic coming from" that does NOT require storing an
+ * address. 'XX' (unknown) and 'T1' (Tor) are Cloudflare's own placeholders and
+ * mean nothing to an owner, so they are dropped rather than shown as countries.
+ */
+export function normalizeCountry(raw: string | null | undefined): string | undefined {
+  const c = (raw || '').trim().toUpperCase()
+  if (!/^[A-Z]{2}$/.test(c) || c === 'XX' || c === 'T1') return undefined
+  return c
+}
+
 export async function recordSiteVisit(payload: Payload, input: VisitInput): Promise<void> {
   try {
     if (!input.tenantId) return
@@ -130,6 +145,7 @@ export async function recordSiteVisit(payload: Payload, input: VisitInput): Prom
         os,
         device,
         isBot,
+        country: normalizeCountry(input.country),
         visitorHash: input.ip ? visitorHashOf(input.ip, userAgent) : undefined,
         ...(input.userId != null ? { user: Number(input.userId) } : {}),
       } as never,

@@ -68,6 +68,16 @@ export const SiteVisits: CollectionConfig = {
       type: 'text',
       admin: { description: 'Raw User-Agent string.' },
     },
+    {
+      name: 'country',
+      type: 'text',
+      index: true,
+      admin: {
+        description:
+          'Two-letter country from the CF-IPCountry header Cloudflare already sends. ' +
+          'in front of every request, and derived from an IP we never store.',
+      },
+    },
     { name: 'browser', type: 'text', index: true },
     { name: 'os', type: 'text', index: true },
     {
