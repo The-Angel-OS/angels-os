@@ -43,6 +43,9 @@ interface ServiceOption {
 interface BookingPageProps {
   availabilitySlots: AvailabilitySlot[]
   endeavorName: string
+  /** Whether Stripe Connect can actually take a payment. False → every deposit
+   *  line becomes request language, because booking-checkout will not charge. */
+  connectEnabled?: boolean
   services: ServiceOption[]
   tenantSlug?: string
   tenantId?: number | string
@@ -60,7 +63,7 @@ interface PaymentData {
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`
 
-export function BookingPage({ availabilitySlots, endeavorName, services, tenantSlug, tenantId, publishableKey }: BookingPageProps) {
+export function BookingPage({ availabilitySlots, endeavorName, services, tenantSlug, tenantId, publishableKey, connectEnabled = false }: BookingPageProps) {
   const [serviceId, setServiceId] = useState<string | null>(
     services.length === 1 ? services[0]!.id : null,
   )
@@ -200,10 +203,25 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
 
   const selectedDateObj = selectedDate ? new Date(selectedDate + 'T00:00:00') : null
 
-  const depositCents = selectedService
+  const rawDepositCents = selectedService
     ? depositUsd(selectedService) * 100
     : 0
   const totalCents = selectedService ? Math.round(selectedService.priceUSD * 100) : 0
+
+  /**
+   * A deposit only exists if it can be collected.
+   *
+   * Every "due now" line below used to key off the configured deposit alone, so
+   * a business with no Stripe Connect promised the customer a $100 charge that
+   * booking-checkout then declined to make (`needsPayment` requires
+   * connectEnabled) — it recorded a request instead. The customer was told one
+   * thing and a different thing happened, which is the worst outcome available
+   * at a checkout.
+   *
+   * Collapsing it here rather than at each call site means the button, the
+   * summary and the reassurance line cannot disagree with each other.
+   */
+  const depositCents = connectEnabled ? rawDepositCents : 0
 
   const startCheckout = async () => {
     if (!selectedDate || !selectedTime || !serviceId) return

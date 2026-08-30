@@ -77,6 +77,14 @@ export default async function BookPage({
 
   const endeavorName = (endeavorResult?.docs?.[0] as any)?.name || tenant?.name || 'This Enterprise'
 
+  // Can this business actually take money? booking-checkout has always known —
+  // `needsPayment` requires connectEnabled — but the PAGE did not, so a portal
+  // with no Stripe still told the customer "Deposit due now $100.00" and then
+  // quietly took the booking as a request and charged nothing. The server was
+  // right and the screen was lying. Same source of truth on both sides now.
+  const connect = (tenant as { stripeConnect?: Record<string, unknown> } | null)?.stripeConnect
+  const connectEnabled = Boolean(connect?.stripeAccountId && connect?.stripeChargesEnabled)
+
   // DB-first (with static fallback) so owner-configured services — incl. a
   // per-service rental/waiver agreement — drive the booking flow.
   const resolved = await resolveServices(payload, {
@@ -103,6 +111,7 @@ export default async function BookPage({
       availabilitySlots={availabilitySlots}
       endeavorName={endeavorName}
       services={services}
+      connectEnabled={connectEnabled}
       tenantSlug={tenant?.slug ?? undefined}
       tenantId={tenant?.id ?? undefined}
       // Runtime key from the server — NEXT_PUBLIC_* is empty in a self-host Docker
