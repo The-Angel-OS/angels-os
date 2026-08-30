@@ -48,6 +48,11 @@ Containers: `angelos-core`, `angelos-pg` (pg18), `angelos-pgbouncer` (:6432, tra
 mode, no TLS), `angelos-registry`. Logs: `lazydocker`, or `docker logs -f angelos-core`.
 Full config and the revert table: `docs/selfhost/thinkpad/NODE_CONFIG.md`.
 
+**Backups:** `/opt/angelos/backup.sh` nightly at 03:17 (root cron). 14 days kept locally in
+`/opt/angelos/backups`, and each one is pushed offsite to R2 under `backups/`. The script
+fails loudly — it once wrote 20-byte "backups" for two nights and said nothing (260825-26),
+so it now checks size and gzip integrity before calling a dump done.
+
 ### What is NOT on the node
 
 - **Media is on Cloudflare R2** (`pub-ed4eb11a…r2.dev`), not the node's disk. A script
