@@ -90,6 +90,7 @@ import * as migration_20260826_130000_badges_profiles from './20260826_130000_ba
 import * as migration_20260826_140000_users_test_account from './20260826_140000_users_test_account';
 import * as migration_20260827_150000_system_events from './20260827_150000_system_events';
 import * as migration_20260829_100000_site_visits_country from './20260829_100000_site_visits_country';
+import * as migration_20260830_050000_posts_video_block from './20260830_050000_posts_video_block';
 import * as migration_20260821_110000_availability_house_hours from './20260821_110000_availability_house_hours'
 import * as migration_20260821_100000_portal_plan_demo from './20260821_100000_portal_plan_demo'
 import * as migration_20260821_090000_open_community_spaces from './20260821_090000_open_community_spaces'
@@ -594,5 +595,10 @@ export const migrations = [
     up: migration_20260829_100000_site_visits_country.up,
     down: migration_20260829_100000_site_visits_country.down,
     name: '20260829_100000_site_visits_country',
+  },
+  {
+    up: migration_20260830_050000_posts_video_block.up,
+    down: migration_20260830_050000_posts_video_block.down,
+    name: '20260830_050000_posts_video_block',
   },
 ];

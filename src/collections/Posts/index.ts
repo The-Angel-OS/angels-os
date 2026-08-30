@@ -18,6 +18,7 @@ import { Calendar } from '@/blocks/Calendar/config'
 import { GoogleReviews } from '@/blocks/GoogleReviews/config'
 import { MediaText } from '@/blocks/MediaText/config'
 import { hero } from '@/fields/hero'
+import { Video } from '@/blocks/Video/config'
 import { simpleSlugField } from '@/fields/simpleSlugField'
 import { adminOrPublishedWithTenantScope } from '@/access/adminOrPublishedWithTenantScope'
 import {
@@ -132,6 +133,7 @@ export const Posts: CollectionConfig = {
                 Calendar,
                 GoogleReviews,
                 MediaText,
+                Video,
               ],
               required: true,
               // `required` alone reports "The following field is invalid:
