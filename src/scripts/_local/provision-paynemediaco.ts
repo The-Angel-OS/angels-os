@@ -133,7 +133,30 @@ const MERCYANNA_URLS = [
   'https://images.squarespace-cdn.com/content/v1/61d753d26b945d29404d3a71/99459a8f-354e-4f2b-b978-ec87e43dc0cc/A94A4968.jpeg',
 ]
 
+/**
+ * Fetch-and-rehost, but reuse what is already here.
+ *
+ * resolveMediaSource has no dedupe — it uploads every time it is called. This
+ * script is meant to be re-runnable (the first run died on the Gallery block
+ * shape AFTER all 78 images were already in), and without this check a second
+ * run silently doubles the tenant's Media library.
+ *
+ * Keyed on filename within the tenant, which is what the CDN URL's last segment
+ * gives us and what the uploader names the file.
+ */
 async function upload(url: string, alt: string): Promise<number | null> {
+  const filename = decodeURIComponent(url.split('/').pop() || '')
+  if (filename) {
+    const hit = await payload.find({
+      collection: 'media',
+      where: { and: [{ filename: { equals: filename } }, { tenant: { equals: tenantId } }] },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const existing = hit.docs[0] as { id: number } | undefined
+    if (existing) return existing.id
+  }
   const res = await resolveMediaSource(payload, { imageUrl: url }, { tenantId: Number(tenantId), alt })
   if ('error' in res) {
     console.log('UPLOAD_FAILED', url, res.error)
