@@ -383,7 +383,11 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 {services.map((s) => {
-                  const dep = depositUsd(s)
+                  // Same gate as the confirm step: a deposit that cannot be
+                  // collected must not be advertised on the card either, or the
+                  // customer reads "$100 deposit to reserve" here and "no
+                  // deposit" two screens later.
+                  const dep = connectEnabled ? depositUsd(s) : 0
                   const active = serviceId === s.id
                   return (
                     <button
