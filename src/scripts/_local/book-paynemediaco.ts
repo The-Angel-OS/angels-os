@@ -140,37 +140,45 @@ const HOURS: Array<{ day: string; start: string; end: string }> = [
   { day: '6', start: '08:00', end: '21:00' },
 ]
 
-const existingAv = await payload.find({
-  collection: 'availability',
-  where: { and: [{ title: { equals: 'Studio Hours' } }, { tenant: { equals: tenantId } }] },
-  limit: 1,
-  depth: 0,
-  overrideAccess: true,
-})
-const avData = {
-  tenant: tenantId,
-  title: 'Studio Hours',
-  availabilityType: 'weekly',
-  weeklySchedule: HOURS.map((h) => ({ dayOfWeek: h.day, startTime: h.start, endTime: h.end })),
-  slotDuration: 60,
-  capacity: 1,
-  bufferTime: 30,
-  minAdvanceBooking: 24,
-  maxAdvanceBooking: 365,
-  serviceTypes: [{ serviceType: 'service' }, { serviceType: 'consultation' }],
-  isActive: true,
-}
-const av = existingAv.docs[0] as { id: number | string } | undefined
-if (av) {
-  await (payload.update as never as (a: unknown) => Promise<unknown>)({
-    collection: 'availability', id: av.id, data: avData, overrideAccess: true,
+// `weeklySchedule` is a GROUP, not an array — one Availability document holds one
+// day. Seven days means seven rows, which is also why the collection's admin
+// columns are `dayOfWeek, startTime, endTime` rather than a schedule summary.
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+for (const h of HOURS) {
+  const title = `Studio Hours — ${DAY_NAMES[Number(h.day)]}`
+  const existingAv = await payload.find({
+    collection: 'availability',
+    where: { and: [{ title: { equals: title } }, { tenant: { equals: tenantId } }] },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
   })
-  console.log('AVAILABILITY updated: 7 days')
-} else {
-  await (payload.create as never as (a: unknown) => Promise<unknown>)({
-    collection: 'availability', data: avData, overrideAccess: true,
-  })
-  console.log('AVAILABILITY created: 7 days')
+  const avData = {
+    tenant: tenantId,
+    title,
+    availabilityType: 'weekly',
+    weeklySchedule: { dayOfWeek: h.day, startTime: h.start, endTime: h.end },
+    slotDuration: 60,
+    capacity: 1,
+    bufferTime: 30,
+    minAdvanceBooking: 24,
+    maxAdvanceBooking: 365,
+    serviceTypes: [{ serviceType: 'service' }, { serviceType: 'consultation' }],
+    isActive: true,
+  }
+  const av = existingAv.docs[0] as { id: number | string } | undefined
+  if (av) {
+    await (payload.update as never as (a: unknown) => Promise<unknown>)({
+      collection: 'availability', id: av.id, data: avData, overrideAccess: true,
+    })
+    console.log('AVAILABILITY updated', title)
+  } else {
+    await (payload.create as never as (a: unknown) => Promise<unknown>)({
+      collection: 'availability', data: avData, overrideAccess: true,
+    })
+    console.log('AVAILABILITY created', title)
+  }
 }
 
 console.log('DONE https://paynemediaco.spacesangels.com/book')
