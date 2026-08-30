@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Fix the Tunnel
+Comment=Restart cloudflared and check the websites are back up
+Exec=/home/angel/Desktop/fix-the-tunnel.sh
+Icon=network-connect
+Terminal=true
+Categories=System;
