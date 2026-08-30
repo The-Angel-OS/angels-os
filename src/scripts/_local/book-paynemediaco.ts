@@ -48,7 +48,7 @@ const SERVICES: Svc[] = [
     serviceId: 'beach-wedding-1hr',
     label: 'Beach Wedding — 1 Hour',
     description:
-      'One hour of coverage for a beach ceremony. Photos delivered within a week. His published starting rate.',
+      'One hour of coverage for a beach ceremony. Photos delivered within a week.',
     bookingType: 'service',
     durationMinutes: 60,
     priceUsd: 399,
@@ -139,6 +139,31 @@ const HOURS: Array<{ day: string; start: string; end: string }> = [
   { day: '5', start: '09:00', end: '21:00' },
   { day: '6', start: '08:00', end: '21:00' },
 ]
+
+// The trade pack seeds a generic photography catalogue at provisioning time
+// (product photography, corporate headshots), and resolveServices returns the DB
+// set wholesale once it is non-empty. So Chris's booking page was offering to
+// shoot products and staff headshots — services his ad does not mention and he
+// may not sell. Anything not listed above is switched OFF.
+//
+// Disabled, not deleted: `enabled` is what the booking page reads, a disabled row
+// keeps any history attached to it, and re-enabling is one checkbox if Chris says
+// he does want headshots after all.
+const keep = new Set(SERVICES.map((s) => s.serviceId))
+const all = await payload.find({
+  collection: 'services',
+  where: { tenant: { equals: tenantId } },
+  limit: 200,
+  depth: 0,
+  overrideAccess: true,
+})
+for (const row of all.docs as Array<{ id: number | string; serviceId: string; enabled?: boolean }>) {
+  if (keep.has(row.serviceId) || row.enabled === false) continue
+  await (payload.update as never as (a: unknown) => Promise<unknown>)({
+    collection: 'services', id: row.id, data: { enabled: false }, overrideAccess: true,
+  })
+  console.log('SERVICE disabled (not in his ad)', row.serviceId)
+}
 
 // `weeklySchedule` is a GROUP, not an array — one Availability document holds one
 // day. Seven days means seven rows, which is also why the collection's admin
