@@ -1,0 +1,7 @@
+[Unit]
+Description=Restart cloudflared when the Cloudflare edge cannot reach this node
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/tunnel-watchdog.sh
