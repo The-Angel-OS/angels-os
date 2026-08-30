@@ -28,6 +28,17 @@
   cloudflare` and `/api/health` reports the node's uptime, not a fresh deploy. The whole
   zone is now on the node. `_acme-challenge` → `railwaydns.net` and `_railway-verify` are
   left in place until the Sep 1 stay-or-return call.  `260828`
+- **[P1→FIXED 260830] The tunnel dropped and nothing noticed — now it self-heals.**
+  Error 1033 on every hostname while the box, the app and `systemctl is-active
+  cloudflared` were all healthy. cloudflared had lost its QUIC connections to a
+  network blip (`sendmsg: network is unreachable`), logged `Registered tunnel
+  connection` on a retry, and kept only `connIndex=0` — the edge had dropped the
+  tunnel entirely. `Restart=on-failure` cannot fire because the process never
+  fails. Second occurrence (260827 was the first). Fixed with a systemd timer that
+  checks `node01.spacesangels.com/api/health` **from outside** every 2 min and
+  restarts cloudflared after two consecutive failures. Files in
+  `docs/selfhost/thinkpad/watchdog/`; failure path proven by dry run.
+  ⚠️ The tell is the connection count — a healthy tunnel registers connIndex 0–3.  `260830`
 - **[P0→FIXED 260827] The node signed JWTs with the wrong secret** — `.env.local` values
   carry literal quotes through `env_file: format: raw`, so `PAYLOAD_SECRET` reached the
   container as `"74e…"`. Sign-in died the moment the node became production. Ten variables
