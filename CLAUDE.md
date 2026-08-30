@@ -69,10 +69,10 @@ Full config and the revert table: `docs/selfhost/thinkpad/NODE_CONFIG.md`.
 
 ## ⚠️ Known-stale, do not trust
 
-- **The local dev database is ~a month behind.** `C:\Dev\angels-os` against local pg has
-  migrations only to `20260731`; it is missing columns the current config selects
-  (`portal_plan`, others). It will boot wrong and it is nobody's preview of production.
-  Run migrations before using it, or work against the node.
+- **The local dev database holds STALE DATA, though its schema is now current.**
+  Migrations were caught up 260830 (it had been stuck at `20260731`, missing columns the
+  config selects). The schema matches production; the rows do not — it is an old copy and
+  it is nobody's preview of production. Run `pnpm migrate` after pulling.
 - **`C:\Dev\datacenter\stack` still has the `.env.local` quote bug.** Values carry literal
   quotes into the container through `env_file: format: raw`. It is why "system email auth
   fails with nothing in any log" — `SYSTEM_EMAIL_PASSWORD` is one of ten affected vars.
