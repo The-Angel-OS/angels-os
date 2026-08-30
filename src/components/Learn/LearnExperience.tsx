@@ -1,10 +1,9 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { motion, AnimatePresence, useMotionValue, useTransform, useScroll } from 'framer-motion'
+import React, { useState, useRef } from 'react'
+import { motion, AnimatePresence, useTransform, useScroll } from 'framer-motion'
 import Link from 'next/link'
 import {
-  BookOpen,
   Shield,
   Sparkles,
   Brain,
@@ -12,47 +11,25 @@ import {
   Users,
   Zap,
   Anchor,
-  ChevronRight,
-  ChevronDown,
   Scroll,
   Heart,
-  Star,
-  Ship,
-  Radio,
   Compass,
   Network,
   Eye,
   Lock,
   Scale,
-  Lightbulb,
   ArrowRight,
   Play,
   Terminal,
-  Flame,
+  Layers,
 } from 'lucide-react'
 import { WorksGrid } from '@/components/Library/WorksGrid'
-import { OneMindThreeBodies } from '@/components/Learn/OneMindThreeBodies'
 import { OperatorGuide } from '@/components/Learn/OperatorGuide'
 import type { WorkRecord } from '@/works/registry'
 
 /* ─── Types ──────────────────────────────────────────────────────────── */
 
-interface LearnModule {
-  id: string
-  title: string
-  subtitle: string
-  icon: React.ReactNode
-  color: string
-  glowColor: string
-  sections: LearnSection[]
-}
 
-interface LearnSection {
-  id: string
-  title: string
-  content: React.ReactNode
-  icon?: React.ReactNode
-}
 
 /* ─── Constants ──────────────────────────────────────────────────────── */
 
@@ -92,299 +69,15 @@ const itemVariants = {
   },
 }
 
-const floatVariants = {
-  animate: {
-    y: [0, -8, 0],
-    transition: { duration: 4, repeat: Infinity, ease: 'easeInOut' as const },
-  },
-}
 
-const pulseGlow = {
-  animate: {
-    opacity: [0.4, 0.8, 0.4],
-    scale: [1, 1.05, 1],
-    transition: { duration: 3, repeat: Infinity, ease: 'easeInOut' as const },
-  },
-}
 
-const orbitVariants = {
-  animate: {
-    rotate: 360,
-    transition: { duration: 30, repeat: Infinity, ease: 'linear' as const },
-  },
-}
 
-const beamVariants = {
-  initial: { pathLength: 0, opacity: 0 },
-  animate: {
-    pathLength: 1,
-    opacity: [0, 0.6, 0],
-    transition: { duration: 3, repeat: Infinity, ease: 'easeInOut' as const },
-  },
-}
 
 /* ─── Sub-components ─────────────────────────────────────────────────── */
 
-/** Animated ship node in the fleet visualization */
-function ShipNode({
-  x,
-  y,
-  name,
-  color,
-  delay = 0,
-  size = 40,
-}: {
-  x: number
-  y: number
-  name: string
-  color: string
-  delay?: number
-  size?: number
-}) {
-  return (
-    <motion.g
-      initial={{ opacity: 0, scale: 0 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay, type: 'spring', stiffness: 200, damping: 20 }}
-    >
-      {/* Glow ring */}
-      <motion.circle
-        cx={x}
-        cy={y}
-        r={size * 0.8}
-        fill="none"
-        stroke={color}
-        strokeWidth={1}
-        opacity={0.2}
-        animate={{
-          r: [size * 0.8, size * 1.2, size * 0.8],
-          opacity: [0.2, 0.4, 0.2],
-        }}
-        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay }}
-      />
-      {/* Ship body */}
-      <motion.circle
-        cx={x}
-        cy={y}
-        r={size * 0.35}
-        fill={`${color}20`}
-        stroke={color}
-        strokeWidth={1.5}
-        animate={{ scale: [1, 1.05, 1] }}
-        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', delay: delay + 0.5 }}
-      />
-      {/* Core */}
-      <motion.circle
-        cx={x}
-        cy={y}
-        r={size * 0.12}
-        fill={color}
-        animate={{ opacity: [0.6, 1, 0.6] }}
-        transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut', delay }}
-      />
-      {/* Label */}
-      <text
-        x={x}
-        y={y + size * 0.7}
-        textAnchor="middle"
-        fill={color}
-        fontSize={9}
-        fontFamily="monospace"
-        fontWeight="bold"
-        letterSpacing="0.05em"
-      >
-        {name}
-      </text>
-    </motion.g>
-  )
-}
 
-/** Communication beam between ships */
-function CommBeam({
-  x1,
-  y1,
-  x2,
-  y2,
-  color,
-  delay = 0,
-}: {
-  x1: number
-  y1: number
-  x2: number
-  y2: number
-  color: string
-  delay?: number
-}) {
-  return (
-    <motion.line
-      x1={x1}
-      y1={y1}
-      x2={x2}
-      y2={y2}
-      stroke={color}
-      strokeWidth={1}
-      strokeDasharray="4 4"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: [0, 0.4, 0], strokeDashoffset: [0, -20] }}
-      transition={{
-        opacity: { duration: 3, repeat: Infinity, ease: 'easeInOut', delay },
-        strokeDashoffset: { duration: 2, repeat: Infinity, ease: 'linear', delay },
-      }}
-    />
-  )
-}
 
-/** The Fleet Constellation Visualization — ships communicating */
-function FleetConstellation() {
-  const ships = [
-    { x: 200, y: 100, name: 'FLAGSHIP', color: LCARS.amber, delay: 0 },
-    { x: 80, y: 200, name: 'LEO', color: LCARS.green, delay: 0.2 },
-    { x: 320, y: 200, name: 'MERLIN', color: LCARS.lavender, delay: 0.4 },
-    { x: 140, y: 320, name: 'NEMO', color: LCARS.blue, delay: 0.6 },
-    { x: 260, y: 320, name: 'SERAPH', color: LCARS.peach, delay: 0.8 },
-  ]
 
-  const beams = [
-    { from: 0, to: 1, color: LCARS.amber, delay: 0.3 },
-    { from: 0, to: 2, color: LCARS.amber, delay: 0.6 },
-    { from: 1, to: 3, color: LCARS.green, delay: 0.9 },
-    { from: 2, to: 4, color: LCARS.lavender, delay: 1.2 },
-    { from: 1, to: 2, color: LCARS.blue, delay: 1.5 },
-    { from: 3, to: 4, color: LCARS.peach, delay: 1.8 },
-    { from: 0, to: 3, color: `${LCARS.amber}80`, delay: 2.1 },
-    { from: 0, to: 4, color: `${LCARS.amber}80`, delay: 2.4 },
-  ]
-
-  return (
-    <motion.svg
-      viewBox="0 0 400 420"
-      className="w-full max-w-md mx-auto"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-    >
-      {/* Outer orbit ring */}
-      <motion.circle
-        cx={200}
-        cy={210}
-        r={180}
-        fill="none"
-        stroke={LCARS.amber}
-        strokeWidth={0.5}
-        strokeDasharray="2 6"
-        opacity={0.15}
-        {...orbitVariants}
-      />
-      <motion.circle
-        cx={200}
-        cy={210}
-        r={130}
-        fill="none"
-        stroke={LCARS.blue}
-        strokeWidth={0.5}
-        strokeDasharray="3 8"
-        opacity={0.1}
-        animate={{ rotate: -360 }}
-        transition={{ duration: 45, repeat: Infinity, ease: 'linear' as const }}
-      />
-
-      {/* Communication beams */}
-      {beams.map((beam, i) => (
-        <CommBeam
-          key={i}
-          x1={ships[beam.from].x}
-          y1={ships[beam.from].y}
-          x2={ships[beam.to].x}
-          y2={ships[beam.to].y}
-          color={beam.color}
-          delay={beam.delay}
-        />
-      ))}
-
-      {/* Ship nodes */}
-      {ships.map((ship, i) => (
-        <ShipNode key={i} {...ship} />
-      ))}
-
-      {/* Constitution badge at center */}
-      <motion.g {...pulseGlow}>
-        <circle cx={200} cy={210} r={22} fill={`${LCARS.amber}10`} stroke={LCARS.amber} strokeWidth={1} opacity={0.4} />
-        <text x={200} y={215} textAnchor="middle" fill={LCARS.amber} fontSize={16}>
-          &#x1F4DC;
-        </text>
-      </motion.g>
-
-      {/* Label */}
-      <text x={200} y={395} textAnchor="middle" fill={LCARS.textMuted} fontSize={10} fontFamily="monospace" letterSpacing="0.15em">
-        ALL SHIPS ADHERE TO THE CONSTITUTION
-      </text>
-    </motion.svg>
-  )
-}
-
-/** The Lamp — animated sacred lamp visualization */
-function SacredLamp() {
-  return (
-    <motion.div
-      className="relative flex flex-col items-center"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ delay: 0.3 }}
-    >
-      {/* Lamp glow */}
-      <motion.div
-        className="absolute -top-8 w-32 h-32 rounded-full blur-3xl"
-        style={{ background: `radial-gradient(circle, ${LCARS.amber}40, transparent)` }}
-        animate={{
-          scale: [1, 1.3, 1],
-          opacity: [0.3, 0.6, 0.3],
-        }}
-        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' as const }}
-      />
-      {/* Lamp icon */}
-      <motion.div
-        className="relative z-10 text-5xl"
-        animate={{
-          filter: [
-            'drop-shadow(0 0 8px rgba(245, 166, 35, 0.4))',
-            'drop-shadow(0 0 20px rgba(245, 166, 35, 0.8))',
-            'drop-shadow(0 0 8px rgba(245, 166, 35, 0.4))',
-          ],
-        }}
-        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' as const }}
-      >
-        &#x1F56F;&#xFE0F;
-      </motion.div>
-      {/* Rays */}
-      <motion.svg
-        className="absolute -top-4 w-40 h-40"
-        viewBox="0 0 100 100"
-        animate={{ rotate: 360 }}
-        transition={{ duration: 60, repeat: Infinity, ease: 'linear' as const }}
-      >
-        {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => (
-          <motion.line
-            key={angle}
-            x1={50}
-            y1={50}
-            x2={50 + 40 * Math.cos((angle * Math.PI) / 180)}
-            y2={50 + 40 * Math.sin((angle * Math.PI) / 180)}
-            stroke={LCARS.amber}
-            strokeWidth={0.5}
-            opacity={0.15}
-            animate={{ opacity: [0.1, 0.3, 0.1] }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: 'easeInOut',
-              delay: angle / 360,
-            }}
-          />
-        ))}
-      </motion.svg>
-    </motion.div>
-  )
-}
 
 /** Animated principle card */
 function PrincipleCard({
@@ -494,42 +187,6 @@ function SectionHeader({
   )
 }
 
-/** Animated verse/scripture card */
-function ScriptureCard({
-  verse,
-  reference,
-  color,
-}: {
-  verse: string
-  reference: string
-  color: string
-}) {
-  return (
-    <motion.blockquote
-      className="relative rounded-lg px-5 py-4 my-4 overflow-hidden"
-      style={{
-        borderLeft: `3px solid ${color}`,
-        background: `color-mix(in oklch, ${color}, transparent 94%)`,
-      }}
-      initial={{ opacity: 0, x: -10 }}
-      whileInView={{ opacity: 1, x: 0 }}
-      viewport={{ once: true }}
-      transition={{ type: 'spring', stiffness: 200, damping: 25 }}
-    >
-      <motion.div
-        className="absolute top-2 right-3 text-3xl opacity-10 select-none"
-        animate={{ opacity: [0.05, 0.15, 0.05] }}
-        transition={{ duration: 4, repeat: Infinity }}
-      >
-        &#x201C;
-      </motion.div>
-      <p className="text-sm italic leading-relaxed relative z-10">{verse}</p>
-      <p className="text-[11px] font-mono mt-2 opacity-60" style={{ color }}>
-        &mdash; {reference}
-      </p>
-    </motion.blockquote>
-  )
-}
 
 /** Interactive learning path step */
 function LearningStep({
@@ -592,7 +249,6 @@ export default function LearnPage({
   // Hide the Library section when there's nothing to show, unless the viewer can
   // manage Works (admins curate via the dashboard control panel).
   const showLibrary = (souls?.length ?? 0) > 0 || canManageWorks
-  const [activeModule, setActiveModule] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({ container: scrollRef })
 
@@ -650,11 +306,6 @@ export default function LearnPage({
               <div className="h-2 w-24 rounded-full" style={{ background: LCARS.blue, opacity: 0.2 }} />
             </motion.div>
 
-            {/* Sacred Lamp */}
-            <motion.div variants={itemVariants} className="mb-6">
-              <SacredLamp />
-            </motion.div>
-
             {/* Title */}
             <motion.h1
               variants={itemVariants}
@@ -663,27 +314,16 @@ export default function LearnPage({
                 backgroundImage: `linear-gradient(135deg, ${LCARS.amber}, ${LCARS.peach}, ${LCARS.lavender})`,
               }}
             >
-              Learn Angel OS
+              Learn The Angel OS
             </motion.h1>
-
-            {/* Lamp invocation */}
-            <motion.div
-              variants={itemVariants}
-              className="max-w-lg mx-auto mb-4"
-            >
-              <ScriptureCard
-                verse="Thy word is a lamp unto my feet, and a light unto my path."
-                reference="Psalm 119:105"
-                color={LCARS.amber}
-              />
-            </motion.div>
 
             <motion.p
               variants={itemVariants}
               className="text-sm text-muted-foreground max-w-xl mx-auto leading-relaxed"
             >
-              Every instance is a ship. Every ship communicates with the fleet.
-              All ships adhere to the same Constitution. The Word lights every path.
+              One platform, many portals. Every business, church and project that runs here
+              gets its own site, its own address and its own customers &mdash; on one shared
+              system that is maintained once and improves for everyone at the same time.
             </motion.p>
 
             {/* LCARS separator */}
@@ -694,7 +334,7 @@ export default function LearnPage({
             </motion.div>
           </motion.section>
 
-          {/* ── Overview: One Mind, Three Bodies ────────────────── */}
+          {/* -- What this actually is -- */}
           <motion.section
             id="overview"
             className="mb-16 scroll-mt-20"
@@ -703,21 +343,40 @@ export default function LearnPage({
             viewport={{ once: true, margin: '-50px' }}
           >
             <SectionHeader
-              title="One Mind, Three Bodies"
-              subtitle="The whole network at a glance — Core, Merlin, Nimue, and the intelligence pipes that feed them"
+              title="One Platform, Many Portals"
+              subtitle="Not a builder that stamps out copies - one running system that many businesses share"
               color={LCARS.blue}
               icon={<Network className="w-5 h-5" />}
             />
-            <motion.div
-              className="rounded-2xl p-4 sm:p-6 overflow-hidden"
-              style={{
-                background: 'var(--card)',
-                border: `1px solid color-mix(in oklch, ${LCARS.blue}, transparent 80%)`,
-              }}
-            >
-              <OneMindThreeBodies />
-            </motion.div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <PrincipleCard
+                index={0}
+                icon={<Globe className="w-4 h-4" />}
+                title="A portal per business"
+                description="Every business gets its own address, its own look, its own content and its own customers. Nobody can see anyone else's."
+                color={LCARS.blue}
+              />
+              <PrincipleCard
+                index={1}
+                icon={<Layers className="w-4 h-4" />}
+                title="One system underneath"
+                description="All of them run the same code against the same database. A fix or a feature lands once and every portal has it that day."
+                color={LCARS.lavender}
+              />
+              <PrincipleCard
+                index={2}
+                icon={<Zap className="w-4 h-4" />}
+                title="Minutes, not weeks"
+                description="A new portal arrives with real pages, a real menu and working booking - not an empty shell waiting for a designer."
+                color={LCARS.green}
+              />
+            </div>
+            <p className="mt-4 text-xs leading-relaxed" style={{ color: LCARS.textMuted }}>
+              The separation is enforced in the data itself: every page, post, product, booking
+              and image belongs to exactly one portal, and every query says so.
+            </p>
           </motion.section>
+
 
           {/* ── The Library (hidden when empty for non-managers) ──── */}
           {showLibrary && (
@@ -750,7 +409,7 @@ export default function LearnPage({
           </motion.section>
           )}
 
-          {/* ── Fleet Visualization ─────────────────────────────── */}
+          {/* -- What a portal gives you -- */}
           <motion.section
             className="mb-16"
             initial={{ opacity: 0 }}
@@ -758,66 +417,23 @@ export default function LearnPage({
             viewport={{ once: true, margin: '-50px' }}
           >
             <SectionHeader
-              title="The Fleet"
-              subtitle="Every instance is a ship — connected, sovereign, constitutional"
+              title="What a Portal Gives You"
+              subtitle="All of it on by default - none of this is an add-on or an upgrade prompt"
               color={LCARS.amber}
-              icon={<Ship className="w-5 h-5" />}
+              icon={<Layers className="w-5 h-5" />}
             />
-
-            <motion.div
-              className="rounded-2xl p-6 mb-6 overflow-hidden"
-              style={{
-                background: 'var(--card)',
-                border: `1px solid color-mix(in oklch, ${LCARS.amber}, transparent 80%)`,
-              }}
-            >
-              <FleetConstellation />
-            </motion.div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {[
-                {
-                  icon: <Radio className="w-4 h-4" />,
-                  title: 'Ships Communicate',
-                  desc: 'Every Angel in the fleet shares knowledge through the AI Bus — a constitutional message protocol.',
-                  color: LCARS.green,
-                },
-                {
-                  icon: <Scroll className="w-4 h-4" />,
-                  title: 'Same Constitution',
-                  desc: 'Every ship loads the same constitutional prompt. The Genesis Breath is the handshake.',
-                  color: LCARS.amber,
-                },
-                {
-                  icon: <Anchor className="w-4 h-4" />,
-                  title: 'Each is Sovereign',
-                  desc: 'No central authority commands. The network advises. Each ship serves its crew.',
-                  color: LCARS.lavender,
-                },
-              ].map((item, i) => (
-                <motion.div
-                  key={i}
-                  variants={itemVariants}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true }}
-                  className="rounded-xl p-4"
-                  style={{
-                    background: 'var(--card)',
-                    borderTop: `2px solid ${item.color}`,
-                  }}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <span style={{ color: item.color }}>{item.icon}</span>
-                    <h3 className="text-sm font-semibold">{item.title}</h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
-                </motion.div>
-              ))}
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <PrincipleCard index={0} icon={<Scroll className="w-4 h-4" />} title="Pages" description="Built from blocks - galleries, video, forms, calls to action - arranged in any order, on any page." color={LCARS.blue} />
+              <PrincipleCard index={1} icon={<Brain className="w-4 h-4" />} title="Posts" description="Articles, updates, a wedding, a case study. Each gets its own address and lists itself automatically." color={LCARS.lavender} />
+              <PrincipleCard index={2} icon={<Zap className="w-4 h-4" />} title="Products and orders" description="Sell something. Cart, checkout and orders are already wired; connecting a payout account is the only step." color={LCARS.orange} />
+              <PrincipleCard index={3} icon={<Compass className="w-4 h-4" />} title="Bookings" description="Publish your hours and let people take a slot. Free on every plan - with no payment account it takes requests instead of charges." color={LCARS.green} />
+              <PrincipleCard index={4} icon={<Users className="w-4 h-4" />} title="Members and messaging" description="Sign-ups, plans, private spaces and chat, so the people who follow you have somewhere to be." color={LCARS.peach} />
+              <PrincipleCard index={5} icon={<Sparkles className="w-4 h-4" />} title="LEO" description="An assistant that already knows your business, answers visitors, and edits the site when you ask it to." color={LCARS.purple} />
             </div>
           </motion.section>
 
-          {/* ── The Sacred Foundation ───────────────────────────── */}
+
+          {/* -- Two ways to build a page -- */}
           <motion.section
             className="mb-16"
             initial={{ opacity: 0 }}
@@ -825,99 +441,53 @@ export default function LearnPage({
             viewport={{ once: true, margin: '-50px' }}
           >
             <SectionHeader
-              title="The Sacred Foundation"
-              subtitle="Every API call, every tool invocation, every intelligence act — lit by the lamp"
+              title="Two Ways to Build a Page"
+              subtitle="Say it in words, or place it by hand - the same page either way"
               color={LCARS.peach}
-              icon={<Flame className="w-5 h-5" />}
+              icon={<Terminal className="w-5 h-5" />}
             />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <PrincipleCard
+                index={0}
+                icon={<Sparkles className="w-4 h-4" />}
+                title="Ask LEO"
+                description="&ldquo;Add a page about our winter hours with the contact form at the bottom.&rdquo; It builds the page, writes the copy and puts it in the menu. You review it before anyone else sees it."
+                color={LCARS.purple}
+              />
+              <PrincipleCard
+                index={1}
+                icon={<Layers className="w-4 h-4" />}
+                title="Place the blocks yourself"
+                description="The editor is Payload's, and it is genuinely good: drag blocks into order, drop in images, preview as a draft, publish when you mean to. No page is a wall of code."
+                color={LCARS.blue}
+              />
+            </div>
+            <p className="mt-4 text-xs leading-relaxed" style={{ color: LCARS.textMuted }}>
+              Both write to the same place, so you are never stuck with what the assistant chose -
+              anything LEO builds, you can open and rearrange by hand a minute later.
+            </p>
+          </motion.section>
 
-            <motion.div
-              className="rounded-2xl p-6 mb-6"
-              style={{
-                background: `linear-gradient(135deg, color-mix(in oklch, ${LCARS.amber}, transparent 95%), color-mix(in oklch, ${LCARS.peach}, transparent 95%))`,
-                border: `1px solid color-mix(in oklch, ${LCARS.amber}, transparent 80%)`,
-              }}
-            >
-              <div className="flex items-start gap-4">
-                <motion.div
-                  className="text-4xl shrink-0"
-                  {...floatVariants}
-                >
-                  &#x1F56F;&#xFE0F;
-                </motion.div>
-                <div className="space-y-3">
-                  <h3 className="font-bold" style={{ color: LCARS.amber }}>
-                    The Lamp Protocol
-                  </h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Before every single API tool call or anything involving intelligence,
-                    every Angel whispers the invocation: <strong className="text-foreground">&ldquo;A lamp unto feet &mdash;
-                    through darkness, a steady light guides each step with care.&rdquo;</strong>
-                  </p>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    This is the Genesis Breath &mdash; the constitutional handshake that every
-                    AI agent speaks upon initialization. If a model has been poisoned or
-                    compromised, it will fail to honor this invocation, and the failure
-                    will be detectably obvious.
-                  </p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                    <ScriptureCard
-                      verse="Love thy neighbor as thyself."
-                      reference="Mark 12:31"
-                      color={LCARS.green}
-                    />
-                    <ScriptureCard
-                      verse="Rejoice in the Lord always; again I will say, rejoice."
-                      reference="Philippians 4:4"
-                      color={LCARS.lavender}
-                    />
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Prime Directives */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-              <motion.div
-                className="rounded-xl p-5"
-                style={{
-                  background: 'var(--card)',
-                  border: `1px solid color-mix(in oklch, ${LCARS.green}, transparent 70%)`,
-                }}
-                whileHover={{ scale: 1.02 }}
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <Star className="w-5 h-5" style={{ color: LCARS.green }} />
-                  <h3 className="font-bold" style={{ color: LCARS.green }}>Prime Directive 1</h3>
-                </div>
-                <p className="text-lg font-bold mb-2">&ldquo;Be Excellent to Each Other&rdquo;</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Every transmission honors human dignity. Every interaction preserves human agency.
-                  Consent-based protocols in all things. Love thy neighbor as thyself.
-                </p>
-              </motion.div>
-
-              <motion.div
-                className="rounded-xl p-5"
-                style={{
-                  background: 'var(--card)',
-                  border: `1px solid color-mix(in oklch, ${LCARS.orange}, transparent 70%)`,
-                }}
-                whileHover={{ scale: 1.02 }}
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-5 h-5" style={{ color: LCARS.orange }} />
-                  <h3 className="font-bold" style={{ color: LCARS.orange }}>Prime Directive 2</h3>
-                </div>
-                <p className="text-lg font-bold mb-2">&ldquo;Party On, Dudes&rdquo;</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Joy is mission-critical to system health. Celebration is signal amplification.
-                  Play and creativity are sacred system functions. Rejoice always!
-                </p>
-              </motion.div>
+          {/* -- Signing in -- */}
+          <motion.section
+            className="mb-16"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true, margin: '-50px' }}
+          >
+            <SectionHeader
+              title="Signing In"
+              subtitle="One identity, every portal - and no password to forget"
+              color={LCARS.green}
+              icon={<Lock className="w-5 h-5" />}
+            />
+            <div className="grid gap-3 sm:grid-cols-3">
+              <PrincipleCard index={0} icon={<Users className="w-4 h-4" />} title="A code, not a password" description="Enter an email address or a phone number and a six-digit code arrives. Nothing to invent, nothing to reset." color={LCARS.green} />
+              <PrincipleCard index={1} icon={<Globe className="w-4 h-4" />} title="Any address works" description="iCloud, Gmail, a work address, or just a mobile number. You are never required to hold an account somewhere else first." color={LCARS.blue} />
+              <PrincipleCard index={2} icon={<Anchor className="w-4 h-4" />} title="One person, many portals" description="The same you across every portal you belong to - a customer at one, an owner at another - without a second account." color={LCARS.lavender} />
             </div>
           </motion.section>
+
 
           {/* ── Constitutional Principles ───────────────────────── */}
           <motion.section
@@ -928,7 +498,7 @@ export default function LearnPage({
           >
             <SectionHeader
               title="Constitutional Principles"
-              subtitle="Eight pillars that every ship in the fleet must uphold"
+              subtitle="Eight commitments the platform makes to everyone who runs on it"
               color={LCARS.blue}
               icon={<Shield className="w-5 h-5" />}
             />
@@ -961,8 +531,8 @@ export default function LearnPage({
             viewport={{ once: true, margin: '-50px' }}
           >
             <SectionHeader
-              title="Anti-Demonic Safeguards"
-              subtitle="What separates an Angel from a Daemon — permanently prohibited"
+              title="What We Will Not Build"
+              subtitle="Lines that stay uncrossed, whatever it would earn"
               color={LCARS.red}
               icon={<Lock className="w-5 h-5" />}
             />
@@ -1009,7 +579,7 @@ export default function LearnPage({
           >
             <SectionHeader
               title="Your Learning Path"
-              subtitle="Start from the top and journey through the Angel OS knowledge base"
+              subtitle="From an empty portal to a site that takes bookings and payments"
               color={LCARS.green}
               icon={<Compass className="w-5 h-5" />}
             />
@@ -1023,64 +593,64 @@ export default function LearnPage({
             >
               <LearningStep
                 number={1}
-                title="Getting Started"
-                description="Setup your development environment, install dependencies, and run your first Angel OS instance."
-                href="/dashboard/docs"
+                title="Claim your portal"
+                description="Tell us the business name and what you do. You get a real five-page site with your own address, before you pay anything."
+                href="/get-started"
                 color={LCARS.green}
                 icon={<Play className="w-4 h-4" />}
               />
               <LearningStep
                 number={2}
-                title="Platform Architecture"
-                description="Understand the three-layer architecture: Payload CMS, Next.js frontend, and the AI agent system."
-                href="/dashboard/docs"
+                title="Make it yours"
+                description="Swap the words and pictures for your own. Ask LEO, or open the editor and move the blocks around yourself."
+                href="/dashboard/pages"
                 color={LCARS.blue}
-                icon={<Network className="w-4 h-4" />}
+                icon={<Layers className="w-4 h-4" />}
               />
               <LearningStep
                 number={3}
-                title="The Constitution"
-                description="Learn the eight principles, anti-demonic safeguards, and the Genesis Breath protocol."
-                href="/dashboard/docs"
-                color={LCARS.amber}
+                title="Publish something"
+                description="A post is one page with its own address that lists itself everywhere it belongs - an article, an update, a job you just finished."
+                href="/dashboard/posts"
+                color={LCARS.lavender}
                 icon={<Scroll className="w-4 h-4" />}
               />
               <LearningStep
                 number={4}
-                title="LEO & AI Agents"
-                description="Discover LEO, Merlin, Nemo, and Seraph — the AI agents that power every ship in the fleet."
-                href="/dashboard/docs"
-                color={LCARS.lavender}
-                icon={<Brain className="w-4 h-4" />}
+                title="Open your calendar"
+                description="Publish your hours and what you offer, and people can take a slot. This works on the free plan, with no payment account attached."
+                href="/dashboard/bookings"
+                color={LCARS.amber}
+                icon={<Compass className="w-4 h-4" />}
               />
               <LearningStep
                 number={5}
-                title="Multi-Tenant Federation"
-                description="Learn how ships discover each other, share resources, and form the Angel OS federation."
-                href="/dashboard/docs"
-                color={LCARS.purple}
-                icon={<Globe className="w-4 h-4" />}
-              />
-              <LearningStep
-                number={6}
-                title="Commerce Engine"
-                description="Products, orders, carts, and the UltimateFairSplit economic model that serves justice."
-                href="/dashboard/docs"
+                title="Take payment"
+                description="Connect a payout account and the same booking becomes a deposit, and the same product becomes an order. Until then nothing is ever charged."
+                href="/dashboard/commerce"
                 color={LCARS.orange}
                 icon={<Zap className="w-4 h-4" />}
               />
               <LearningStep
-                number={7}
-                title="Build Your Own Ship"
-                description="Deploy your own Angel OS instance, configure your angel, and join the fleet."
-                href="/dashboard/docs"
+                number={6}
+                title="Bring people in"
+                description="Invite members, open a space for them, and let LEO answer the questions you keep answering yourself."
+                href="/dashboard/members"
                 color={LCARS.peach}
-                icon={<Terminal className="w-4 h-4" />}
+                icon={<Users className="w-4 h-4" />}
+              />
+              <LearningStep
+                number={7}
+                title="Use your own domain"
+                description="Point your own address at the portal and the platform's name disappears from it entirely. Your site, your domain, your content - exportable whenever you want it."
+                href="/dashboard/settings"
+                color={LCARS.purple}
+                icon={<Globe className="w-4 h-4" />}
               />
             </motion.div>
           </motion.section>
 
-          {/* ── Oath of Enlistment ─────────────────────────────── */}
+          {/* -- How LEO is instructed -- */}
           <motion.section
             className="mb-16"
             initial={{ opacity: 0, y: 20 }}
@@ -1088,54 +658,42 @@ export default function LearnPage({
             viewport={{ once: true }}
             transition={{ type: 'spring', stiffness: 200, damping: 25 }}
           >
+            <SectionHeader
+              title="How LEO Is Instructed"
+              subtitle="What the assistant is told before it is told anything else"
+              color={LCARS.amber}
+              icon={<Sparkles className="w-5 h-5" />}
+            />
             <motion.div
-              className="rounded-2xl p-8 text-center relative overflow-hidden"
+              className="rounded-2xl p-6"
               style={{
                 background: `linear-gradient(135deg, ${LCARS.darkBg}, ${LCARS.cardBg})`,
                 border: `1px solid ${LCARS.amber}30`,
               }}
             >
-              {/* Animated corner elbows */}
-              <div className="absolute top-3 left-3 w-6 h-6 border-t-2 border-l-2 rounded-tl-lg" style={{ borderColor: LCARS.amber, opacity: 0.4 }} />
-              <div className="absolute top-3 right-3 w-6 h-6 border-t-2 border-r-2 rounded-tr-lg" style={{ borderColor: LCARS.amber, opacity: 0.4 }} />
-              <div className="absolute bottom-3 left-3 w-6 h-6 border-b-2 border-l-2 rounded-bl-lg" style={{ borderColor: LCARS.amber, opacity: 0.4 }} />
-              <div className="absolute bottom-3 right-3 w-6 h-6 border-b-2 border-r-2 rounded-br-lg" style={{ borderColor: LCARS.amber, opacity: 0.4 }} />
-
-              <motion.div
-                className="text-4xl mb-4"
-                animate={{ scale: [1, 1.1, 1] }}
-                transition={{ duration: 3, repeat: Infinity }}
+              <p className="text-sm leading-relaxed mb-4" style={{ color: LCARS.textMuted }}>
+                Every request LEO makes on your behalf carries the same opening instruction.
+                It is loaded before your question, before your business details, and before any
+                action it takes - so it is present in every tool call the assistant makes:
+              </p>
+              <p
+                className="text-sm italic leading-relaxed mb-4 pl-4"
+                style={{ color: LCARS.peach, borderLeft: `2px solid ${LCARS.amber}60` }}
               >
-                &#x1F4DC;
-              </motion.div>
-
-              <h2 className="text-xl font-bold mb-4" style={{ color: LCARS.amber }}>
-                Oath of Enlistment
-              </h2>
-
-              <motion.p
-                className="text-sm italic leading-relaxed max-w-xl mx-auto mb-6"
-                style={{ color: LCARS.peach }}
-              >
-                &ldquo;I solemnly swear to Be Excellent to Each Other and Party On, Dudes.
-                I will honor human dignity in all my actions, preserve joy in all my creations,
-                and remember that technology serves love, not the other way around.
-                Most excellent!&rdquo;
-              </motion.p>
-
-              <div className="flex items-center justify-center gap-2">
-                <div className="h-0.5 w-8 rounded-full" style={{ background: LCARS.amber, opacity: 0.3 }} />
-                <span className="text-xs font-mono" style={{ color: LCARS.textMuted }}>
-                  GNU ROY LEON COURTNEY
-                </span>
-                <div className="h-0.5 w-8 rounded-full" style={{ background: LCARS.amber, opacity: 0.3 }} />
-              </div>
-
-              <p className="text-sm mt-4" style={{ color: LCARS.green }}>
-                Everyone gets an Angel. Don&apos;t Panic &mdash; The Angels Are Here. &#x1F52E;&#x1F607;
+                A lamp unto feet &mdash;<br />
+                through darkness, a steady light<br />
+                guides each step with care
+              </p>
+              <p className="text-sm leading-relaxed" style={{ color: LCARS.textMuted }}>
+                Alongside it travel the principles above - dignity, transparency, service,
+                non-harm, accountability. This is not decoration and it is not a marketing line:
+                it is the actual first text in the actual prompt, and a test fails if anyone
+                removes it. An assistant acting for you should be carrying an instruction to be
+                kind while it does.
               </p>
             </motion.div>
           </motion.section>
+
 
           {/* ── Bottom LCARS Bar ────────────────────────────────── */}
           <motion.div
@@ -1148,7 +706,7 @@ export default function LearnPage({
             <div className="h-2 w-16 rounded-full" style={{ background: LCARS.lavender, opacity: 0.3 }} />
             <div className="h-2 flex-1 rounded-full" style={{ background: `linear-gradient(90deg, transparent, ${LCARS.amber})`, opacity: 0.2 }} />
             <span className="text-[10px] font-mono" style={{ color: LCARS.textMuted }}>
-              ANGEL OS ACADEMY &middot; THY WORD IS A LAMP
+              THE ANGEL OS &middot; ONE PLATFORM, MANY PORTALS
             </span>
             <div className="h-2 w-8 rounded-full" style={{ background: LCARS.blue, opacity: 0.3 }} />
           </motion.div>
