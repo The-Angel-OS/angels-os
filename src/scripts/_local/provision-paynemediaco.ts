@@ -136,27 +136,26 @@ const MERCYANNA_URLS = [
 /**
  * Fetch-and-rehost, but reuse what is already here.
  *
- * resolveMediaSource has no dedupe — it uploads every time it is called. This
- * script is meant to be re-runnable (the first run died on the Gallery block
- * shape AFTER all 78 images were already in), and without this check a second
- * run silently doubles the tenant's Media library.
+ * resolveMediaSource has no dedupe — it uploads on every call. This script is
+ * meant to be re-runnable, and without this check a second run silently doubles
+ * the tenant's Media library (it did: 79 images became 158).
  *
- * Keyed on filename within the tenant, which is what the CDN URL's last segment
- * gives us and what the uploader names the file.
+ * Keyed on ALT, not filename. The uploader does not keep the source filename —
+ * every fetched image lands as `leo-generated-<timestamp>.webp`, so a filename
+ * comparison matches nothing and dedupes nothing. Alt is the only field this
+ * script controls that stays stable across runs, so alt is the identity.
  */
 async function upload(url: string, alt: string): Promise<number | null> {
-  const filename = decodeURIComponent(url.split('/').pop() || '')
-  if (filename) {
-    const hit = await payload.find({
-      collection: 'media',
-      where: { and: [{ filename: { equals: filename } }, { tenant: { equals: tenantId } }] },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    const existing = hit.docs[0] as { id: number } | undefined
-    if (existing) return existing.id
-  }
+  const hit = await payload.find({
+    collection: 'media',
+    where: { and: [{ alt: { equals: alt } }, { tenant: { equals: tenantId } }] },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const existing = hit.docs[0] as { id: number } | undefined
+  if (existing) return existing.id
+
   const res = await resolveMediaSource(payload, { imageUrl: url }, { tenantId: Number(tenantId), alt })
   if ('error' in res) {
     console.log('UPLOAD_FAILED', url, res.error)
