@@ -1,3 +1,4 @@
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import type { Post, Product, ArchiveBlock as ArchiveBlockProps } from '@/payload-types'
 
 import configPromise from '@payload-config'
@@ -38,6 +39,25 @@ export const ArchiveBlock: React.FC<
       else return category
     })
 
+    /**
+     * Scope to THIS portal's tenant, explicitly.
+     *
+     * This query used to carry no tenant filter at all and rely entirely on
+     * access control to scope it. That holds for an anonymous visitor and fails
+     * for an admin: a super_admin bypasses tenant access, so browsing a
+     * customer's own site showed them OTHER tenants' posts and products mixed
+     * into the archive — Clearwater Cruisin' posts appearing on a site that has
+     * nothing to do with Clearwater.
+     *
+     * Relying on access control to enforce tenancy also means the day access
+     * loosens anywhere, every archive block on every portal starts leaking. A
+     * page belongs to a tenant; its archive should say so in the query.
+     *
+     * `resolveTenantFromHeaders` is React-cached per request, so this is free
+     * even on a page with several archive blocks. @see TrustRow, same pattern.
+     */
+    const { tenant } = await resolveTenantFromHeaders()
+
     const fetched = await payload.find({
       collection,
       // Depth 2 so each card's meta.image / hero.media resolve to a document —
@@ -46,6 +66,7 @@ export const ArchiveBlock: React.FC<
       limit,
       where: {
         and: [
+          ...(tenant?.id != null ? [{ tenant: { equals: tenant.id } }] : []),
           // A draft post has no live /posts/<slug> page, so never card one.
           ...(collection === 'posts' ? [{ _status: { equals: 'published' } }] : []),
           ...(flattenedCategories?.length ? [{ categories: { in: flattenedCategories } }] : []),
