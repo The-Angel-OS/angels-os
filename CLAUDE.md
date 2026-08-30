@@ -48,6 +48,14 @@ Containers: `angelos-core`, `angelos-pg` (pg18), `angelos-pgbouncer` (:6432, tra
 mode, no TLS), `angelos-registry`. Logs: `lazydocker`, or `docker logs -f angelos-core`.
 Full config and the revert table: `docs/selfhost/thinkpad/NODE_CONFIG.md`.
 
+**The tunnel runs on `http2`, not QUIC.** Every drop this box has had (260827, and twice
+on 260830) was `sendmsg: network is unreachable` on a UDP dial, while SSH and HTTPS over TCP
+never faltered — this network loses UDP routes. `protocol: http2` in
+`/etc/cloudflared/config.yml`; revert is `config.yml.bak-260830-quic`. A watchdog checks the
+tunnel **from the open internet** every 2 min and restarts cloudflared on a failed check plus
+retry, because `Restart=on-failure` cannot help: cloudflared does not fail, it keeps one dead
+connection and reports `active`. A healthy tunnel registers connIndex 0-3 — that count is the tell.
+
 **Backups:** `/opt/angelos/backup.sh` nightly at 03:17 (root cron). 14 days kept locally in
 `/opt/angelos/backups`, and each one is pushed offsite to R2 under `backups/`. The script
 fails loudly — it once wrote 20-byte "backups" for two nights and said nothing (260825-26),

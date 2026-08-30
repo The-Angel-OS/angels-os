@@ -19,7 +19,17 @@ set -uo pipefail
 URL="https://node01.spacesangels.com/api/health"
 STATE=/run/tunnel-watchdog.fails
 
-code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$URL" || echo 000)
+# No `|| echo 000`: on failure curl ALREADY prints 000 and then exits non-zero,
+# so the fallback appended a second one and the log read "returned 000000".
+probe() { curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$URL"; }
+
+code=$(probe)
+# One retry, because a single dropped packet is not an outage. Both must fail.
+if [ "$code" != "200" ]; then
+  sleep 20
+  code=$(probe)
+fi
+code=${code:-000}
 if [ "$code" = "200" ]; then
   rm -f "$STATE"
   exit 0
@@ -29,8 +39,14 @@ fails=$(( $(cat "$STATE" 2>/dev/null || echo 0) + 1 ))
 echo "$fails" > "$STATE"
 logger -t tunnel-watchdog "health check returned $code (failure $fails)"
 
-if [ "$fails" -ge 2 ]; then
-  logger -t tunnel-watchdog "restarting cloudflared after $fails consecutive failures"
+# Two consecutive was too patient. The 260830 outage failed a check at 14:13,
+# recovered, failed again at 14:37 and stayed down 25 minutes — each recorded as
+# "failure 1", so the counter never reached two and the watchdog never acted
+# while Ken watched 1033s. A tunnel that cannot answer one request from the
+# open internet is already broken; the flap protection that matters is the
+# 20-second retry below, not a whole extra cycle of downtime.
+if [ "$fails" -ge 1 ]; then
+  logger -t tunnel-watchdog "restarting cloudflared after a failed check and retry"
   systemctl restart cloudflared
   rm -f "$STATE"
 fi
