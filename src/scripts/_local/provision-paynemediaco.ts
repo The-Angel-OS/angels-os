@@ -424,7 +424,10 @@ for (const w of WEDDINGS) {
       blockType: 'gallery',
       heading: 'The Gallery',
       columns: '3',
-      images: w.imageIds,
+      // Gallery.images is an ARRAY FIELD of { image } rows, not a list of media
+      // ids. Passing ids directly fails deep inside beforeValidate with
+      // "Cannot create property 'image' on number" — the id, being told it is a row.
+      images: w.imageIds.map((id) => ({ image: id })),
     })
   }
   layout.push(
