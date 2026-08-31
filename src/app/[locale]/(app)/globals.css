@@ -604,9 +604,19 @@ button {
     .block-reveal {
       animation: block-reveal-in linear both;
       animation-timeline: view();
-      /* Starts as the block's top edge enters, finishes a fifth of the way up.
-         Short on purpose: a reveal you have to wait for reads as a slow page. */
-      animation-range: entry 0% cover 20%;
+      /* Runs across the ENTRY phase only: it starts when the block's top edge
+         appears and is DONE the moment the block is fully in view.
+
+         It used to end at `cover 20%`, which is 20% of the way through the
+         block's whole pass across the viewport. On a short block that is fine.
+         On a TALL one — a 48-photo gallery, say — the end of the range is far
+         below the fold, so the block sat on screen at partial opacity looking
+         washed out rather than revealed. Caught on a screenshot of the wedding
+         gallery, where the images were visibly half-faded while fully in frame.
+
+         Tying the range to entry means the animation is always finished by the
+         time a reader is actually looking at the block, whatever its height. */
+      animation-range: entry 0% entry 100%;
     }
   }
 }
