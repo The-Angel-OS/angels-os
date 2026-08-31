@@ -1763,6 +1763,7 @@ export interface Post {
     | CalendarBlock
     | GoogleReviewsBlock
     | MediaTextBlock
+    | VideoBlock
   )[];
   meta?: {
     title?: string | null;
@@ -2684,6 +2685,36 @@ export interface MediaTextBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "VideoBlock".
+ */
+export interface VideoBlock {
+  /**
+   * Optional title above the video.
+   */
+  heading?: string | null;
+  /**
+   * Uploaded video file. Takes precedence over a URL.
+   */
+  media?: (number | null) | Media;
+  /**
+   * YouTube or Vimeo URL — used only when no file is uploaded.
+   */
+  videoUrl?: string | null;
+  /**
+   * Still shown before play. Without one a video is a black rectangle, which nobody clicks.
+   */
+  poster?: (number | null) | Media;
+  aspect?: ('16/9' | '9/16' | '1/1') | null;
+  /**
+   * Line under the video (optional).
+   */
+  caption?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'video';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "DonationBlock".
  */
 export interface DonationBlock {
@@ -3239,36 +3270,6 @@ export interface FaqBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'faq';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "VideoBlock".
- */
-export interface VideoBlock {
-  /**
-   * Optional title above the video.
-   */
-  heading?: string | null;
-  /**
-   * Uploaded video file. Takes precedence over a URL.
-   */
-  media?: (number | null) | Media;
-  /**
-   * YouTube or Vimeo URL — used only when no file is uploaded.
-   */
-  videoUrl?: string | null;
-  /**
-   * Still shown before play. Without one a video is a black rectangle, which nobody clicks.
-   */
-  poster?: (number | null) | Media;
-  aspect?: ('16/9' | '9/16' | '1/1') | null;
-  /**
-   * Line under the video (optional).
-   */
-  caption?: string | null;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'video';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -5293,6 +5294,10 @@ export interface SiteVisit {
    * Raw User-Agent string.
    */
   userAgent?: string | null;
+  /**
+   * Two-letter country from the CF-IPCountry header Cloudflare already sends. in front of every request, and derived from an IP we never store.
+   */
+  country?: string | null;
   browser?: string | null;
   os?: string | null;
   device?: ('desktop' | 'mobile' | 'tablet' | 'bot') | null;
@@ -9336,6 +9341,7 @@ export interface PostsSelect<T extends boolean = true> {
         calendar?: T | CalendarBlockSelect<T>;
         googleReviews?: T | GoogleReviewsBlockSelect<T>;
         mediaText?: T | MediaTextBlockSelect<T>;
+        video?: T | VideoBlockSelect<T>;
       };
   meta?:
     | T
@@ -9730,6 +9736,7 @@ export interface SiteVisitsSelect<T extends boolean = true> {
   referrer?: T;
   referrerHost?: T;
   userAgent?: T;
+  country?: T;
   browser?: T;
   os?: T;
   device?: T;

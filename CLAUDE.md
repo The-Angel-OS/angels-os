@@ -10,6 +10,14 @@ Handoffs in `docs/handoffs/` are journal entries — a point in time, never the 
 
 ## Where production runs, right now
 
+> **260831 — production is on RAILWAY again.** The laptop was shut down with the site still
+> on it and every hostname 530'd. DNS moved to Railway, current `main` deployed, and the
+> database gaps re-created by re-running the committed provisioning scripts against
+> Railway's Postgres — the node was powered off, so there was no dump to take. The node is
+> cold standby now. The sections below still describe it; keep them for when it is needed,
+> but **the deploy command today is `railway up -s Core`.**
+
+
 **`*.spacesangels.com` is served by `angel-node-01`, a ThinkPad T440s on Ken's desk.**
 Railway's trial expired on 260827; the account is **demoted**, `railway up` refuses,
 and the last Railway DNS record was deleted 260828. There is no Railway in the path
@@ -27,8 +35,10 @@ MSYS_NO_PATHCONV=1 wsl -d Ubuntu-22.04 -u root -e bash \
 It builds from **committed, pushed `main`** — commit first or you ship the previous
 commit. Migrations run on container boot.
 
-**Telling environments apart:** `Server: cloudflare` = the node. `railway-hikari` would
-be Railway, and should now never appear.
+**Telling environments apart:** the old tell (`Server: cloudflare` = node, `railway-hikari`
+= Railway) is DEAD — Railway's custom domains are proxied through Cloudflare too, so BOTH
+answer `Server: cloudflare` and the header proves nothing. Ask the origin instead:
+`railway status`, or `node01.spacesangels.com` / ssh for the node.
 
 ### Reaching the box — one machine, three addresses
 
