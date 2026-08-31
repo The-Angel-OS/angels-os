@@ -30,6 +30,19 @@ export default async function middleware(request: NextRequest) {
     return NextResponse.redirect(url, 301)
   }
 
+  // Retire the /de locale without 404ing anyone who bookmarked it. `de` was
+  // removed from routing.ts (see the note there); without this, every existing
+  // /de/* URL — including ones sitting in chat history and browser history —
+  // becomes a 404 instead of the English page it always actually was.
+  // Also clears the sticky NEXT_LOCALE cookie that put people there.
+  if (request.nextUrl.pathname === '/de' || request.nextUrl.pathname.startsWith('/de/')) {
+    const url = request.nextUrl.clone()
+    url.pathname = request.nextUrl.pathname.slice(3) || '/'
+    const res = NextResponse.redirect(url, 308)
+    res.cookies.set('NEXT_LOCALE', '', { path: '/', maxAge: 0 })
+    return res
+  }
+
   const tenantId = detectTenantFromHostname(hostname)
 
   // ── Edge auth gate for sensitive dashboard subtrees ──────────────────────────
