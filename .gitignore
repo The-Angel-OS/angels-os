@@ -81,3 +81,7 @@ src/souls/holy-bible/data/
 
 # Exported chat transcripts — archived independently, not product code
 chat-archive/
+
+# Demo capture output — regenerate with src/scripts/_local/capture-demo-shots.mjs
+docs/demo-shots/
+docs/The-Angel-OS-Demo.pptx

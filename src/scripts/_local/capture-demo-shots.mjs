@@ -39,7 +39,7 @@ const shots = [
   { n: '08', name: 'payne-weddings', url: `${PAYNE}/weddings`, scroll: 0 },
   { n: '09', name: 'payne-wedding-post', url: `${PAYNE}/posts/mercyanna-and-jacob`, scroll: 0 },
   { n: '10', name: 'payne-wedding-gallery', url: `${PAYNE}/posts/mercyanna-and-jacob`, scrollToText: 'The Gallery' },
-  { n: '11', name: 'payne-film-post', url: `${PAYNE}/posts/char-and-joseph`, scroll: 0 },
+  { n: '11', name: 'payne-film-post', url: `${PAYNE}/posts/char-and-joseph`, scroll: 0, wait: 'domcontentloaded' },
   { n: '12', name: 'payne-book-services', url: `${PAYNE}/book`, scroll: 0 },
   { n: '13', name: 'grace-chapel', url: 'https://grace-chapel.spacesangels.com/', scroll: 0 },
   { n: '14', name: 'clearwater', url: 'https://clearwater-cruisin.spacesangels.com/', scroll: 0 },
@@ -68,7 +68,9 @@ await ctx.addInitScript(() => {
 
 for (const s of shots) {
   try {
-    await page.goto(s.url, { waitUntil: 'networkidle', timeout: 60000 })
+    // A Vimeo embed keeps the network busy, so networkidle never fires on the
+    // film posts. Those wait for DOM only.
+    await page.goto(s.url, { waitUntil: s.wait || 'networkidle', timeout: 60000 })
     // Scroll-driven reveal animations need the element actually in view, and
     // images need a beat to decode. Both are why an immediate shot came back blank.
     if (s.scrollToText) {
