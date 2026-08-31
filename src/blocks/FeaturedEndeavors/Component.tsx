@@ -1,3 +1,4 @@
+import { isPortalClaimed } from '@/utilities/isPortalClaimed'
 import React from 'react'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
@@ -75,16 +76,47 @@ export const FeaturedEndeavorsBlock: React.FC<
         .filter(Boolean) as Endeavor[]
     }
   } else {
-    // Fetch most recent active endeavors
+    /**
+     * Most recent endeavors — but only ones a real owner has actually claimed.
+     *
+     * The heading over this grid says "Businesses already running on it". It was
+     * listing whatever was created most recently, which meant two wrong things on
+     * the marketing page: prospect portals we built speculatively, advertised as
+     * customers before anyone had agreed to anything; and a personal portal sitting
+     * among real companies.
+     *
+     * `isPortalClaimed` is the same predicate that decides whether a portal may be
+     * INDEXED (robots.ts) — a portal is claimed when somebody from outside the
+     * platform is standing in it, the builder explicitly not counting. Reusing it
+     * means the showcase and the search index can never disagree about who is a
+     * customer, and there is no second flag to set or forget.
+     *
+     * Over-fetch then filter: the claim check is per-tenant and cached, and the
+     * alternative is a flag on endeavors that somebody has to maintain by hand.
+     */
     const result = await payload.find({
       collection: 'endeavors',
       where: { status: { in: ['active', 'forming'] } },
       sort: '-createdAt',
-      limit: maxItems || 5,
+      limit: (maxItems || 5) * 5,
       depth: 1,
       overrideAccess: true,
     })
-    endeavors = result.docs as unknown as Endeavor[]
+    const candidates = result.docs as unknown as Endeavor[]
+    const claims = await Promise.all(
+      candidates.map(async (e) => {
+        const t = e.tenant
+        const id = t && typeof t === 'object' ? (t as { id?: number | string }).id : t
+        if (id == null) return false
+        try {
+          return await isPortalClaimed(id as number)
+        } catch {
+          // Fail CLOSED, same as the indexing gate: an unknown is not a customer.
+          return false
+        }
+      }),
+    )
+    endeavors = candidates.filter((_, i) => claims[i]).slice(0, maxItems || 5)
   }
 
   // Resolve each card's destination once, here, rather than in the card — a
