@@ -96,7 +96,18 @@ export const FeaturedEndeavorsBlock: React.FC<
      */
     const result = await payload.find({
       collection: 'endeavors',
-      where: { status: { in: ['active', 'forming'] } },
+      where: {
+        and: [
+          { status: { in: ['active', 'forming'] } },
+          // Opt-IN, and it already existed: "Appear in the Angel OS network
+          // catalog", defaulting to false. Claimed answers "is this a real
+          // customer"; this answers "do they want to be listed", which is a
+          // different question and not ours to assume. helpdna — a live
+          // innocence case involving a real incarcerated person — is claimed
+          // and emphatically not a showcase item. Consent beats recency.
+          { 'federation.networkVisible': { equals: true } },
+        ],
+      },
       sort: '-createdAt',
       limit: (maxItems || 5) * 5,
       depth: 1,
