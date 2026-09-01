@@ -638,6 +638,12 @@ await payload.update({
 })
 console.log('commerce: cart, booking, events and digital products off')
 
-const nav = await applyBrochureNav(payload, TENANT, pages, { hidePlatformRoutes: true })
+const nav = await applyBrochureNav(payload, TENANT, pages, {
+  hidePlatformRoutes: true,
+  // Turning the commerce toggles off does not remove these -- the Header adds
+  // them regardless -- and a Book tab on a consultancy is the loudest tell that
+  // this is somebody's template.
+  alsoHide: ['/book', '/posts'],
+})
 console.log(`nav: ${nav.navItems} items, ${nav.hidden.length} platform routes hidden`)
 console.log('done — https://celersoft.spacesangels.com')

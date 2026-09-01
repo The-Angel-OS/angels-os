@@ -40,7 +40,7 @@ export async function applyBrochureNav(
   payload: Payload,
   tenantId: number | string,
   pages: BrochureNavPage[],
-  opts: { hidePlatformRoutes?: boolean } = {},
+  opts: { hidePlatformRoutes?: boolean; alsoHide?: string[] } = {},
 ): Promise<{ navItems: number; pinned: string[]; hidden: string[]; maxInline: number }> {
   const items = [
     navLink('Home', '/'),
@@ -73,7 +73,11 @@ export async function applyBrochureNav(
   }
 
   const pinned = items.map((i) => i.link.url)
-  const hidden = opts.hidePlatformRoutes ? PLATFORM_ROUTES : []
+  // `alsoHide` covers the routes the Header pushes in unconditionally -- /book
+  // and /posts are appended whether or not the tenant sells anything, and the
+  // commerce toggles do not reach the nav (nothing outside the settings UI reads
+  // `bookingsEnabled`). `hidden` is the only mechanism that actually drops them.
+  const hidden = [...(opts.hidePlatformRoutes ? PLATFORM_ROUTES : []), ...(opts.alsoHide ?? [])]
   // ZERO, not the pinned count: pinned items bypass the cap, so any positive
   // number is simply a slot Discovery takes on its way past. 0 means the bar
   // holds exactly the business's pages, and everything the platform derives —

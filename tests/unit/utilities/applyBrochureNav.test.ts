@@ -69,6 +69,15 @@ describe('applyBrochureNav', () => {
     expect(res.hidden).toContain('/dashboard/spaces')
   })
 
+  it('hides the routes the Header appends unconditionally when asked', async () => {
+    const { payload } = fakePayload(true)
+    const res = await applyBrochureNav(payload, 1, PAGES, {
+      hidePlatformRoutes: true,
+      alsoHide: ['/book', '/posts'],
+    })
+    expect(res.hidden).toEqual([...PLATFORM_ROUTES, '/book', '/posts'])
+  })
+
   it('creates a header when the tenant has none', async () => {
     const { payload, calls } = fakePayload(false)
     await applyBrochureNav(payload, 7, PAGES)

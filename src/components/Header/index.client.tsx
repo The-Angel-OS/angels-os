@@ -530,9 +530,15 @@ export function HeaderClient({ canEditContent: canEditContentProp = false, heade
                 </Link>
               </>
             )}
-            <Suspense fallback={<OpenCartButton />}>
-              <Cart />
-            </Suspense>
+            {/* A cart on a tenant with nothing to sell is the loudest tell that
+                the site is somebody's template. `hasProducts` is already the
+                populated check the nav uses for /shop -- reuse it rather than
+                add a second one. */}
+            {hasProducts && (
+              <Suspense fallback={<OpenCartButton />}>
+                <Cart />
+              </Suspense>
+            )}
           </div>
         </div>
       </nav>
