@@ -759,6 +759,21 @@
 
 ## 🚢 Deploy / ops (P1–P2)
 
+- **[P1] wheredideveryonego.net — move DNS to Cloudflare, first real customer domain.** Today it
+  is at **Hostopia/aplus.net** (registrar IANA 52, registered 2025-04-07, expires 2027-04-07,
+  **transfer lock already OFF**, DNSSEC unsigned). NS `ns1/2/3.aplus.net`, A + www →
+  `64.29.151.221`, MX → `mx1/2/3c40.carrierzone.com` with SPF `include:spfc40.carrierzone.com`.
+  **`https://` on the apex fails the TLS handshake today** — only `http://www` answers, which is
+  half of why this matters. The account is Ted Lear's (hard to reach); all he has to do is change
+  the nameservers.
+  *Blocked on:* a Cloudflare API token with `Zone:Create` + `DNS:Edit` on account
+  `4015c873…` — the only Cloudflare credential in `.env.local` is `CLOUDFLARE_AI_TOKEN`, which
+  sees zero zones and gets `Requires permission "…zone.create"`.
+  *Next action:* Ken mints the token → add the zone with the record set above pre-loaded
+  (site + **mail** must carry over or the mailboxes die) → send Ted the two nameservers.
+  Registrar transfer to Cloudflare is a SEPARATE, later step and needs an EPP code from Hostopia.
+  `260901`
+
 - **[P1] Merlin ↔ Core :3000 port collision (Merlin DOWN / CF 530)** — the self-host Core Docker container now
   holds host `:3000`, the same port Merlin's interactive scheduled task binds (`next start -p 3000`), so
   `merlin.payloadnuke.com` hits Core (or a stale node), not Merlin. *Fix:* Core (prod) keeps `:3000`; move Merlin
@@ -776,6 +791,18 @@
 ---
 
 ## ✅ Recently closed (last 7 days)
+
+- **[P1 260901] A portal owner can bind their own domain now** — the Addresses box in Settings
+  was READ-ONLY ("ask an administrator to bind another address"), so a customer who bought a
+  domain had to file a ticket with us to point it anywhere. It is the DotNetNuke *Site Aliases*
+  panel now: add, remove, pick the canonical one. The reason it was locked is enforced on the
+  SERVER instead of by hiding the button — a platform apex (`*.spacesangels.com` and friends) is
+  minted from the slug and can never be bound by hand, and a hostname already on any tenant is
+  refused, so no portal can claim another's traffic. Schema needed nothing: `tenants.domains[]`
+  already existed and `fetchTenantByDomain` already routed on it. Proven end-to-end against a
+  real domain — `curl -H "Host: wheredideveryonego.net"` renders WDEG, an unbound host does not.
+  *Where:* `endpoints/domain-ops.ts`, `SettingsHub.tsx` (`AddressesPanel`),
+  `tests/unit/domainOps.test.ts`. `260901`
 
 - **[P1 260825] `/learn/holy-bible` was a 9.65 MB page — now 205 KB** — the book reader flips pages
   client-side, so the server serialized EVERY page in EVERY language into the HTML: 1,189 chapters ×

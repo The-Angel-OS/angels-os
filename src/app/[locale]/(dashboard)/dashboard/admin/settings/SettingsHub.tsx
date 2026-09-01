@@ -135,6 +135,136 @@ function Toast({ message }: { message: { type: 'success' | 'error'; text: string
 }
 
 // ---------------------------------------------------------------------------
+// AddressesPanel — the DotNetNuke "Site Aliases" panel
+// ---------------------------------------------------------------------------
+
+/**
+ * Every hostname that reaches this portal, add/remove-able by its owner.
+ * The tenant's own `domain` is the one row that cannot be removed (it is
+ * required on the record), so it renders locked; it can still be made canonical.
+ * The server is the authority on what may be bound — see /api/domain-ops/bindings.
+ */
+function AddressesPanel({ initial }: { initial: AddressesData }) {
+  const [domain, setDomain] = useState(initial.domain)
+  const [bindings, setBindings] = useState(initial.aliases)
+  const [canonical, setCanonical] = useState(initial.canonical)
+  const [input, setInput] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  const send = useCallback(async (action: string, value: string, okText: string) => {
+    setBusy(true)
+    setMessage(null)
+    try {
+      const res = await fetch('/api/domain-ops/bindings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action, domain: value }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setMessage({ type: 'error', text: data?.error || 'Could not save that address.' })
+        return
+      }
+      setDomain(data.domain)
+      setBindings(data.bindings)
+      setCanonical(data.canonical)
+      setInput('')
+      setMessage({ type: 'success', text: okText })
+    } catch {
+      setMessage({ type: 'error', text: 'Could not reach the server.' })
+    } finally {
+      setBusy(false)
+    }
+  }, [])
+
+  // The required `domain` field first, then the aliases. A tenant may list its
+  // own domain in domains[] too, so de-dupe before rendering.
+  const rows = [{ domain, removable: false }, ...bindings.map((b) => ({ domain: b.domain, removable: true }))]
+    .filter((r, i, all) => r.domain && all.findIndex((x) => x.domain === r.domain) === i)
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="flex items-baseline justify-between gap-3 mb-3">
+        <h2 className="font-semibold">Addresses</h2>
+        <code className="text-xs text-muted-foreground">{initial.slug}</code>
+      </div>
+
+      <ul className="space-y-1.5 text-sm">
+        {rows.map((r) => (
+          <li key={r.domain} className="flex items-center gap-2">
+            <a
+              href={`https://${r.domain}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary hover:underline break-all"
+            >
+              {r.domain}
+            </a>
+            {r.domain === canonical ? (
+              <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
+                canonical
+              </span>
+            ) : (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => send('set-primary', r.domain, `${r.domain} is now the canonical address.`)}
+                className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+              >
+                make canonical
+              </button>
+            )}
+            {r.removable && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => send('remove', r.domain, `${r.domain} no longer reaches this portal.`)}
+                className="ml-auto text-xs text-muted-foreground hover:text-red-600 disabled:opacity-50"
+              >
+                remove
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+
+      <form
+        className="mt-3 flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (input.trim()) send('add', input, `${input.trim()} now reaches this portal.`)
+        }}
+      >
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="yourdomain.com"
+          className="flex-1 rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+        />
+        <button
+          type="submit"
+          disabled={busy || !input.trim()}
+          className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
+        >
+          Add
+        </button>
+      </form>
+
+      {message && <div className="mt-3">{<Toast message={message} />}</div>}
+
+      <p className="mt-3 text-xs text-muted-foreground">
+        All of these reach this portal. The canonical one is used for outbound links,
+        sharing previews and SEO. Adding an address here makes this portal answer for
+        it — you still have to point the domain&rsquo;s DNS at us for it to resolve.
+      </p>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // GeneralTab
 // ---------------------------------------------------------------------------
 
@@ -732,46 +862,8 @@ export function SettingsHub({
       </div>
 
       {/* Addresses — first thing on the page, because "what is my URL" is the
-          question every portal owner asks first and nothing here answered it.
-          Read-only: binding a hostname is super_admin work, and a portal that
-          could rename its own address could take another's traffic. */}
-      {addresses && (
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="flex items-baseline justify-between gap-3 mb-3">
-            <h2 className="font-semibold">Addresses</h2>
-            <code className="text-xs text-muted-foreground">{addresses.slug}</code>
-          </div>
-          <ul className="space-y-1.5 text-sm">
-            {[
-              { domain: addresses.domain, isPrimary: false },
-              ...addresses.aliases,
-            ]
-              // A tenant may list its primary domain in domains[] as well.
-              .filter((a, i, all) => a.domain && all.findIndex((x) => x.domain === a.domain) === i)
-              .map((a) => (
-                <li key={a.domain} className="flex items-center gap-2">
-                  <a
-                    href={`https://${a.domain}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-primary hover:underline break-all"
-                  >
-                    {a.domain}
-                  </a>
-                  {a.domain === addresses.canonical && (
-                    <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
-                      canonical
-                    </span>
-                  )}
-                </li>
-              ))}
-          </ul>
-          <p className="mt-3 text-xs text-muted-foreground">
-            All of these reach this portal. The canonical one is used for outbound links,
-            sharing previews and SEO. Ask an administrator to bind another address.
-          </p>
-        </div>
-      )}
+          question every portal owner asks first and nothing here answered it. */}
+      {addresses && <AddressesPanel initial={addresses} />}
 
       {/* Tab bar */}
       <div className="border-b border-border">
