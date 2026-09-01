@@ -25,6 +25,9 @@ interface Props {
    *  Mobile must honour the same order or the endeavor's revenue links end up
    *  buried in a 25-item list. */
   pinnedUrls?: string[]
+  /** Owner-hidden urls. `menu` is already filtered by these; the guaranteed
+   *  links below need them too, or hiding a route is what puts it on mobile. */
+  hiddenUrls?: string[]
   siteName?: string
 }
 
@@ -33,12 +36,36 @@ interface Props {
 // mobile menu, even where the desktop nav demotes it to "More" or a storefront
 // suppresses it from the primary chrome. Guarantee these links so there's always
 // a way to reach Works on mobile.
+//
+// DEMOTED is not HIDDEN. This guarantee is against burial, never against the
+// owner: it appends what is missing, and a hidden route is missing precisely
+// BECAUSE it was hidden — so this used to re-add it, making "hide on desktop"
+// the way to force something onto the phone. Celersoft hid /learn and /works
+// and got both, on a consultancy.
 const GUARANTEED_MOBILE_LINKS = [
   { id: 'm-learn', link: { type: 'custom' as const, label: 'Learn', url: '/learn', newTab: false } },
   { id: 'm-works', link: { type: 'custom' as const, label: 'Works', url: '/works', newTab: false } },
 ]
 
-export function MobileMenu({ menu, pinnedUrls = [], siteName }: Props) {
+/**
+ * Append the guaranteed links that are neither present nor hidden.
+ *
+ * Exported and pure so the regression has a real test: the bug was a
+ * three-word condition, and a test that re-implements the rule would have
+ * reproduced the bug rather than caught it.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function withGuaranteedLinks(menu: any[], hiddenUrls: string[] = []): any[] {
+  const base = Array.isArray(menu) ? [...menu] : []
+  const urls = new Set(base.map((i) => (i as { link?: { url?: string | null } }).link?.url))
+  const hidden = new Set(hiddenUrls)
+  for (const extra of GUARANTEED_MOBILE_LINKS) {
+    if (!urls.has(extra.link.url) && !hidden.has(extra.link.url)) base.push(extra)
+  }
+  return base
+}
+
+export function MobileMenu({ menu, pinnedUrls = [], hiddenUrls = [], siteName }: Props) {
   const { user } = useAuth()
 
   const pathname = usePathname()
@@ -48,11 +75,7 @@ export function MobileMenu({ menu, pinnedUrls = [], siteName }: Props) {
   // Ensure the mission Library is always reachable on mobile (append only what's
   // missing — never duplicate an item the tenant nav already provides).
   const items = React.useMemo(() => {
-    const base = Array.isArray(menu) ? [...menu] : []
-    const urls = new Set(base.map((i) => (i as { link?: { url?: string | null } }).link?.url))
-    for (const extra of GUARANTEED_MOBILE_LINKS) {
-      if (!urls.has(extra.link.url)) base.push(extra)
-    }
+    const base = withGuaranteedLinks(menu as unknown[], hiddenUrls)
 
     // Hoist the pinned links to the top, in the order the desktop pins them.
     // A phone shows ~6 items without scrolling; whatever is 16th does not exist.
@@ -71,7 +94,7 @@ export function MobileMenu({ menu, pinnedUrls = [], siteName }: Props) {
         (rank.get((b as { link?: { url?: string | null } }).link?.url ?? '') ?? 0),
     )
     return [...pinned, ...rest]
-  }, [menu, pinnedUrls])
+  }, [menu, pinnedUrls, hiddenUrls])
 
   const isActive = (url?: string | null) =>
     url && url !== '/' ? pathname?.includes(url) : pathname === '/'

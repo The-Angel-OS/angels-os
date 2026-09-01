@@ -348,6 +348,10 @@ export function HeaderClient({ canEditContent: canEditContentProp = false, heade
             <MobileMenu
               menu={visibleMenu}
               pinnedUrls={forcePrimaryUrls}
+              // `menu` has already had these removed, so the sheet cannot tell
+              // "never had it" from "owner hid it" -- and its guaranteed-links
+              // pass re-added exactly what was hidden. Send the list.
+              hiddenUrls={navOverrides?.hidden}
               siteName={tenant?.branding?.siteName || tenant?.name || undefined}
             />
           </Suspense>

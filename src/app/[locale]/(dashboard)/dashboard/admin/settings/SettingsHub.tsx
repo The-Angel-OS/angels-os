@@ -289,10 +289,6 @@ function GeneralTab({ tenantId, branding, commerce, storefront, features }: { te
     bodyFont: branding.bodyFont || 'inter',
     currency: commerce.currency || 'usd',
     taxRate: commerce.taxRate ?? 0,
-    shippingEnabled: commerce.shippingEnabled ?? false,
-    bookingsEnabled: commerce.bookingsEnabled ?? false,
-    eventsEnabled: commerce.eventsEnabled ?? false,
-    digitalProductsEnabled: commerce.digitalProductsEnabled ?? false,
     worksEnabled: features?.works ?? false,
     pageCommentsEnabled: features?.pageComments ?? false,
   })
@@ -332,13 +328,11 @@ function GeneralTab({ tenantId, branding, commerce, storefront, features }: { te
           storefront: {
             coverImage: coverImage ? Number(coverImage.id) : null,
           },
+          // Shipping/Bookings/Events/Digital Products are deliberately NOT
+          // written here any more — see the note where they used to render.
           commerce: {
             currency: form.currency,
             taxRate: form.taxRate,
-            shippingEnabled: form.shippingEnabled,
-            bookingsEnabled: form.bookingsEnabled,
-            eventsEnabled: form.eventsEnabled,
-            digitalProductsEnabled: form.digitalProductsEnabled,
           },
           features: { works: form.worksEnabled, pageComments: form.pageCommentsEnabled },
         }),
@@ -509,24 +503,26 @@ function GeneralTab({ tenantId, branding, commerce, storefront, features }: { te
             />
           </div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 pt-2">
-          {([
-            ['shippingEnabled', 'Shipping'],
-            ['bookingsEnabled', 'Bookings'],
-            ['eventsEnabled', 'Events'],
-            ['digitalProductsEnabled', 'Digital Products'],
-          ] as const).map(([key, label]) => (
-            <label key={key} className="flex items-center gap-2 text-sm cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form[key]}
-                onChange={(e) => updateField(key, e.target.checked)}
-                className="h-4 w-4 rounded border-border"
-              />
-              Enable {label}
-            </label>
-          ))}
-        </div>
+        {/*
+          Shipping / Bookings / Events / Digital Products checkboxes lived here
+          and did NOTHING. Nothing outside this screen read them: the menu asks
+          whether you HAVE products, events or bookable services, and the /shop,
+          /events and /book routes resolve regardless. All 25 tenants had all
+          four sitting false while happily selling — proof nobody was served by
+          them, and proof that wiring them up now would empty every menu on the
+          platform.
+
+          A checkbox that silently does nothing is worse than no checkbox: an
+          owner unticks Bookings, still sees Book in their menu, and concludes
+          the product is broken. The fields remain on the collection (LEO writes
+          them, /.well-known/angel-os.json advertises them); what is gone is the
+          claim that this screen controls the menu. The Navigation tab does.
+        */}
+        <p className="pt-2 text-sm text-muted-foreground">
+          Shop, Events, Bookings and Posts appear on their own once you have
+          something to put in them. To keep one out of the menu, use the{' '}
+          <span className="font-medium text-foreground">Navigation</span> tab.
+        </p>
       </div>
 
       {/* Optional surfaces — what this portal WANTS on, not what it pays for. */}
