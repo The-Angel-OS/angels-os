@@ -110,15 +110,20 @@ export async function Header({ tenant }: Props) {
         /* anonymous viewer — only public pages show */
       }
       const pageList: PageLite[] = (
-        pages.docs as Array<{ slug?: string | null; title?: string | null; navLabel?: string | null; navOrder?: number | null; showInNav?: boolean | null; access?: string | null }>
+        pages.docs as Array<{ id?: number | string; slug?: string | null; title?: string | null; navLabel?: string | null; navOrder?: number | null; showInNav?: boolean | null; access?: string | null; parent?: unknown }>
       )
         .filter((p) => isPageViewable(p.access, viewer))
         .map((p) => ({
+          // id and parent drive the dropdowns: a page nests under its parent
+          // page's top-level item. Filtered FIRST, so a parent the viewer may
+          // not see cannot adopt anything — its children fall back to Home.
+          id: p.id,
           slug: p.slug,
           title: p.title,
           navLabel: p.navLabel,
           navOrder: p.navOrder,
           showInNav: p.showInNav,
+          parent: p.parent as PageLite['parent'],
         }))
 
       // Latest posts → Posts dropdown, each with its meta image as a thumbnail.

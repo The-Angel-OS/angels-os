@@ -162,6 +162,45 @@ export const Pages: CollectionConfig = {
         condition: (data) => data?.showInNav !== false,
       },
     },
+    /**
+     * The menu IS the page tree, so this field is the menu editor.
+     *
+     * A PLAIN relationship, deliberately not the nested-docs plugin. The column
+     * it writes (`pages.parent_id`) is the one that plugin left behind, but the
+     * plugin itself is gone from package.json and src/plugins -- what blew up
+     * last time was its other half: it rewrites slugs into full paths and
+     * rebuilds a `breadcrumbs` array on every save, which is a URL change on
+     * live pages disguised as a nav setting. None of that is wanted here. A
+     * parent moves where the page appears in the MENU and nothing else; the URL
+     * stays `/<slug>`, flat, forever.
+     *
+     * One level deep is all `injectPagesUnderHome` renders, matching the
+     * header's one level of dropdown.
+     */
+    {
+      name: 'parent',
+      type: 'relationship',
+      relationTo: 'pages',
+      admin: {
+        position: 'sidebar',
+        description:
+          'Optional. Nest this page under another one in the menu. The address stays /slug — this only changes where it appears in the menu.',
+        condition: (data) => data?.showInNav !== false,
+      },
+      filterOptions: ({ id, data }) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const where: any = {}
+        // Never offer the page itself: a page parented to itself vanishes from
+        // the menu (it nests inside its own dropdown) and is a puzzle to debug.
+        if (id) where.id = { not_equals: id }
+        // Same portal only. A cross-tenant parent would nest this page under an
+        // item that is not in this site's menu at all, so it would silently
+        // fall back to Home.
+        const tenant = (data as { tenant?: unknown } | undefined)?.tenant
+        if (tenant) where.tenant = { equals: typeof tenant === 'object' ? (tenant as { id?: unknown }).id : tenant }
+        return where
+      },
+    },
     {
       type: 'tabs',
       tabs: [

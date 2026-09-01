@@ -72,4 +72,68 @@ describe('pagesNav.injectPagesUnderHome', () => {
     const out = injectPagesUnderHome(nav, [{ slug: 'a', title: 'A' }])
     expect(out[0].children).toHaveLength(1)
   })
+
+  // --- nesting by parent (the DNN model: the page tree IS the menu) ---
+
+  it('nests a child under its parent page instead of under Home', () => {
+    const out = injectPagesUnderHome([item('Home', '/'), item('Services', '/services')], [
+      { id: 1, slug: 'services', title: 'Services' },
+      { id: 2, slug: 'infrastructure', title: 'Infrastructure', parent: 1, navOrder: 1 },
+      { id: 3, slug: 'analytics', title: 'Analytics', parent: 1, navOrder: 2 },
+      { id: 4, slug: 'about', title: 'About' },
+    ])
+    const services = out.find((i) => i.link.url === '/services')
+    expect(services.children.map((c: { link: { url: string } }) => c.link.url)).toEqual([
+      '/infrastructure',
+      '/analytics',
+    ])
+    // Parentless pages still go under Home -- including Services itself, which
+    // is pre-existing behaviour (Home lists every page). What matters is that
+    // the two CHILDREN are not there; they belong to their parent's dropdown.
+    const home = out.find((i) => i.link.url === '/')
+    expect(home.children.map((c: { link: { url: string } }) => c.link.url)).toEqual(['/about', '/services'])
+  })
+
+  it('accepts a populated parent doc as well as a bare id', () => {
+    const out = injectPagesUnderHome([item('Home', '/'), item('Services', '/services')], [
+      { id: 1, slug: 'services', title: 'Services' },
+      { id: 2, slug: 'infrastructure', title: 'Infrastructure', parent: { id: 1 } },
+    ])
+    expect(
+      out.find((i) => i.link.url === '/services').children.map((c: { link: { url: string } }) => c.link.url),
+    ).toEqual(['/infrastructure'])
+  })
+
+  it('falls back to Home when the parent is not a top-level item', () => {
+    // parent exists as a page but was never promoted to the bar -- the child
+    // must still be reachable rather than vanishing.
+    const out = injectPagesUnderHome([item('Home', '/')], [
+      { id: 1, slug: 'services', title: 'Services', navOrder: 1 },
+      { id: 2, slug: 'infrastructure', title: 'Infrastructure', parent: 1, navOrder: 2 },
+    ])
+    expect(
+      out.find((i) => i.link.url === '/').children.map((c: { link: { url: string } }) => c.link.url),
+    ).toEqual(['/services', '/infrastructure'])
+  })
+
+  it('falls back to Home when the parent is unpublished or not viewable', () => {
+    // the parent is simply absent from the list the header passes in
+    const out = injectPagesUnderHome([item('Home', '/'), item('Services', '/services')], [
+      { id: 2, slug: 'infrastructure', title: 'Infrastructure', parent: 1 },
+    ])
+    expect(
+      out.find((i) => i.link.url === '/').children.map((c: { link: { url: string } }) => c.link.url),
+    ).toEqual(['/infrastructure'])
+    expect(out.find((i) => i.link.url === '/services').children).toBeUndefined()
+  })
+
+  it('is a no-op for every page that has no parent (the 150 rows in prod today)', () => {
+    const pages = [
+      { id: 1, slug: 'about', title: 'About' },
+      { id: 2, slug: 'services', title: 'Services' },
+    ]
+    expect(JSON.stringify(injectPagesUnderHome(NAV, pages))).toBe(
+      JSON.stringify(injectPagesUnderHome(NAV, pages.map((p) => ({ ...p, parent: null })))),
+    )
+  })
 })

@@ -31,6 +31,13 @@ export interface BrochureNavPage {
   title: string
   /** Home is reached by the logo and does not need a row of its own. */
   showInNav?: boolean
+  /**
+   * Slug of the page this one sits under. A child gets NO top-level row --
+   * `injectPagesUnderHome` hangs it off the parent's item at render time, and
+   * emitting it here too would show it twice: once in the bar, once in its own
+   * parent's dropdown.
+   */
+  parent?: string
 }
 
 /** '/'+slug, with 'home' collapsing to '/'. */
@@ -45,7 +52,7 @@ export async function applyBrochureNav(
   const items = [
     navLink('Home', '/'),
     ...pages
-      .filter((p) => p.slug !== 'home' && p.showInNav !== false)
+      .filter((p) => p.slug !== 'home' && p.showInNav !== false && !p.parent)
       .map((p) => navLink(p.title, navUrlFor(p.slug))),
   ]
 

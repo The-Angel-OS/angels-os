@@ -1587,6 +1587,10 @@ export interface Page {
    * Sort order in the menu (lower first; blank sorts last, then by title).
    */
   navOrder?: number | null;
+  /**
+   * Optional. Nest this page under another one in the menu. The address stays /slug — this only changes where it appears in the menu.
+   */
+  parent?: (number | null) | Page;
   hero: {
     type: 'none' | 'fullScreen' | 'splitPanel' | 'highImpact' | 'mediumImpact' | 'lowImpact';
     richText?: {
@@ -8920,6 +8924,7 @@ export interface PagesSelect<T extends boolean = true> {
   access?: T;
   navLabel?: T;
   navOrder?: T;
+  parent?: T;
   hero?:
     | T
     | {
