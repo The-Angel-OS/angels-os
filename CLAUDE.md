@@ -10,13 +10,15 @@ Handoffs in `docs/handoffs/` are journal entries — a point in time, never the 
 
 ## Where production runs, right now
 
-> **260831 — production is on RAILWAY again.** The laptop was shut down with the site still
-> on it and every hostname 530'd. DNS moved to Railway, current `main` deployed, and the
-> database gaps re-created by re-running the committed provisioning scripts against
-> Railway's Postgres — the node was powered off, so there was no dump to take. The node is
-> cold standby now. The sections below still describe it; keep them for when it is needed,
-> but **the deploy command today is `railway up -s Core`.**
-
+> **260901 — production is BACK ON THE NODE.** The 260831 note below said Railway; it is
+> wrong and was left standing after the node came back up. Proof, not inference: the
+> `celersoft` tenant (#43) exists only in `angelos-pg` and is what
+> `celersoft.spacesangels.com` renders, and a `push-to-node.sh` deploy changed the live
+> page. Railway's Postgres has 24 tenants and has never seen #43 — it is a stale fork now,
+> not a failover you can cut back to without a reconcile.
+>
+> **Deploy is `push-to-node.sh` again** (the command below). `railway up -s Core` ships to
+> a service nothing is pointed at.
 
 **`*.spacesangels.com` is served by `angel-node-01`, a ThinkPad T440s on Ken's desk.**
 Railway's trial expired on 260827; the account is **demoted**, `railway up` refuses,
