@@ -97,7 +97,13 @@ export default async function PlanPage() {
   // an upgrade button for a plan that would take features AWAY from them.
   const plan = planOf(tenant as { portalPlan?: string | null } | null)
   const isDemo = plan === 'demo'
-  const current = (isDemo ? 'business' : plan) as Tier['id']
+  // `agency` and `demo` are both real plans that are NOT one of the three cards.
+  // Mapping them onto Business is what stops findIndex returning -1 and telling
+  // the portal it is on Free — the bug that showed eight demo portals an upgrade
+  // button for a plan that would have taken features AWAY from them.
+  const isAgency = plan === 'agency'
+  const offCard = isDemo || isAgency
+  const current = (offCard ? 'business' : plan) as Tier['id']
   const currentIndex = TIERS.findIndex((t) => t.id === current)
 
   return (
@@ -110,6 +116,13 @@ export default async function PlanPage() {
           switched on and nothing is being billed. When you are ready to make it yours, the plans
           are here so you know what it costs; nothing gets rebuilt when you pick one.
         </p>
+      ) : isAgency ? (
+        <p className="mt-2 text-sm text-muted-foreground">
+          {tenant?.name ? `${tenant.name} is on the ` : 'This portal is on the '}
+          <strong className="text-foreground">Agency plan</strong> — everything in Business, and
+          room for a hundred portals. Each site you build still carries its own plan; this one
+          governs how many you may hold.
+        </p>
       ) : (
         <p className="mt-2 text-sm text-muted-foreground">
           {tenant?.name ? `${tenant.name} is on ` : 'This portal is on '}
@@ -121,7 +134,7 @@ export default async function PlanPage() {
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         {TIERS.map((tier, i) => {
-          const isCurrent = !isDemo && tier.id === current
+          const isCurrent = !offCard && tier.id === current
           const isUpgrade = i > currentIndex
           return (
             <div
@@ -151,13 +164,25 @@ export default async function PlanPage() {
                   </li>
                 ))}
               </ul>
-              {isUpgrade && !isDemo && (tier.id === 'site' || tier.id === 'business') && (
+              {isUpgrade && !offCard && (tier.id === 'site' || tier.id === 'business') && (
                 <UpgradeButton plan={tier.id} label={tier.name} />
               )}
             </div>
           )
         })}
       </div>
+
+      {!isAgency && (
+        <p className="mt-6 rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+          <strong className="text-foreground">Building sites for other people?</strong> The Agency
+          plan is Business with room for a hundred portals, priced as a conversation rather than a
+          checkout.{' '}
+          <Link className="underline" href="/dashboard/spaces">
+            Ask Leo
+          </Link>{' '}
+          and we will set it up.
+        </p>
+      )}
 
       <p className="mt-6 text-xs text-muted-foreground">
         Prices are per site, per month, in US dollars. No setup fee, no contract, cancel any month. Full detail on{' '}

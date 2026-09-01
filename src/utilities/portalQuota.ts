@@ -125,9 +125,23 @@ export async function getPortalQuota(
   return quotaFromOwned(await getOwnedPortals(payload, userId))
 }
 
+/**
+ * Rank as a RECORD rather than an ordered array, so a new plan is a type error
+ * here instead of a silent bug. The array this replaced used `indexOf`, which
+ * returns -1 for anything missing — adding `agency` to PortalPlan without
+ * touching the list would have ranked it BELOW free, and the person holding the
+ * most generous plan on the platform would have been told they were on Free.
+ */
+const PLAN_RANK: Record<PortalPlan, number> = {
+  free: 0,
+  site: 1,
+  business: 2,
+  agency: 3,
+  demo: 4,
+}
+
 function bestPlan(plans: PortalPlan[]): PortalPlan {
-  const order: PortalPlan[] = ['free', 'site', 'business', 'demo']
-  return plans.reduce((best, p) => (order.indexOf(p) > order.indexOf(best) ? p : best), 'free' as PortalPlan)
+  return plans.reduce<PortalPlan>((best, p) => (PLAN_RANK[p] > PLAN_RANK[best] ? p : best), 'free')
 }
 
 /**

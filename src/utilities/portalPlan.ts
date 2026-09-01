@@ -9,7 +9,7 @@
  * @see /dashboard/plan — the upgrade surface
  */
 
-export type PortalPlan = 'free' | 'site' | 'business' | 'demo'
+export type PortalPlan = 'free' | 'site' | 'business' | 'agency' | 'demo'
 
 export type PortalCapabilityKey =
   /** Own domain instead of a spacesangels.com address. */
@@ -35,6 +35,22 @@ const CAPABILITIES: Record<PortalPlan, PortalCapabilityKey[]> = {
   free: [],
   site: ['customDomain', 'hideFooterCredit'],
   business: BUSINESS,
+  /**
+   * Agency — Business, with room for a hundred portals.
+   *
+   * Ken's 260901 ruling. It exists because the allowance, not the feature set,
+   * is what stopped a partner: someone reselling this platform runs fifty sites
+   * for fifty clients, and the ceiling of ten made that conversation impossible
+   * to have. The capabilities are Business's exactly; nothing new is unlocked,
+   * and the whole difference is PORTAL_QUOTA below.
+   *
+   * Note what an agency allowance does NOT do: it is room to HOLD portals, not
+   * a grant of Business to each of them. A client site still carries its own
+   * plan and still pays for its own features. Quota answers "how many", plans
+   * answer "what may each one do", and keeping those separate is why adding
+   * this tier costs one line here instead of a second entitlement system.
+   */
+  agency: BUSINESS,
   /**
    * Everything, billed to nobody.
    *
@@ -73,6 +89,7 @@ export const PORTAL_QUOTA: Record<PortalPlan, number> = {
   free: 1,
   site: 3,
   business: 10,
+  agency: 100,
   demo: 100,
 }
 
@@ -92,6 +109,14 @@ export const PLAN_PRICE_CENTS: Record<PortalPlan, number> = {
   free: 0,
   site: 2900,
   business: 7900,
+  /**
+   * PLACEHOLDER — $299 is Claude's number, not Ken's, and it is deliberately
+   * NOT self-serve: `agency` is absent from PURCHASABLE_PLANS, so nothing can
+   * charge this until a price is agreed. An agency deal is a conversation; the
+   * tier is granted by an admin the way `demo` is. Displayed so the tier is
+   * visible on the pricing surfaces while the number is settled.
+   */
+  agency: 29900,
   demo: 0,
 }
 
@@ -115,6 +140,9 @@ export const PLAN_FEE_BPS: Record<PortalPlan, number> = {
   free: 500,
   site: 200,
   business: 0,
+  // An agency brings the platform its customers; taking a cut of their clients'
+  // sales on top of the tier would be charging twice for the same relationship.
+  agency: 0,
   demo: 0,
 }
 
@@ -123,6 +151,7 @@ export const PLAN_LABEL: Record<PortalPlan, string> = {
   free: 'Free',
   site: 'Site — $29/mo',
   business: 'Business — $79/mo',
+  agency: 'Agency — talk to us',
   demo: 'Demo — not billed',
 }
 
@@ -132,9 +161,20 @@ export function planRequiredFor(cap: PortalCapabilityKey): PortalPlan {
   return 'business'
 }
 
+/**
+ * The plan a tenant is on, defaulting to free for anything unrecognised.
+ *
+ * DERIVED from the capability map rather than a hand-written list of literals.
+ * The list version silently forgot `agency` the day it was added: TypeScript
+ * cannot flag a missing arm of an `||` chain, so an agency portal read back as
+ * FREE and its owner was told they had room for one portal instead of a hundred.
+ * A plan that exists in the map is a plan this recognises, by construction.
+ */
 export function planOf(tenant: { portalPlan?: string | null } | null | undefined): PortalPlan {
   const p = tenant?.portalPlan
-  return p === 'site' || p === 'business' || p === 'demo' ? p : 'free'
+  return typeof p === 'string' && Object.prototype.hasOwnProperty.call(CAPABILITIES, p)
+    ? (p as PortalPlan)
+    : 'free'
 }
 
 /** A demo is not a customer — no upgrade prompt, no footer credit, no invoice. */

@@ -286,12 +286,18 @@
   `customer.subscription.*` on the PLATFORM account (not a Connect account), then buy a
   Site plan on a throwaway portal with a real card and confirm the field moves.  `260901`
 
-- **[P1] A person-level portal quota does not describe an agency.** `PORTAL_QUOTA` tops out
+- **[P1→RESOLVED 260901] A person-level portal quota did not describe an agency.** `PORTAL_QUOTA` tops out
   at 10 (business), and the allowance is the best plan among portals you already own. A
   partner agency reselling the platform would run fifty portals for fifty clients and hit
   that wall — and they would hold no platform role, so nothing about the model fits them.
-  *Next action:* Ken's ruling — an agency plan with its own quota, or plans become
-  per-portal subscriptions so the owner's allowance stops being the gate.  `260901`
+  **Ken's 260901 ruling: an agency tier.** `portalPlan: 'agency'` — Business's capabilities
+  exactly, `PORTAL_QUOTA.agency = 100`, platform fee 0. An agency allowance is room to HOLD
+  portals, not a grant of Business to each of them: a client site still carries its own plan.
+  Granted by hand like `demo` — `agency` is absent from `PURCHASABLE_PLANS`, so nothing can
+  charge the placeholder price while it is unsettled.
+  *Next action for Ken:* set the real price. `PLAN_PRICE_CENTS.agency` is $299 and that is
+  Claude's number, not a decision. Once it is agreed, add `agency` to `PURCHASABLE_PLANS`
+  and it becomes self-serve like the other two.  `260901`
 
 - **[P1→SHIPPED 260901] A/B testing and site-wide structured data — the two things a
   partner agency asks for on the second call.** Both were absent: no experiment machinery

@@ -88,3 +88,30 @@ describe('a guardian angel is the person, not a site they run', () => {
     expect(state.used).toBe(0)
   })
 })
+
+describe('the agency tier', () => {
+  it('has room for a hundred portals and outranks business', async () => {
+    const state = await getPortalQuota(payloadWith([{ portalPlan: 'agency', slug: 'kendev' }]), 7)
+    expect(state).toMatchObject({ used: 1, quota: PORTAL_QUOTA.agency, plan: 'agency' })
+    expect(PORTAL_QUOTA.agency).toBeGreaterThan(PORTAL_QUOTA.business)
+  })
+
+  it('is reported as the best plan held, not as Free', async () => {
+    // bestPlan used to rank with indexOf on a hand-written array: a plan missing
+    // from that list scored -1 and lost to free, so the person on the MOST
+    // generous plan would have been told they were on the least.
+    const state = await getPortalQuota(
+      payloadWith([{ portalPlan: 'free' }, { portalPlan: 'agency' }, { portalPlan: 'site' }]),
+      7,
+    )
+    expect(state.plan).toBe('agency')
+    expect(state.quota).toBe(PORTAL_QUOTA.agency)
+  })
+
+  it('an agency owner is nowhere near the wall at fifty client portals', async () => {
+    const fifty = Array.from({ length: 50 }, (_, i) => ({ portalPlan: 'free', slug: `client-${i}` }))
+    await expect(
+      assertPortalQuota(payloadWith([{ portalPlan: 'agency' }, ...fifty]), { id: 7 }),
+    ).resolves.toBeUndefined()
+  })
+})

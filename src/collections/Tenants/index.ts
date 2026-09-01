@@ -847,6 +847,12 @@ export const Tenants: CollectionConfig = {
         { label: 'Site ($29/mo) — own domain, no footer credit', value: 'site' },
         { label: 'Business ($79/mo) — booking, deposits, CRM, assistant', value: 'business' },
         {
+          // Granted by hand, like Demo — an agency deal is a conversation, not a
+          // checkout. Business features, plus room for a hundred portals.
+          label: 'Agency — Business, with room for 100 portals',
+          value: 'agency',
+        },
+        {
           label: 'Demo — everything switched on, billed to nobody',
           value: 'demo',
         },

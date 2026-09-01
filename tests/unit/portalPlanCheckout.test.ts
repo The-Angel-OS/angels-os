@@ -11,6 +11,9 @@ describe('which plans can be bought', () => {
     // either would be a way to TALK yourself onto a plan instead of paying.
     expect(isPurchasablePlan('demo')).toBe(false)
     expect(isPurchasablePlan('free')).toBe(false)
+    // Agency is granted by hand and its price is not settled. Self-serve
+    // checkout must never be able to charge a placeholder.
+    expect(isPurchasablePlan('agency')).toBe(false)
     expect(isPurchasablePlan('')).toBe(false)
     expect(isPurchasablePlan(undefined)).toBe(false)
     expect(isPurchasablePlan({ toString: () => 'site' })).toBe(false)
