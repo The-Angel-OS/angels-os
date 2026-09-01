@@ -16,6 +16,23 @@
 
 ## 🔴 Bugs & broken (P0–P1)
 
+- **[P0→FIXED 260901] A free user could never create their first business portal.**
+  The auto-provisioned guardian angel went through `provisionPortal` like any other portal
+  and consumed the entire free allowance of 1, so the NEXT portal — the actual business —
+  was refused with "You already have 1 of 1 portals on your plan". The free tier was closed
+  at exactly the step it exists to open. Only latent because
+  `GUARDIAN_ANGEL_SELF_PROVISION` is off. Guardian angels are now excluded from `used`
+  (never from the allowance — a paid angel still raises it), which also makes
+  `GUARDIAN_ANGEL_MAX_PER_USER` (3) reachable instead of overruled by a quota of 1 that
+  fired first.  `260901`
+
+- **[P0→FIXED 260901] The apex home card listed one thing and counted another.**
+  `AlreadyOnboardedBanner` asked for any active membership capped at `limit: 20`; the
+  "N of M on your plan" beside it counted `tenant_admin` rows with no cap. Result on
+  spacesangels.com: twenty buttons above the words "16 of 100", with every portal past the
+  twentieth silently hidden. Both halves now come from one `getOwnedPortals` call —
+  ownership, uncapped — so they cannot disagree again.  `260901`
+
 - **[P0→FIXED 260901] Every page with a Media + Text block was unreadable.**
   `width`, `side` and `playback` were added to `src/blocks/MediaText/config.ts` with no
   migration, so any Page, Post or Product carrying the block died on
@@ -240,6 +257,33 @@
   `docs/DEPLOY_RAILWAY.md` §1/§2. *Next:* Ken runs the Railway steps (no CLI here). `260723`
 
 ## 🟡 Gaps — features to build (P1)
+
+- **[P1] Self-serve domain binding gives away the `site` plan's headline feature.**
+  `domain-ops.ts` (260901) guards on `tenant_admin`/`tenant_manager`, platform apexes and
+  already-bound hostnames — but not on the plan. `customDomain` is exactly what separates
+  `free` from `site` ($29/mo) in `portalPlan.ts`, so a free portal's owner can now bind
+  their own domain from the dashboard.
+  **Deliberately shipped ungated for now:** nothing in the codebase sets `portalPlan` from
+  a payment (see the item below), so gating today locks a door with no key cut. The fix is
+  one `portalCan(tenant, 'customDomain')` check next to the existing guards, and it lands
+  the same day billing writes the field — not before.
+  *Next action:* add the check in the same commit that wires plan upgrades.  `260901`
+
+- **[P1] No payment anywhere sets `tenants.portalPlan`.** The field is written only by
+  `provisionPortal` input and `runDemoSite` ('demo'); the Stripe webhook touches tenants
+  only for Connect account status. `/dashboard/plan` links out to
+  `spacesangels.com/plans?portal=…&plan=…` and no route reads those params. So every plan
+  gate in `portalPlan.ts` — custom domain, CRM, assistant, memberships, the 5%→2%→0%
+  platform fee — is enforced against a field only an admin can move by hand.
+  *Next action:* a `checkout.session.completed` / `customer.subscription.*` branch that
+  writes `portalPlan` for the tenant named in the session metadata.  `260901`
+
+- **[P1] A person-level portal quota does not describe an agency.** `PORTAL_QUOTA` tops out
+  at 10 (business), and the allowance is the best plan among portals you already own. A
+  partner agency reselling the platform would run fifty portals for fifty clients and hit
+  that wall — and they would hold no platform role, so nothing about the model fits them.
+  *Next action:* Ken's ruling — an agency plan with its own quota, or plans become
+  per-portal subscriptions so the owner's allowance stops being the gate.  `260901`
 
 - **[P1→SHIPPED 260901] A/B testing and site-wide structured data — the two things a
   partner agency asks for on the second call.** Both were absent: no experiment machinery

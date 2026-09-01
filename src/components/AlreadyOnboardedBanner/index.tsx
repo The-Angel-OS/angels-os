@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { headers } from 'next/headers'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { getPortalQuota } from '@/utilities/portalQuota'
+import { getOwnedPortals, quotaFromOwned } from '@/utilities/portalQuota'
 
 /**
  * "You already have one of these."
@@ -30,29 +30,22 @@ export async function AlreadyOnboardedBanner({ tenantSlug }: { tenantSlug?: stri
     const { user } = await payload.auth({ headers: await headers() })
     if (!user) return null
 
-    const memberships = await payload.find({
-      collection: 'tenant-memberships',
-      where: { and: [{ user: { equals: user.id } }, { status: { equals: 'active' } }] },
-      depth: 2,
-      limit: 20,
-      // Their own portals. Without this the depth-2 hydration is access-denied
-      // and every tenant comes back a bare id — the same bug that emptied the
-      // brochure portal switcher on 260821.
-      overrideAccess: true,
-    })
+    // ONE definition of "your portals", shared with the count printed beside it.
+    // The list used to ask its own question — any active membership, capped at 20
+    // — so it rendered twenty buttons above "16 of 100" and hid everything past
+    // the twentieth. @see getOwnedPortals for why ownership is the right question.
+    const owned = await getOwnedPortals(payload, user.id)
 
-    portals = (memberships.docs || [])
-      .map((m) => (m as { tenant?: unknown }).tenant)
-      .filter((t): t is { slug?: string; name?: string; domain?: string; branding?: { siteName?: string } } =>
-        Boolean(t && typeof t === 'object'),
-      )
+    portals = owned
       // The marketing tenant is not somewhere to "go back to" — it is here.
-      .filter((t) => t.slug && t.slug !== 'platform')
-      .map((t) => ({
-        name: t.branding?.siteName || t.name || t.slug || 'your site',
-        href: `https://${t.domain || `${t.slug}.spacesangels.com`}/dashboard`,
+      .filter((p) => p.slug && p.slug !== 'platform')
+      .map((p) => ({
+        name: p.name || 'your site',
+        href: `https://${p.domain || `${p.slug}.spacesangels.com`}/dashboard`,
       }))
-    quota = await getPortalQuota(payload, user.id)
+    // Derived from the SAME rows the buttons came from — one query, and the two
+    // halves of this card can never disagree again.
+    quota = quotaFromOwned(owned)
   } catch {
     // A banner is never worth a 500 on a marketing page.
     return null

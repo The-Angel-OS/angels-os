@@ -840,8 +840,12 @@ export const Tenants: CollectionConfig = {
       defaultValue: 'free',
       options: [
         { label: 'Free — site on a spacesangels.com address', value: 'free' },
-        { label: 'Site ($49/mo) — own domain, no footer credit', value: 'site' },
-        { label: 'Business ($149/mo) — booking, deposits, CRM, assistant', value: 'business' },
+        // Prices are the ones in portalPlan.ts (PLAN_PRICE_CENTS / PLAN_LABEL).
+        // These labels said $49 and $149 for months after the 260823 move to
+        // $29/$79 — the dropdown someone reads WHILE provisioning a portal was
+        // the last stale copy of the pricing.
+        { label: 'Site ($29/mo) — own domain, no footer credit', value: 'site' },
+        { label: 'Business ($79/mo) — booking, deposits, CRM, assistant', value: 'business' },
         {
           label: 'Demo — everything switched on, billed to nobody',
           value: 'demo',

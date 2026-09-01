@@ -21,15 +21,38 @@ export interface PortalQuotaState {
   plan: PortalPlan
 }
 
+/** A portal as the owner's own surfaces need it — enough to name it and link to it. */
+export interface OwnedPortal {
+  id: number | string
+  slug: string
+  name: string
+  domain?: string | null
+  plan: PortalPlan
+  isGuardianAngel: boolean
+}
+
 /**
- * Portals this person OWNS (tenant_admin), and what their plans entitle them to.
- * Counting admin memberships rather than tenants means a portal someone merely
- * belongs to never eats their allowance.
+ * Every portal this person OWNS — `tenant_admin`, active, no cap.
+ *
+ * THE definition of "your portals", and the reason this is a function rather
+ * than a query repeated per surface. The apex home card used to ask a different
+ * question from the quota printed beside it — active membership in ANY role,
+ * capped at 20 — so it rendered twenty buttons above the words "16 of 100" and
+ * silently hid every portal past the twentieth. Two answers to one question is
+ * how that happens; there is now one.
+ *
+ * Ownership, not membership, is the right question for every one of these
+ * surfaces: a community you joined is not a site you run, and it is not
+ * something a plan could ever be charged for.
+ *
+ * ponytail: no cap. Someone with a thousand portals would want paging, and
+ * nobody has forty — a cap that silently lies is worse than a list that is
+ * briefly long.
  */
-export async function getPortalQuota(
+export async function getOwnedPortals(
   payload: Payload,
   userId: number | string,
-): Promise<PortalQuotaState> {
+): Promise<OwnedPortal[]> {
   const memberships = await payload.find({
     collection: 'tenant-memberships',
     where: {
@@ -45,16 +68,61 @@ export async function getPortalQuota(
     overrideAccess: true,
   })
 
-  const plans: PortalPlan[] = []
+  const portals: OwnedPortal[] = []
   for (const m of memberships.docs as Array<{ tenant?: unknown }>) {
     const t = m.tenant
-    if (t && typeof t === 'object') plans.push(planOf(t as { portalPlan?: string | null }))
-    else plans.push('free')
+    // An unhydrated relation is still a portal they own — it counts toward the
+    // quota (as free, the safe reading) even though it cannot be linked to.
+    if (!t || typeof t !== 'object') {
+      portals.push({ id: 0, slug: '', name: '', plan: 'free', isGuardianAngel: false })
+      continue
+    }
+    const tenant = t as {
+      id?: number | string
+      slug?: string
+      name?: string
+      domain?: string
+      portalPlan?: string | null
+      isGuardianAngel?: boolean
+      branding?: { siteName?: string }
+    }
+    portals.push({
+      id: tenant.id ?? 0,
+      slug: tenant.slug || '',
+      name: tenant.branding?.siteName || tenant.name || tenant.slug || '',
+      domain: tenant.domain,
+      plan: planOf(tenant),
+      isGuardianAngel: tenant.isGuardianAngel === true,
+    })
   }
+  return portals
+}
 
-  const used = memberships.docs.length
+/**
+ * What this person's plans entitle them to, and how much of it is spent.
+ *
+ * A guardian angel does NOT count against the allowance. It is auto-provisioned,
+ * it is the person rather than a site they run, and counting it meant a free
+ * user's personal portal consumed their entire allowance of one — so the next
+ * portal they made, the actual business, was refused. That closed the free tier
+ * at exactly the step it exists to open. Excluding it also settles a second
+ * disagreement: GUARDIAN_ANGEL_MAX_PER_USER (3) is now reachable instead of
+ * being overruled by a quota of 1 that fired first.
+ */
+export function quotaFromOwned(owned: OwnedPortal[]): PortalQuotaState {
+  const plans = owned.map((p) => p.plan)
+  // The ALLOWANCE still reads every plan, guardian angels included — a paid
+  // personal angel is a plan they hold, and it would be mean to ignore it.
   const quota = portalQuotaFor(plans)
+  const used = owned.filter((p) => !p.isGuardianAngel).length
   return { used, quota, overQuota: used >= quota, plan: bestPlan(plans) }
+}
+
+export async function getPortalQuota(
+  payload: Payload,
+  userId: number | string,
+): Promise<PortalQuotaState> {
+  return quotaFromOwned(await getOwnedPortals(payload, userId))
 }
 
 function bestPlan(plans: PortalPlan[]): PortalPlan {
