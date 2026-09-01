@@ -85,3 +85,4 @@ chat-archive/
 # Demo capture output — regenerate with src/scripts/_local/capture-demo-shots.mjs
 docs/demo-shots/
 docs/The-Angel-OS-Demo.pptx
+src/scripts/_local/assets/
