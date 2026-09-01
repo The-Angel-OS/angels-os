@@ -27,6 +27,9 @@ import { getTenantCachedDoc } from '@/utilities/getTenantCachedDoc'
 import type { Metadata } from 'next'
 import type { Media } from '@/payload-types'
 import { isPortalClaimed } from '@/utilities/isPortalClaimed'
+import { JsonLd } from '@/components/JsonLd'
+import { organizationJsonLd, websiteJsonLd } from '@/utilities/structuredData'
+import { originFromHeaderValues } from '@/utilities/originFromHeaders'
 import './globals.css'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -75,6 +78,13 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const headersList = await headers()
   const tenantSlug = headersList.get('x-tenant-id')
   const host = headersList.get('host') ?? ''
+  // Absolute origin for the structured data below. Every @id and every image URL
+  // in JSON-LD must be absolute, and on a multi-tenant node only the Host header
+  // knows which site this is.
+  const siteOrigin = originFromHeaderValues(
+    headersList.get('x-forwarded-host') || host,
+    headersList.get('x-forwarded-proto'),
+  )
 
   // Graceful tenant resolution — if the DB is temporarily unavailable the layout
   // still renders (header/footer will simply be empty).
@@ -124,6 +134,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           userAgent: headersList.get('user-agent'),
           ip: headersList.get('x-real-ip') || headersList.get('x-forwarded-for'),
           country: headersList.get('cf-ipcountry'),
+          variant: headersList.get('x-ab-variant'),
           userId: (user as { id?: number | string } | null)?.id ?? null,
         })
         // Reaching a portal is what enrolls you in it. The dashboard layout has
@@ -198,6 +209,16 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         {!(tenant?.branding as { favicon?: unknown } | undefined)?.favicon && (
           <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
         )}
+        {/* Site-wide structured data. The organisation and the website itself are
+            true on every page, so they belong here rather than being repeated by
+            each route; per-page nodes (Article, Event, Product) reference this
+            one by @id instead of restating it. */}
+        <JsonLd
+          data={[
+            organizationJsonLd(tenant as never, siteOrigin),
+            websiteJsonLd(tenant as never, siteOrigin),
+          ]}
+        />
         <GoogleAnalytics />
       </head>
       <body>

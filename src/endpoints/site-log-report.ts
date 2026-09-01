@@ -15,6 +15,7 @@
  *   by-weekday    which days of the week are busy
  *   by-hour       which hours of the day are busy
  *   visitors      most frequent returning visitors (DNN "User Frequency")
+ *   variants      A/B: conversion rate per bucket, with a significance verdict
  *
  * Scoping is not negotiable: an owner sees THEIR portal and nothing else. The
  * tenant comes from the request host, never from a parameter, and the caller must
@@ -28,6 +29,7 @@
 import type { PayloadHandler } from 'payload'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { checkRole, ADMIN_ROLES } from '@/access/utilities'
+import { DEFAULT_GOAL_PATHS, abVerdict } from '@/utilities/abVariant'
 
 const MANAGER_ROLES = new Set(['tenant_admin', 'tenant_manager'])
 
@@ -41,6 +43,7 @@ export const REPORT_TYPES = [
   'by-weekday',
   'by-hour',
   'visitors',
+  'variants',
 ] as const
 export type ReportType = (typeof REPORT_TYPES)[number]
 
@@ -57,7 +60,7 @@ export function clampDays(raw: string | null, fallback = 30): number {
  * the fixed SQL chosen by the `type` switch, never anything the caller typed.
  */
 export function buildAggregateSql(
-  type: Exclude<ReportType, 'detail'>,
+  type: Exclude<ReportType, 'detail' | 'variants'>,
   includeBots: boolean,
   /**
    * Platform scope drops the tenant filter — the whole node in one report.
@@ -76,7 +79,7 @@ export function buildAggregateSql(
   // looks like from the outside.
   const base = `FROM site_visits WHERE ${tenantClause} AND created_at >= $2::timestamptz ${botClause}`
 
-  const queries: Record<Exclude<ReportType, 'detail'>, string> = {
+  const queries: Record<Exclude<ReportType, 'detail' | 'variants'>, string> = {
     pages: `SELECT path AS label, COUNT(*)::int AS views,
               COUNT(DISTINCT visitor_hash)::int AS visitors
             ${base} GROUP BY path ORDER BY views DESC LIMIT $3`,
@@ -116,6 +119,49 @@ export function buildAggregateSql(
   }
 
   return queries[type]
+}
+
+/**
+ * The A/B report. One query, because both halves of the question live in the
+ * same table: how many distinct visitors were in each bucket, and how many of
+ * those same visitors ever reached a goal page.
+ *
+ * Rows with no `visitor_hash` are excluded outright rather than counted as
+ * anonymous. A conversion RATE is per person, so a row that cannot be tied to a
+ * person inflates the denominator and never the numerator — which biases every
+ * result downwards, unevenly, and silently.
+ *
+ * Goal paths bind as a text[] parameter ($3). They arrive from the query string,
+ * so they must never be interpolated into the SQL.
+ */
+export function buildVariantsSql(includeBots: boolean, platformScope = false): string {
+  const botClause = includeBots ? '' : 'AND (is_bot IS NOT TRUE)'
+  const tenantClause = platformScope
+    ? 'tenant_id IS NOT NULL AND $1::int IS NOT NULL'
+    : 'tenant_id = $1'
+  return `SELECT variant AS label,
+            COUNT(*)::int AS views,
+            COUNT(DISTINCT visitor_hash)::int AS visitors,
+            (COUNT(DISTINCT visitor_hash) FILTER (WHERE path = ANY($3::text[])))::int AS conversions
+          FROM site_visits
+          WHERE ${tenantClause}
+            AND created_at >= $2::timestamptz
+            AND variant IS NOT NULL
+            AND visitor_hash IS NOT NULL
+            ${botClause}
+          GROUP BY variant
+          ORDER BY variant ASC`
+}
+
+/** `?goal=/a,/b` → normalised paths. Falls back to the platform's own success pages. */
+export function parseGoals(raw: string | null): string[] {
+  const paths = (raw || '')
+    .split(',')
+    .map((p) => p.trim())
+    .filter((p) => p.startsWith('/'))
+    .map((p) => p.split('?')[0].replace(/\/+$/, '') || '/')
+    .slice(0, 10)
+  return paths.length ? paths : DEFAULT_GOAL_PATHS
 }
 
 export const siteLogReportHandler: PayloadHandler = async (req) => {
@@ -230,8 +276,41 @@ export const siteLogReportHandler: PayloadHandler = async (req) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pool = (payload.db as any)?.pool
     if (!pool) throw new Error('No database pool available for reporting.')
+
+    // The A/B report answers a different shape of question — two arms and a
+    // verdict, not a top-N list — so it does not go through buildAggregateSql.
+    if (type === 'variants') {
+      const goals = parseGoals(url.searchParams.get('goal'))
+      const res = await pool.query(buildVariantsSql(includeBots, platformScope), [
+        Number(tenantId),
+        since,
+        goals,
+      ])
+      const arms = (res.rows as Array<Record<string, unknown>>).map((r) => ({
+        variant: String(r.label),
+        views: Number(r.views),
+        visitors: Number(r.visitors),
+        conversions: Number(r.conversions),
+      }))
+      const verdict = abVerdict(arms)
+      return Response.json({
+        type,
+        days,
+        goals,
+        scope: platformScope ? 'platform' : 'tenant',
+        rows: arms.map((a) => ({
+          ...a,
+          rate: a.visitors > 0 ? a.conversions / a.visitors : 0,
+        })),
+        verdict,
+      })
+    }
     const result = await pool.query(
-      buildAggregateSql(type as Exclude<ReportType, 'detail'>, includeBots, platformScope),
+      buildAggregateSql(
+        type as Exclude<ReportType, 'detail' | 'variants'>,
+        includeBots,
+        platformScope,
+      ),
       [Number(tenantId), since, limit],
     )
     return Response.json({

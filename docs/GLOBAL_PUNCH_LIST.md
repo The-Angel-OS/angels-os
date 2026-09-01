@@ -16,6 +16,17 @@
 
 ## 🔴 Bugs & broken (P0–P1)
 
+- **[P0→FIXED 260901] Every page with a Media + Text block was unreadable.**
+  `width`, `side` and `playback` were added to `src/blocks/MediaText/config.ts` with no
+  migration, so any Page, Post or Product carrying the block died on
+  `column ..._blocks_media_text.width does not exist` — a 404/500 on the page, not an
+  obvious schema error. It hit any database built purely from the committed migrations,
+  which is what production is. Fixed by `20260901_093000_media_text_width_side_playback`,
+  which DERIVES the table list from `video_on_right` rather than enumerating it (the same
+  footgun, and the same fix, as the 260728 `aspect` incident).
+  *Next action:* confirm the columns exist on Railway after the next deploy —
+  `\d posts_blocks_media_text`.  `260901`
+
 - **[P0→RESOLVED 260827] Railway's trial expired — production MOVED to angel-node-01.**
   19 commits could not ship, so `*.spacesangels.com` was repointed to the ThinkPad's
   Cloudflare tunnel. All 23 portals verified serving. Deploy is now
@@ -229,6 +240,28 @@
   `docs/DEPLOY_RAILWAY.md` §1/§2. *Next:* Ken runs the Railway steps (no CLI here). `260723`
 
 ## 🟡 Gaps — features to build (P1)
+
+- **[P1→SHIPPED 260901] A/B testing and site-wide structured data — the two things a
+  partner agency asks for on the second call.** Both were absent: no experiment machinery
+  at all, and the only JSON-LD on the platform was a Product graph plus one FAQ block.
+  Now: the middleware buckets every visitor `a`/`b` in a first-party cookie, `site-visits`
+  stores the bucket, and `/api/site-log/report?type=variants` returns per-arm conversion
+  rates with a two-proportion z-test and a plain-English verdict (`src/utilities/abVariant.ts`,
+  plus an **A/B test** tab on `/dashboard/admin/site-log`). Structured data ships
+  Organization/LocalBusiness — with the schema.org subtype derived from `businessType`,
+  so a church emits `Church` — plus WebSite, Article, Event and BreadcrumbList
+  (`src/utilities/structuredData.ts`). Tenants gained `storefront.address`, without which
+  Google renders no local result at all.
+  *Next actions:* (1) fill in `storefront.address` for the church and local-business
+  portals — the markup is only as good as the data behind it; (2) run three or four live
+  URLs through Google's Rich Results Test after the deploy; (3) point `?goal=` at each
+  portal's real success page, since the defaults are the platform's own.  `260901`
+
+- **[P1] No cross-tenant performance rollup.** "How did all 23 portals do this month" needs
+  a screen. `?scope=platform` already answers it per report for a super_admin, but there is
+  no single page that ranks portals by traffic and conversion — which is exactly the view a
+  partner agency reselling the platform would live in.
+  *Next action:* one dashboard page over the existing platform-scoped reports.  `260901`
 
 - **[P1] Works has TWO renderers and THREE content conventions, and the writer can't tell which**
   one they are authoring for. Ken hit this editing WDEG: the formatting is applied **by POSITION,

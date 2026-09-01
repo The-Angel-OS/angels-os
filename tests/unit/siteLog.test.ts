@@ -108,8 +108,11 @@ describe('visitorHashOf — counts people without identifying them', () => {
 })
 
 describe('site-log report SQL', () => {
-  const aggregates = REPORT_TYPES.filter((t) => t !== 'detail') as Array<
-    Exclude<(typeof REPORT_TYPES)[number], 'detail'>
+  // `detail` is a plain paginated find, and `variants` has its own builder
+  // (two arms and a verdict, not a top-N list) — neither goes through
+  // buildAggregateSql. @see tests/unit/abVariant.test.ts for the variants SQL.
+  const aggregates = REPORT_TYPES.filter((t) => t !== 'detail' && t !== 'variants') as Array<
+    Exclude<(typeof REPORT_TYPES)[number], 'detail' | 'variants'>
   >
 
   it.each(aggregates)('%s scopes to one tenant and a date window', (type) => {

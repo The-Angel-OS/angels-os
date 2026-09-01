@@ -20,6 +20,11 @@ const REPORTS = [
   { id: 'by-weekday', label: 'Views by day of week', blurb: 'Which days are busy.' },
   { id: 'by-hour', label: 'Views by hour', blurb: 'What time of day they visit.' },
   { id: 'visitors', label: 'Returning visitors', blurb: 'Who comes back most.' },
+  {
+    id: 'variants',
+    label: 'A/B test',
+    blurb: 'Half your visitors see A, half see B. This is which one wins.',
+  },
 ] as const
 
 type ReportId = (typeof REPORTS)[number]['id']
@@ -39,6 +44,23 @@ interface AggregateRow {
   device?: string
   first_seen?: string
   last_seen?: string
+}
+
+/** One arm of the A/B test, plus its conversion rate. */
+interface VariantRow {
+  variant: string
+  views: number
+  visitors: number
+  conversions: number
+  rate: number
+}
+
+/** The statistician's answer, so the operator does not have to be one. */
+interface Verdict {
+  lift: number | null
+  pValue: number | null
+  significant: boolean
+  note: string
 }
 
 interface DetailRow {
@@ -66,7 +88,7 @@ export function SiteLogViewer({
   const [report, setReport] = useState<ReportId>('detail')
   const [days, setDays] = useState(7)
   const [includeBots, setIncludeBots] = useState(false)
-  const [rows, setRows] = useState<Array<AggregateRow | DetailRow>>([])
+  const [rows, setRows] = useState<Array<AggregateRow | DetailRow | VariantRow>>([])
   const [pending, setPending] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -74,6 +96,8 @@ export function SiteLogViewer({
   const [total, setTotal] = useState<number | null>(null)
   const [hasMore, setHasMore] = useState(false)
   const [wholeNode, setWholeNode] = useState(false)
+  const [verdict, setVerdict] = useState<Verdict | null>(null)
+  const [goals, setGoals] = useState<string[]>([])
   const [PAGE, setPage] = useState(50)
 
   const load = useCallback(async () => {
@@ -95,9 +119,12 @@ export function SiteLogViewer({
       setTotal(typeof json.totalDocs === 'number' ? json.totalDocs : null)
       setHasMore(Boolean(json.hasMore))
       setPending(Boolean(json.pending))
+      setVerdict(json.verdict ?? null)
+      setGoals(json.goals ?? [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load that report.')
       setRows([])
+      setVerdict(null)
     } finally {
       setLoading(false)
     }
@@ -208,7 +235,7 @@ export function SiteLogViewer({
             <h2 className="text-lg font-semibold">{active.label}</h2>
             <p className="text-sm text-muted-foreground">{active.blurb}</p>
           </div>
-          {!loading && rows.length > 0 && (
+          {!loading && rows.length > 0 && report !== 'variants' && (
             <span className="text-sm text-muted-foreground">
               {totalViews.toLocaleString()} view{totalViews === 1 ? '' : 's'}
             </span>
@@ -224,6 +251,11 @@ export function SiteLogViewer({
             title="Not collecting yet"
             body="The visitor log table hasn't been created on this node yet. It appears automatically after the next deploy."
           />
+        ) : rows.length === 0 && report === 'variants' ? (
+          <EmptyState
+            title="No test data yet"
+            body="Every visitor is assigned to A or B automatically, so this fills in on its own once the site has traffic in this period."
+          />
         ) : rows.length === 0 ? (
           <EmptyState
             title="No visits recorded"
@@ -233,6 +265,8 @@ export function SiteLogViewer({
                 : 'Nothing in this period. Only public pages are recorded, and crawlers are hidden unless you tick the box.'
             }
           />
+        ) : report === 'variants' ? (
+          <VariantsReport rows={rows as VariantRow[]} verdict={verdict} goals={goals} />
         ) : report === 'detail' ? (
           <>
             <DetailTable rows={rows as DetailRow[]} />
@@ -262,6 +296,82 @@ function EmptyState({ title, body }: { title: string; body: string }) {
     <div className="rounded-lg border border-dashed border-border bg-muted/20 p-8 text-center">
       <h3 className="mb-1 font-semibold">{title}</h3>
       <p className="text-sm text-muted-foreground">{body}</p>
+    </div>
+  )
+}
+
+/**
+ * The A/B readout.
+ *
+ * Written for someone who is not a statistician, which is the whole design
+ * constraint: the verdict sentence comes FIRST and in plain words, because the
+ * failure mode this report exists to prevent is an owner seeing "B is up 40%"
+ * on ninety visitors and rebuilding their home page around noise.
+ */
+function VariantsReport({
+  rows,
+  verdict,
+  goals,
+}: {
+  rows: VariantRow[]
+  verdict: Verdict | null
+  goals: string[]
+}) {
+  const pct = (n: number) => `${(n * 100).toFixed(1)}%`
+  const best = rows.reduce<VariantRow | null>((a, b) => (!a || b.rate > a.rate ? b : a), null)
+
+  return (
+    <div className="space-y-4">
+      {verdict && (
+        <div
+          className={`rounded-lg border p-4 ${
+            verdict.significant
+              ? 'border-emerald-500/40 bg-emerald-500/10'
+              : 'border-border bg-muted/20'
+          }`}
+        >
+          <p className="font-medium">{verdict.note}</p>
+          {verdict.lift !== null && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              B is {verdict.lift >= 0 ? 'up' : 'down'} {pct(Math.abs(verdict.lift))} against A.
+            </p>
+          )}
+        </div>
+      )}
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border text-left text-muted-foreground">
+              <th className="py-2 pr-4 font-medium">Variant</th>
+              <th className="py-2 pr-4 font-medium">Visitors</th>
+              <th className="py-2 pr-4 font-medium">Conversions</th>
+              <th className="py-2 font-medium">Rate</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.variant} className="border-b border-border/50 last:border-0">
+                <td className="py-2 pr-4 font-medium uppercase">
+                  {r.variant}
+                  {best && r.variant === best.variant && verdict?.significant && (
+                    <span className="ml-2 rounded bg-emerald-500/20 px-1.5 py-0.5 text-xs font-normal">
+                      winning
+                    </span>
+                  )}
+                </td>
+                <td className="py-2 pr-4">{r.visitors.toLocaleString()}</td>
+                <td className="py-2 pr-4">{r.conversions.toLocaleString()}</td>
+                <td className="py-2">{pct(r.rate)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        A conversion counts when a visitor reaches {goals.length ? goals.join(', ') : 'a goal page'}.
+      </p>
     </div>
   )
 }

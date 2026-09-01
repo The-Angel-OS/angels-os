@@ -23,6 +23,7 @@
  */
 import crypto from 'crypto'
 import type { Payload } from 'payload'
+import { isAbVariant } from '@/utilities/abVariant'
 
 /** Paths that are never a "visit" — internal plumbing, not a person reading a page. */
 const IGNORED_PREFIXES = ['/api', '/admin', '/dashboard', '/next', '/_next', '/favicon']
@@ -39,6 +40,8 @@ export interface VisitInput {
   /** Two-letter code from Cloudflare's CF-IPCountry header. */
   country?: string | null
   userId?: number | string | null
+  /** A/B bucket assigned in the middleware. @see src/utilities/abVariant.ts */
+  variant?: string | null
 }
 
 /** `Mozilla/5.0 (…) Chrome/… ` → a name a human recognises. First match wins. */
@@ -146,6 +149,9 @@ export async function recordSiteVisit(payload: Payload, input: VisitInput): Prom
         device,
         isBot,
         country: normalizeCountry(input.country),
+        // Only ever 'a' or 'b'. A hand-edited cookie must not become a third
+        // arm in the report, so anything else is stored as nothing.
+        variant: isAbVariant(input.variant) ? input.variant : undefined,
         visitorHash: input.ip ? visitorHashOf(input.ip, userAgent) : undefined,
         ...(input.userId != null ? { user: Number(input.userId) } : {}),
       } as never,

@@ -10,6 +10,9 @@ import { EventGallery } from './EventGallery'
 import { EventProducts } from './EventProducts'
 import { CommentsBlock } from '@/blocks/Comments/Component'
 import { RenderBlocks } from '@/blocks/RenderBlocks'
+import { JsonLd } from '@/components/JsonLd'
+import { breadcrumbJsonLd, eventJsonLd } from '@/utilities/structuredData'
+import { originFromHeaders } from '@/utilities/originFromHeaders'
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -123,8 +126,23 @@ export default async function EventDetailPage({
     draft: 'bg-yellow-500 text-black',
   }
 
+  // An Event graph is what puts a church service or a class into Google's events
+  // carousel — the one surface where a small congregation outranks everybody,
+  // because almost nobody else marks their events up at all.
+  const origin = await originFromHeaders()
+  const path = `/events/${slug}`
+
   return (
     <div className="container py-12">
+      <JsonLd
+        data={[
+          eventJsonLd(event, origin, path),
+          breadcrumbJsonLd(origin, [
+            { name: 'Events', path: '/events' },
+            { name: String(event.title), path },
+          ]),
+        ]}
+      />
       {/* Hero */}
       {coverUrl && (
         <div className="mb-8 overflow-hidden rounded-xl">

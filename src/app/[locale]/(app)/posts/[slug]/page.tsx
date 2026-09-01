@@ -16,6 +16,9 @@ import { notFound } from 'next/navigation'
 import { CollectionArchive } from '@/components/CollectionArchive'
 import { VideoEmbed } from '@/components/VideoEmbed'
 import { computeEmbedUrl } from '@/utilities/computeEmbedUrl'
+import { JsonLd } from '@/components/JsonLd'
+import { articleJsonLd, breadcrumbJsonLd } from '@/utilities/structuredData'
+import { originFromHeaders } from '@/utilities/originFromHeaders'
 
 // NOTE: generateStaticParams removed — this page uses headers() + draftMode()
 // which makes it dynamic. SSG conflicts with dynamic functions and causes 500s.
@@ -63,8 +66,20 @@ export default async function PostPage({ params }: Args) {
     .map((c) => (typeof c === 'object' && c != null ? c.title : null))
     .filter(Boolean)
 
+  const origin = await originFromHeaders()
+  const path = `/posts/${slug}`
+
   return (
     <article className="pt-16 pb-24">
+      <JsonLd
+        data={[
+          articleJsonLd(post as never, origin, path),
+          breadcrumbJsonLd(origin, [
+            { name: 'Posts', path: '/posts' },
+            { name: String(title), path },
+          ]),
+        ]}
+      />
       {/* Post header — always show title & date even when hero type is "none" */}
       <div className="container mb-8">
         {cats.length > 0 && (

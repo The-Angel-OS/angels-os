@@ -2,6 +2,13 @@ import createMiddleware from 'next-intl/middleware'
 import { NextRequest, NextResponse } from 'next/server'
 import { routing } from './i18n/routing'
 import { detectTenantFromHostname } from './middleware/detectTenant'
+import {
+  AB_COOKIE,
+  AB_COOKIE_MAX_AGE,
+  AB_HEADER,
+  assignVariant,
+  readVariant,
+} from './utilities/abVariant'
 
 /**
  * Angel OS Multi-Domain + i18n Middleware (Finly Pattern)
@@ -80,6 +87,14 @@ export default async function middleware(request: NextRequest) {
   // not the URL it is rendering, so the one place that knows both has to say so.
   requestHeaders.set('x-pathname', request.nextUrl.pathname)
 
+  // ── A/B bucket ──────────────────────────────────────────────────────────────
+  // Assigned once per visitor and forwarded as a header, because the cookie set
+  // on THIS response is not readable on THIS request — and the first request is
+  // the landing page, which is the one an experiment is usually about.
+  const existingVariant = readVariant(request.cookies.get(AB_COOKIE)?.value)
+  const variant = existingVariant ?? assignVariant()
+  requestHeaders.set(AB_HEADER, variant)
+
   // Propagate real client IP from Cloudflare for downstream rate limiting
   const cfIp = request.headers.get('cf-connecting-ip')
   if (cfIp) {
@@ -99,6 +114,21 @@ export default async function middleware(request: NextRequest) {
 
   const modifiedRequest = new NextRequest(request.url, { headers: requestHeaders })
   const response = handleI18nRouting(modifiedRequest)
+
+  // Persist a NEW bucket so the visitor stays in it. Written only when it was
+  // just assigned — rewriting it on every request would slide the expiry forward
+  // forever and, worse, re-issue it on the request that follows a manual clear.
+  // Not httpOnly: a client-side experiment (a swapped headline, a different CTA)
+  // has to be able to read which arm it is in.
+  if (!existingVariant && response) {
+    response.cookies.set(AB_COOKIE, variant, {
+      maxAge: AB_COOKIE_MAX_AGE,
+      httpOnly: false,
+      sameSite: 'lax',
+      secure: request.nextUrl.protocol === 'https:',
+      path: '/',
+    })
+  }
 
   // ── Affiliate attribution ───────────────────────────────────────────────────
   // ?ref=<partner code> sets a first-party cookie that the Orders beforeChange

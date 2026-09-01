@@ -461,6 +461,22 @@ export interface Tenant {
     contactEmail?: string | null;
     contactPhone?: string | null;
     /**
+     * Physical location. Emitted as schema.org PostalAddress.
+     */
+    address?: {
+      street?: string | null;
+      city?: string | null;
+      /**
+       * State or province
+       */
+      region?: string | null;
+      postalCode?: string | null;
+      /**
+       * Two-letter country code.
+       */
+      country?: string | null;
+    };
+    /**
      * Social media links
      */
     socialLinks?:
@@ -5306,6 +5322,10 @@ export interface SiteVisit {
    */
   isBot?: boolean | null;
   /**
+   * A/B bucket ("a" or "b") this visitor was assigned in the middleware. The Variants report groups on it; every other report ignores it.
+   */
+  variant?: string | null;
+  /**
    * Salted per-day digest of IP + user agent. Counts unique visitors; identifies nobody, and cannot be reversed to an IP.
    */
   visitorHash?: string | null;
@@ -8095,6 +8115,15 @@ export interface TenantsSelect<T extends boolean = true> {
         shopHeroImage?: T;
         contactEmail?: T;
         contactPhone?: T;
+        address?:
+          | T
+          | {
+              street?: T;
+              city?: T;
+              region?: T;
+              postalCode?: T;
+              country?: T;
+            };
         socialLinks?:
           | T
           | {
@@ -9741,6 +9770,7 @@ export interface SiteVisitsSelect<T extends boolean = true> {
   os?: T;
   device?: T;
   isBot?: T;
+  variant?: T;
   visitorHash?: T;
   user?: T;
   updatedAt?: T;

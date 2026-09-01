@@ -103,6 +103,16 @@ export const SiteVisits: CollectionConfig = {
       },
     },
     {
+      name: 'variant',
+      type: 'text',
+      index: true,
+      admin: {
+        description:
+          'A/B bucket ("a" or "b") this visitor was assigned in the middleware. ' +
+          'The Variants report groups on it; every other report ignores it.',
+      },
+    },
+    {
       name: 'visitorHash',
       type: 'text',
       index: true,

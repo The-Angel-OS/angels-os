@@ -348,6 +348,34 @@ export const Tenants: CollectionConfig = {
           type: 'text',
         },
         {
+          // The physical address, for search engines rather than for shipping.
+          // Google will not show a local-business or church result — the map
+          // pack, the opening hours, the "directions" button — without a
+          // PostalAddress in the page's structured data, so a portal that has
+          // a building and does not say where it is competes as if it were a
+          // website with no location at all.
+          // @see src/utilities/structuredData.ts — organizationJsonLd
+          name: 'address',
+          type: 'group',
+          admin: { description: 'Physical location. Emitted as schema.org PostalAddress.' },
+          fields: [
+            { name: 'street', type: 'text', admin: { placeholder: '1401 Gulf to Bay Blvd' } },
+            { name: 'city', type: 'text', admin: { placeholder: 'Clearwater' } },
+            {
+              name: 'region',
+              type: 'text',
+              admin: { placeholder: 'FL', description: 'State or province' },
+            },
+            { name: 'postalCode', type: 'text', admin: { placeholder: '33755' } },
+            {
+              name: 'country',
+              type: 'text',
+              defaultValue: 'US',
+              admin: { description: 'Two-letter country code.' },
+            },
+          ],
+        },
+        {
           name: 'socialLinks',
           type: 'array',
           admin: { description: 'Social media links' },
