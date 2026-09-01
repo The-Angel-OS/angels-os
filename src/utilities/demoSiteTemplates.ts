@@ -27,6 +27,37 @@ export interface TradePack {
   faq: Array<{ question: string; answer: string }>
   /** Prompt seed for a generated hero. Deliberately no people, no text, no logos. */
   heroPrompt: string
+  /**
+   * The VOICE overrides. Everything below is optional and defaults to the
+   * small-local-business copy that every pack used to get for free.
+   *
+   * That default is not neutral — "locally owned", "the people who answer the
+   * phone are the people who do the work", "Licensed & Insured" are the right
+   * words for a handyman and actively wrong for a consultancy with offices on
+   * three continents. Before this the copy was hard-coded in
+   * `buildDemoSiteSpec`, so the only way to pitch a B2B firm was a second
+   * template file — i.e. a fork. These four fields are what a fork would have
+   * changed, so a new voice stays a table entry like everything else.
+   */
+  voice?: {
+    /** The four trust-row badges. */
+    trust?: Array<{ icon: string; label: string; detail?: string }>
+    /** Home page opening, after the `Welcome to <name>` heading. */
+    intro?: (ctx: VoiceContext) => string[]
+    /** About page body, after the `Who we are` heading. */
+    about?: (ctx: VoiceContext) => string[]
+    /** Pages appended after FAQ, before Contact. Numbered from navOrder 4. */
+    extraPages?: (ctx: VoiceContext) => PageFromSpec[]
+  }
+}
+
+/** What a pack's voice functions get to work with. */
+export interface VoiceContext {
+  name: string
+  city?: string
+  tagline: string
+  /** `phone · email`, or '' when we have neither. */
+  contactLine: string
 }
 
 const MONEY = 'Straightforward pricing, quoted before any work starts.'
@@ -221,6 +252,174 @@ Most jobs are straightforward and quoted before any work starts. You will know t
       { question: 'What if it cannot be fixed?', answer: 'Then you get told that plainly, along with what your options are and what they would cost \u2014 including doing nothing.' },
     ],
   },
+  /**
+   * Enterprise IT consultancy - the B2B pack.
+   *
+   * Every other pack sells to a homeowner: one decision-maker, a job that takes
+   * an afternoon, and a page whose whole argument is "we are local and we turn
+   * up". This one sells to a procurement committee. The services are practices
+   * rather than jobs, the FAQ answers the questions a CIO asks instead of the
+   * ones a customer asks, and the trust row talks about certifications and
+   * delivery model because "Licensed & Insured" means nothing to an enterprise
+   * buyer.
+   *
+   * It carries an extra page the other packs do not: a security-assessment
+   * intake. For this kind of firm the readiness assessment IS the lead magnet -
+   * it is the one thing on the site a stranger will trade an email address for -
+   * so the pack ships it wired to the contact form rather than as copy.
+   */
+  enterprise: {
+    label: 'Enterprise IT Services & Consulting',
+    tagline: (city) =>
+      `Infrastructure, data and security consulting for the enterprise${city ? `, from ${city}` : ''}.`,
+    primaryColor: '#1D4ED8',
+    secondaryColor: '#0F172A',
+    defaultTheme: 'dark',
+    heroPrompt:
+      'Clean architectural photograph of a modern data center aisle, cool blue lighting, deep perspective, no people, no text, no logos',
+    services: [
+      {
+        name: 'Infrastructure Solutions',
+        blurb:
+          'Cloud, data center, private 5G and network estates designed, migrated and run as one program rather than a series of projects.',
+      },
+      {
+        name: 'Business Analytics',
+        blurb:
+          'Warehouses, pipelines and dashboards that answer the questions the business actually asks, with the AI layer on top of governed data rather than instead of it.',
+      },
+      {
+        name: 'ERP Solutions',
+        blurb:
+          'SAP and Oracle implementation, upgrade and integration - including the interfaces to everything the ERP was never meant to talk to.',
+      },
+      {
+        name: 'Cybersecurity',
+        blurb:
+          'SOC operations, zero-trust architecture and SIEM, plus the compliance evidence that turns good practice into a passed audit.',
+      },
+      {
+        name: 'Microservices & DevOps',
+        blurb:
+          'Containers, APIs and delivery pipelines - decomposing the monolith without stopping the business that depends on it.',
+      },
+      {
+        name: 'Managed Services',
+        blurb:
+          '24x7 monitoring and enterprise IT operations, so the estate has an owner on the days nothing is being built.',
+      },
+      {
+        name: 'IT Staffing',
+        blurb:
+          'Engineers, architects and delivery leads placed onto your program, screened by people who have done the work themselves.',
+      },
+    ],
+    faq: [
+      {
+        question: 'How do engagements start?',
+        answer:
+          'With an assessment, not a proposal. We map what you have, what is actually breaking, and what it would cost to leave it alone - then scope against that. The assessment stands on its own even if you go no further.',
+      },
+      {
+        question: 'Do you work alongside our existing teams and vendors?',
+        answer:
+          'Usually, yes. Most of this work happens inside estates that already have incumbents, and the job is to make the whole thing function rather than to replace everyone in it.',
+      },
+      {
+        question: 'What if the original vendor is gone and there is no source code?',
+        answer:
+          'That is a normal starting condition, not a blocker. Systems get diagnosed empirically - observed behavior, decompilation where it is warranted, and a rebuild that stays close enough to the original that the next engineer can still read it.',
+      },
+      {
+        question: 'How is delivery structured across time zones?',
+        answer:
+          'Onshore leadership with offshore delivery capacity, run as one team against one backlog. Handover is a standing part of the engagement rather than a closing phase.',
+      },
+      {
+        question: 'What happens to the knowledge when the engagement ends?',
+        answer:
+          'It is written down while the work is happening: standards, runbooks and a knowledge base your team owns. An engagement that leaves capability behind is the only kind worth selling twice.',
+      },
+    ],
+    voice: {
+      trust: [
+        { icon: 'shield', label: 'SOC 2 & ISO 27001', detail: 'Readiness and audit support' },
+        { icon: 'support', label: '24x7 Managed Services', detail: 'Monitoring and IT operations' },
+        { icon: 'star', label: 'Global Delivery', detail: 'USA, Canada and India' },
+        { icon: 'rosette', label: 'Certified Partners', detail: 'Cloud, ERP and security stacks' },
+      ],
+      intro: ({ name, tagline }) => [
+        `${tagline} ${name} works inside enterprise estates - the ones with real dependencies, real compliance obligations, and no window in which everything can simply stop.`,
+        'Our offerings span business and technology consulting, infrastructure, business analytics, ERP, cybersecurity, microservices and IT staffing. Most clients start with one and stay for several.',
+      ],
+      about: ({ name, city }) => [
+        `${name} is an enterprise technology consultancy${city ? ` headquartered in ${city}` : ''}, delivering across North America and India.`,
+        'This page is where the firm tells its own story - when it was founded, the industries it serves, and the engagements it is proudest of. Everything on this site is editable, and none of it is locked.',
+        'We assess before we propose, we staff engagements with the people who will actually do the work, and we write down what we learn so the capability outlasts the contract.',
+      ],
+      extraPages: ({ name, contactLine }) => [
+        {
+          slug: 'assessment',
+          title: 'Security Assessment',
+          navOrder: 4,
+          heroType: 'splitPanel' as const,
+          heroHeading: 'SOC 2 & ISO 27001 Readiness Assessment',
+          heroSub: 'Find out where the gaps are before an auditor does.',
+          meta: {
+            title: 'SOC 2 & ISO 27001 Readiness Assessment',
+            description: `Free readiness assessment from ${name} - control gap analysis and a prioritized remediation plan.`,
+          },
+          sections: [
+            {
+              content: [
+                { h2: 'Know your gaps before the audit does' },
+                {
+                  p: 'Most organizations discover their compliance gaps during the audit, when every finding is expensive and the timeline belongs to somebody else. An assessment moves that discovery forward to while it is still cheap to act on.',
+                },
+                { h3: 'What the assessment covers' },
+                {
+                  p: 'Your existing security controls, mapped against the SOC 2 trust services criteria and the ISO 27001 Annex A controls.',
+                },
+                {
+                  p: 'Compliance maturity - which controls exist, which are documented, and which are evidenced well enough to survive a sample request.',
+                },
+                {
+                  p: 'Audit readiness, including the evidence you would need to produce and how long producing it would currently take you.',
+                },
+                { h3: 'What you get back' },
+                {
+                  p: 'A written gap analysis, a prioritized remediation plan, and a realistic timeline to audit readiness. Yours to keep, whether or not we do the remediation.',
+                },
+              ],
+            },
+            {
+              trustRow: {
+                heading: 'How the assessment runs',
+                items: [
+                  { icon: 'lock', label: 'Confidential', detail: 'Under NDA on request' },
+                  { icon: 'rosette', label: 'No Obligation', detail: 'The report is yours regardless' },
+                  { icon: 'support', label: 'About Two Weeks', detail: 'Kickoff to findings' },
+                ],
+                footnote:
+                  'A readiness assessment is preparation for an audit, not an audit - certification is issued by an accredited auditor, not by us.',
+              },
+            },
+            {
+              content: [
+                { h2: 'Request your assessment' },
+                {
+                  p: contactLine
+                    ? `Send the form below and someone will come back to you the same business day, or reach us directly on ${contactLine}.`
+                    : 'Send the form below and someone will come back to you the same business day.',
+                },
+              ],
+            },
+            { contactForm: true },
+          ],
+        },
+      ],
+    },
+  },
   general: {
     label: 'Local Business',
     tagline: (city) => `Dependable local service${city ? ` in ${city}` : ''}.`,
@@ -266,6 +465,34 @@ export function resolveTradePack(input?: string): { key: string; pack: TradePack
   // Before 'handy'/'repair': "probate" and "divorce" are not home maintenance.
   if (has('legal', 'attorney', 'lawyer', 'law firm', 'divorce', 'probate', 'estate plan', 'paralegal'))
     return { key: 'legal', pack: TRADE_PACKS.legal! }
+  // Before techsupport: an enterprise consultancy trips 'network' and ' it ',
+  // and would otherwise be sold to as a mobile PC-repair guy. The tell is the
+  // enterprise vocabulary, which a homeowner never uses.
+  if (
+    has(
+      'enterprise',
+      'consult',
+      'erp',
+      'sap',
+      'oracle',
+      'cybersecur',
+      'siem',
+      'zero trust',
+      'devops',
+      'microservice',
+      'kubernetes',
+      'data center',
+      'datacenter',
+      'managed service',
+      'staffing',
+      'system integrat',
+      'systems integrat',
+      'digital transformation',
+      'analytics',
+      'msp',
+    )
+  )
+    return { key: 'enterprise', pack: TRADE_PACKS.enterprise! }
   // Before 'repair'/'electric': "computer repair" is not home maintenance, and
   // "electronics" is not an electrician.
   if (
@@ -319,6 +546,9 @@ export function buildDemoSiteSpec(input: DemoSiteInput): PageFromSpec[] {
   const contactLine = [input.phone, input.email].filter(Boolean).join(' · ')
   const hero = input.heroMedia
 
+  const voice = pack.voice || {}
+  const ctx: VoiceContext = { name, city, tagline, contactLine }
+
   const serviceNodes = pack.services.flatMap((s) => [{ h3: s.name }, { p: s.blurb }])
   // Without a hero image every page would open on a bare heading, so the
   // treatment degrades to lowImpact rather than rendering an empty banner.
@@ -340,13 +570,17 @@ export function buildDemoSiteSpec(input: DemoSiteInput): PageFromSpec[] {
         {
           content: [
             { h2: `Welcome to ${name}` },
-            { p: `${tagline} We are a local business, and the people who answer the phone are the people who do the work.` },
-            { p: 'Get in touch and you will hear back the same day — no call center, no runaround.' },
+            ...(voice.intro
+              ? voice.intro(ctx).map((p) => ({ p }))
+              : [
+                  { p: `${tagline} We are a local business, and the people who answer the phone are the people who do the work.` },
+                  { p: 'Get in touch and you will hear back the same day — no call center, no runaround.' },
+                ]),
           ],
         },
         {
           trustRow: {
-            items: [
+            items: voice.trust || [
               { icon: 'shield', label: 'Licensed & Insured', detail: 'Certificates on request' },
               { icon: 'star', label: 'Locally Owned', detail: city || 'Serving the local area' },
               { icon: 'rosette', label: 'Free Estimates', detail: 'Quoted before work starts' },
@@ -402,12 +636,15 @@ export function buildDemoSiteSpec(input: DemoSiteInput): PageFromSpec[] {
         {
           content: [
             { h2: 'Who we are' },
-            {
-              p: `${name} is a locally owned ${pack.label.toLowerCase()} business${where}. This page is where you tell your story — how long you have been doing this, what you care about, and why someone should trust you with their home or their business.`,
-            },
-            { p: 'Replace this text with your own. Everything on this site is editable, and nothing here is locked.' },
-            { h2: 'How we work' },
-            { p: 'We quote before we start, we turn up when we said we would, and we stand behind the work. That is most of it.' },
+            ...(voice.about
+              ? voice.about(ctx).map((p) => ({ p }))
+              : [
+                  {
+                    p: `${name} is a locally owned ${pack.label.toLowerCase()} business${where}. This page is where you tell your story — how long you have been doing this, what you care about, and why someone should trust you with their home or their business.`,
+                  },
+                  { p: 'Replace this text with your own. Everything on this site is editable, and nothing here is locked.' },
+                  { p: 'We quote before we start, we turn up when we said we would, and we stand behind the work. That is most of it.' },
+                ]),
           ],
         },
         {
@@ -439,10 +676,12 @@ export function buildDemoSiteSpec(input: DemoSiteInput): PageFromSpec[] {
         },
       ],
     },
+    ...(voice.extraPages ? voice.extraPages(ctx) : []),
     {
       slug: 'contact',
       title: 'Contact',
-      navOrder: 4,
+      // After whatever the pack inserted, so Contact stays last in the bar.
+      navOrder: 4 + (voice.extraPages ? voice.extraPages(ctx).length : 0),
       heroType: heroType('splitPanel'),
       heroHeading: 'Get in touch',
       heroSub: contactLine || 'Tell us what you need.',

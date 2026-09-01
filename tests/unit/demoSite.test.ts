@@ -156,3 +156,77 @@ describe('“removal” is not “moving”', () => {
     }
   })
 })
+
+/**
+ * The enterprise pack is the first one that overrides the VOICE, not just the
+ * services — so the two things it can silently get wrong are being routed to
+ * the wrong pack (it trips 'network' and ' it ', which belong to techsupport)
+ * and leaking the small-business copy that every other pack wants. Both would
+ * be discovered by a CIO reading "we are a local business" on their own site.
+ */
+describe('enterprise pack', () => {
+  it('claims the B2B vocabulary a homeowner never uses', () => {
+    for (const t of [
+      'enterprise IT services and consulting',
+      'IT consulting',
+      'ERP implementation',
+      'SAP and Oracle integration',
+      'cybersecurity and SIEM',
+      'managed services provider',
+      'data center and cloud infrastructure',
+      'IT staffing',
+      'business analytics',
+      'microservices and devops',
+      'digital transformation',
+    ]) {
+      expect(resolveTradePack(t).key).toBe('enterprise')
+    }
+  })
+
+  it('does not steal the consumer trades that share its words', () => {
+    // These all contain enterprise needles ('network', 'computer', ' it ') and
+    // must still reach the pack that actually sells to a person at home.
+    expect(resolveTradePack('home networking').key).toBe('techsupport')
+    expect(resolveTradePack('computer repair').key).toBe('techsupport')
+    expect(resolveTradePack('wifi setup').key).toBe('techsupport')
+  })
+
+  it('replaces the local-business copy rather than adding to it', () => {
+    const spec = buildDemoSiteSpec({
+      businessName: 'Celersoft LLC',
+      trade: 'enterprise IT services and consulting',
+      city: 'Houston, TX',
+    })
+    const text = JSON.stringify(spec)
+    for (const leak of [
+      'We are a local business',
+      'Licensed & Insured',
+      'Locally Owned',
+      'Free Estimates',
+      'locally owned',
+      'turn up when we said',
+    ]) {
+      expect(text).not.toContain(leak)
+    }
+    expect(text).toContain('SOC 2 & ISO 27001')
+  })
+
+  it('inserts the assessment page and keeps Contact last in the nav', () => {
+    const spec = buildDemoSiteSpec({ businessName: 'Celersoft LLC', trade: 'IT consulting' })
+    const slugs = spec.map((p) => p.slug)
+    expect(slugs).toEqual(['home', 'services', 'about', 'faq', 'assessment', 'contact'])
+
+    const assessment = spec.find((p) => p.slug === 'assessment')!
+    const contact = spec.find((p) => p.slug === 'contact')!
+    expect(contact.navOrder).toBeGreaterThan(assessment.navOrder!)
+
+    // The lead magnet is only a lead magnet if it actually captures.
+    expect(assessment.sections?.some((s) => s.contactForm)).toBe(true)
+  })
+
+  it('leaves every other pack on the default voice', () => {
+    const spec = buildDemoSiteSpec({ businessName: 'Bob Handyman', trade: 'handyman' })
+    expect(spec.map((p) => p.slug)).toEqual(['home', 'services', 'about', 'faq', 'contact'])
+    expect(JSON.stringify(spec)).toContain('Licensed & Insured')
+  })
+})
