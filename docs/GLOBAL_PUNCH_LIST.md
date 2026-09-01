@@ -766,13 +766,16 @@
   **`https://` on the apex fails the TLS handshake today** — only `http://www` answers, which is
   half of why this matters. The account is Ted Lear's (hard to reach); all he has to do is change
   the nameservers.
-  *Blocked on:* a Cloudflare API token with `Zone:Create` + `DNS:Edit` on account
-  `4015c873…` — the only Cloudflare credential in `.env.local` is `CLOUDFLARE_AI_TOKEN`, which
-  sees zero zones and gets `Requires permission "…zone.create"`.
-  *Next action:* Ken mints the token → add the zone with the record set above pre-loaded
-  (site + **mail** must carry over or the mailboxes die) → send Ted the two nameservers.
-  Registrar transfer to Cloudflare is a SEPARATE, later step and needs an EPP code from Hostopia.
-  `260901`
+  **Zone CREATED 260901** — `ea4b774310a2d9875278c85959fcb472`, Free plan, status `pending`.
+  Seeded with 12 records that mirror aplus.net exactly, all **DNS-only (grey cloud)** so the
+  nameserver move is byte-identical to today: A `@`/`www`/`*` → .221 (there IS a wildcard —
+  `cpanel`, `blog`, `shop`, `ftp`, `imap` all resolve through it, they are not real records),
+  A `mail`/`smtp`/`pop` → .235, `webmail` → .250, `autodiscover` → .217, the three MX, the SPF.
+  *Next action:* Ted changes the NS at aplus.net to **`destiny.ns.cloudflare.com`** and
+  **`justin.ns.cloudflare.com`**. THEN, as a separate deliberate step, proxy `@` and `www`
+  (orange cloud) and set SSL mode — the origin's TLS is broken, so Full would 526; it has to be
+  **Flexible** until the site moves onto Angel OS. Registrar transfer to Cloudflare is a third,
+  later step and needs an EPP code from Hostopia. `260901`
 
 - **[P1] Merlin ↔ Core :3000 port collision (Merlin DOWN / CF 530)** — the self-host Core Docker container now
   holds host `:3000`, the same port Merlin's interactive scheduled task binds (`next start -p 3000`), so
