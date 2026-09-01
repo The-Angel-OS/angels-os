@@ -22,6 +22,7 @@ import type { PayloadHandler } from 'payload'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 import { getUserTenantRoles } from '@/access/getUserTenantRoles'
+import { portalCan } from '@/utilities/portalPlan'
 
 const MANAGER_ROLES = new Set(['tenant_admin', 'tenant_manager'])
 
@@ -46,7 +47,7 @@ export type DomainBinding = { domain: string; isPrimary: boolean }
  * Returns the hostname, or an error string naming what is wrong with it.
  */
 export function normalizeDomain(input: string): { domain: string } | { error: string } {
-  let host = String(input || '')
+  const host = String(input || '')
     .trim()
     .toLowerCase()
     .replace(/^[a-z]+:\/\//, '') // pasted https://
@@ -88,7 +89,14 @@ async function authorize(req: Parameters<PayloadHandler>[0]) {
   return { tenantId, payload }
 }
 
-type TenantRow = { id: number | string; slug?: string; domain?: string; domains?: DomainBinding[] }
+type TenantRow = {
+  id: number | string
+  slug?: string
+  domain?: string
+  /** Read by the plan gate on `add` — @see portalCan */
+  portalPlan?: string | null
+  domains?: DomainBinding[]
+}
 
 async function loadTenant(
   payload: NonNullable<Parameters<PayloadHandler>[0]['payload']>,
@@ -145,6 +153,20 @@ export const domainBindingsPostHandler: PayloadHandler = async (req) => {
   let next: DomainBinding[]
 
   if (action === 'add') {
+    // Binding your own address is what separates Free from Site. Checked on ADD
+    // only: a portal that lapses to free keeps the domains it already bound —
+    // taking a live customer's website off its address to enforce a billing
+    // state is a punishment out of all proportion to the miss.
+    if (!portalCan(tenant, 'customDomain')) {
+      return Response.json(
+        {
+          error:
+            'Your own domain is part of the Site plan. Move this portal up at /dashboard/plan and the address is yours.',
+          upgradeRequired: 'site',
+        },
+        { status: 402 },
+      )
+    }
     if (domain === tenant.domain || current.some((d) => d.domain.toLowerCase() === domain)) {
       return Response.json({ error: `${domain} is already bound to this portal.` }, { status: 409 })
     }

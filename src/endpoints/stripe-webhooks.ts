@@ -136,7 +136,12 @@ export const stripeWebhooksHandler: PayloadHandler = async (req) => {
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted': {
-        await upsertMembershipFromSubscription(payload, event.data.object as Stripe.Subscription)
+        const sub = event.data.object as Stripe.Subscription
+        await upsertMembershipFromSubscription(payload, sub)
+        // A PORTAL PLAN is the platform's own product, not an endeavor's dues, so
+        // it writes a tenant field rather than a Memberships row. Both run: the
+        // discriminator in the metadata means only one of them does anything.
+        await applyPortalPlanFromSubscription(payload, sub)
         break
       }
       default: {
@@ -306,6 +311,77 @@ async function upsertMembershipFromSubscription(
       message: `Failed to sync membership from subscription ${sub.id}: ${err instanceof Error ? err.message : String(err)}`,
       details: err instanceof Error ? err.stack : String(err),
       tenantId: meta.tenantId ? Number(meta.tenantId) : undefined,
+    })
+  }
+}
+
+/**
+ * Move `tenants.portalPlan` when the platform's own subscription changes.
+ *
+ * This is the only writer of that field outside provisioning, and it is
+ * deliberately here rather than in the checkout endpoint: a checkout SESSION is
+ * not a payment. Stripe telling us the subscription is active is.
+ *
+ * Two rules worth keeping:
+ *
+ *   1. A lapsed subscription falls back to `free`, never to some remembered
+ *      middle tier. `free` is the one state we can always honour, and a portal
+ *      quietly keeping CRM and a custom domain after it stopped paying is the
+ *      failure mode that makes a paywall pointless.
+ *   2. A `demo` portal is NEVER touched. Demos are ours, billed to nobody, and a
+ *      stray subscription event must not be able to downgrade one to free and
+ *      strip the features that make it a demo.
+ *
+ * Fail-soft with escalation, like every other handler here — a webhook that
+ * throws makes Stripe retry, and the retry storm is worse than the miss.
+ */
+async function applyPortalPlanFromSubscription(
+  payload: Parameters<PayloadHandler>[0]['payload'],
+  sub: Stripe.Subscription,
+) {
+  const meta = (sub.metadata || {}) as Record<string, string>
+  if (meta.angelOs_type !== 'portal_plan' || !meta.tenantId) return
+
+  // Anything that is not a live subscription lands the portal back on free.
+  const live = sub.status === 'active' || sub.status === 'trialing' || sub.status === 'past_due'
+  const requested = meta.portalPlan
+  const nextPlan =
+    live && (requested === 'site' || requested === 'business') ? requested : 'free'
+
+  const tenantId = Number(meta.tenantId)
+
+  try {
+    const tenant = (await payload.findByID({
+      collection: 'tenants',
+      id: tenantId,
+      depth: 0,
+      overrideAccess: true,
+    })) as unknown as { portalPlan?: string | null } | null
+
+    if (tenant?.portalPlan === 'demo') {
+      console.log(`[Stripe Webhook] Portal ${tenantId} is a demo — plan left alone.`)
+      return
+    }
+    if (tenant?.portalPlan === nextPlan) return // idempotent; Stripe repeats itself
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (payload.update as any)({
+      collection: 'tenants',
+      id: tenantId,
+      data: { portalPlan: nextPlan },
+      overrideAccess: true,
+    })
+    console.log(
+      `[Stripe Webhook] Portal ${tenantId}: ${tenant?.portalPlan ?? 'free'} → ${nextPlan} ` +
+        `(subscription ${sub.id}, status ${sub.status})`,
+    )
+  } catch (err) {
+    console.error('[Stripe Webhook] Failed to apply portal plan:', err instanceof Error ? err.message : err)
+    void logError({
+      source: 'stripe-webhooks/applyPortalPlan',
+      message: `Failed to set portalPlan for tenant ${tenantId} from subscription ${sub.id}: ${err instanceof Error ? err.message : String(err)}`,
+      details: err instanceof Error ? err.stack : String(err),
+      tenantId,
     })
   }
 }

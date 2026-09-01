@@ -130,6 +130,7 @@ import { demoSiteHandler } from '@/endpoints/demo-site'
 import { prospectIntakeHandler } from '@/endpoints/prospect-intake'
 import { navOverridesGetHandler, navOverridesPostHandler } from '@/endpoints/nav-overrides'
 import { domainBindingsGetHandler, domainBindingsPostHandler } from '@/endpoints/domain-ops'
+import { portalPlanCheckoutHandler } from '@/endpoints/portal-plan-checkout'
 import { signupFormSetupHandler } from '@/endpoints/signup-form-setup'
 import { decommissionPortalHandler } from '@/endpoints/decommission-portal'
 import { portalInvitesHandler } from '@/endpoints/portal-invites'
@@ -1048,6 +1049,13 @@ export default buildConfig({
       path: '/domain-ops/bindings',
       method: 'post',
       handler: domainBindingsPostHandler,
+    },
+    // The only path that moves tenants.portalPlan for a paying customer. The
+    // handler mints a Stripe session; the WEBHOOK writes the field.
+    {
+      path: '/plan-ops/checkout',
+      method: 'post',
+      handler: portalPlanCheckoutHandler,
     },
     // The form that FEEDS demo-site. Both hubs were using the generic contact
     // form for signup, which collects none of what a build actually needs.

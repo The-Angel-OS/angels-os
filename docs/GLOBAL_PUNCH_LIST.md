@@ -258,25 +258,33 @@
 
 ## 🟡 Gaps — features to build (P1)
 
-- **[P1] Self-serve domain binding gives away the `site` plan's headline feature.**
+- **[P1→FIXED 260901] Self-serve domain binding gave away the `site` plan's headline feature.**
   `domain-ops.ts` (260901) guards on `tenant_admin`/`tenant_manager`, platform apexes and
   already-bound hostnames — but not on the plan. `customDomain` is exactly what separates
   `free` from `site` ($29/mo) in `portalPlan.ts`, so a free portal's owner can now bind
   their own domain from the dashboard.
-  **Deliberately shipped ungated for now:** nothing in the codebase sets `portalPlan` from
-  a payment (see the item below), so gating today locks a door with no key cut. The fix is
-  one `portalCan(tenant, 'customDomain')` check next to the existing guards, and it lands
-  the same day billing writes the field — not before.
-  *Next action:* add the check in the same commit that wires plan upgrades.  `260901`
+  Gated now that billing can move the field (below): `portalCan(tenant, 'customDomain')`
+  next to the existing guards, returning 402 with an upgrade pointer. Checked on ADD only —
+  a portal that lapses to free KEEPS the domains it already bound, because taking a live
+  customer's website off its address to enforce a billing state is out of all proportion
+  to the miss.  `260901`
 
-- **[P1] No payment anywhere sets `tenants.portalPlan`.** The field is written only by
+- **[P1→FIXED 260901] No payment anywhere set `tenants.portalPlan`.** The field is written only by
   `provisionPortal` input and `runDemoSite` ('demo'); the Stripe webhook touches tenants
   only for Connect account status. `/dashboard/plan` links out to
   `spacesangels.com/plans?portal=…&plan=…` and no route reads those params. So every plan
   gate in `portalPlan.ts` — custom domain, CRM, assistant, memberships, the 5%→2%→0%
   platform fee — is enforced against a field only an admin can move by hand.
-  *Next action:* a `checkout.session.completed` / `customer.subscription.*` branch that
-  writes `portalPlan` for the tenant named in the session metadata.  `260901`
+  Wired: `POST /api/plan-ops/checkout` mints a Stripe subscription session on the PLATFORM
+  account (spacesangels.com is the merchant — no Connect, like guardian-angel-checkout),
+  carrying `angelOs_type: 'portal_plan'`. `applyPortalPlanFromSubscription` in the webhook
+  writes the field when Stripe says the money is real — never the checkout endpoint, since
+  a session that is created is not a payment. A lapsed subscription falls back to `free`;
+  a `demo` portal is never touched. `/dashboard/plan`'s button now posts here instead of
+  linking to `spacesangels.com/plans`, which no route has ever read.
+  *Next action for Ken:* `STRIPE_WEBHOOKS_SIGNING_SECRET` + register
+  `customer.subscription.*` on the PLATFORM account (not a Connect account), then buy a
+  Site plan on a throwaway portal with a real card and confirm the field moves.  `260901`
 
 - **[P1] A person-level portal quota does not describe an agency.** `PORTAL_QUOTA` tops out
   at 10 (business), and the allowance is the best plan among portals you already own. A

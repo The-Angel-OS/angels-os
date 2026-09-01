@@ -19,6 +19,7 @@ import { headers as nextHeaders } from 'next/headers'
 import Link from 'next/link'
 import { resolveActiveTenant } from '@/utilities/resolveActiveTenant'
 import { planOf, PLAN_PRICE_CENTS, PLAN_FEE_BPS } from '@/utilities/portalPlan'
+import { UpgradeButton } from './UpgradeButton'
 
 /** One price, one place — the map decides, this page renders it. */
 const priceOf = (id: Tier['id']) =>
@@ -150,13 +151,8 @@ export default async function PlanPage() {
                   </li>
                 ))}
               </ul>
-              {isUpgrade && !isDemo && (
-                <a
-                  href={`https://spacesangels.com/plans?portal=${tenant?.slug || ''}&plan=${tier.id}`}
-                  className="mt-4 inline-block rounded-md bg-primary px-4 py-2 text-center text-sm font-medium text-primary-foreground hover:opacity-90"
-                >
-                  Move to {tier.name}
-                </a>
+              {isUpgrade && !isDemo && (tier.id === 'site' || tier.id === 'business') && (
+                <UpgradeButton plan={tier.id} label={tier.name} />
               )}
             </div>
           )
