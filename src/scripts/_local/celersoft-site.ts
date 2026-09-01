@@ -83,11 +83,14 @@ async function ensureAssets(): Promise<void> {
       console.warn(`  fetch ${file}: HTTP ${res.status} — skipping`)
       continue
     }
-    const buf = Buffer.from(await res.arrayBuffer())
+    // Uint8Array, not Buffer: under this TS lib Buffer's ArrayBufferLike does
+    // not satisfy writeFileSync's ArrayBufferView, and it fails the build.
+    const buf = new Uint8Array(await res.arrayBuffer())
     // Their server answers a missing file with an HTML page and a 200, which is
     // how managed-services.jpg -- broken on their own live site -- arrived as a
     // 2KB "image" the first time round.
-    if (buf.subarray(0, 200).toString('utf8').trimStart().toLowerCase().startsWith('<')) {
+    const head = new TextDecoder().decode(buf.subarray(0, 200)).trimStart().toLowerCase()
+    if (head.startsWith('<')) {
       console.warn(`  fetch ${file}: got HTML, not an image — skipping`)
       continue
     }

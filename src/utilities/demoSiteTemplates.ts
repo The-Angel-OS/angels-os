@@ -565,11 +565,17 @@ export function buildDemoSiteSpec(input: DemoSiteInput): PageFromSpec[] {
    * it is `Hero > Media is invalid` and a failed provisioning pass — which is
    * exactly how this was found. Deciding it here means no pack ever has to.
    */
-  const extraPages = (voice.extraPages ? voice.extraPages(ctx) : []).map((page) => {
-    const wantsImage = page.heroType === 'fullScreen' || page.heroType === 'splitPanel'
-    if (!wantsImage) return page
-    return { ...page, heroType: heroType(page.heroType as 'fullScreen' | 'splitPanel'), ...heroImage }
-  })
+  // The return annotation is load-bearing, not decoration. Without it the
+  // callback's inferred type is a UNION of `PageFromSpec` and the spread object
+  // literal, and in that literal `heroType` widens to `string` -- which the
+  // array's own `PageFromSpec[]` then rejects. It typechecks locally either way
+  // and fails in `next build`, so state the type and let the error land here.
+  const extraPages: PageFromSpec[] = (voice.extraPages ? voice.extraPages(ctx) : []).map(
+    (page): PageFromSpec => {
+      if (page.heroType !== 'fullScreen' && page.heroType !== 'splitPanel') return page
+      return { ...page, heroType: heroType(page.heroType), ...heroImage }
+    },
+  )
 
   return [
     {
