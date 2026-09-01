@@ -224,6 +224,29 @@ describe('enterprise pack', () => {
     expect(assessment.sections?.some((s) => s.contactForm)).toBe(true)
   })
 
+  /**
+   * Found the hard way: the assessment page asks for a splitPanel hero, the run
+   * had no generated image, and Payload rejected the page with
+   * `Hero > Media is invalid` — after four pages had already been written.
+   */
+  it('degrades an extra page\u2019s image hero when there is no image', () => {
+    const spec = buildDemoSiteSpec({ businessName: 'Celersoft LLC', trade: 'IT consulting' })
+    const assessment = spec.find((p) => p.slug === 'assessment')!
+    expect(assessment.heroType).toBe('lowImpact')
+    expect(assessment.heroImage).toBeUndefined()
+  })
+
+  it('gives an extra page the hero image when there is one', () => {
+    const spec = buildDemoSiteSpec({
+      businessName: 'Celersoft LLC',
+      trade: 'IT consulting',
+      heroMedia: 489,
+    })
+    const assessment = spec.find((p) => p.slug === 'assessment')!
+    expect(assessment.heroType).toBe('splitPanel')
+    expect(assessment.heroImage).toBe(489)
+  })
+
   it('leaves every other pack on the default voice', () => {
     const spec = buildDemoSiteSpec({ businessName: 'Bob Handyman', trade: 'handyman' })
     expect(spec.map((p) => p.slug)).toEqual(['home', 'services', 'about', 'faq', 'contact'])

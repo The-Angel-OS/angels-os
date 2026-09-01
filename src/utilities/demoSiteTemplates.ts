@@ -555,6 +555,22 @@ export function buildDemoSiteSpec(input: DemoSiteInput): PageFromSpec[] {
   const heroType = (withImage: 'fullScreen' | 'splitPanel') => (hero ? withImage : 'lowImpact')
   const heroImage = hero ? { heroImage: hero } : {}
 
+  /**
+   * A pack's extra pages, put through the SAME hero degradation as the five
+   * built-in ones — and built once, because these are functions.
+   *
+   * A pack author writes `heroType: 'splitPanel'` because that is what the page
+   * should look like; they have no way to know whether a hero was generated for
+   * this particular run. An image hero without an image is not an empty banner,
+   * it is `Hero > Media is invalid` and a failed provisioning pass — which is
+   * exactly how this was found. Deciding it here means no pack ever has to.
+   */
+  const extraPages = (voice.extraPages ? voice.extraPages(ctx) : []).map((page) => {
+    const wantsImage = page.heroType === 'fullScreen' || page.heroType === 'splitPanel'
+    if (!wantsImage) return page
+    return { ...page, heroType: heroType(page.heroType as 'fullScreen' | 'splitPanel'), ...heroImage }
+  })
+
   return [
     {
       slug: 'home',
@@ -676,12 +692,12 @@ export function buildDemoSiteSpec(input: DemoSiteInput): PageFromSpec[] {
         },
       ],
     },
-    ...(voice.extraPages ? voice.extraPages(ctx) : []),
+    ...extraPages,
     {
       slug: 'contact',
       title: 'Contact',
       // After whatever the pack inserted, so Contact stays last in the bar.
-      navOrder: 4 + (voice.extraPages ? voice.extraPages(ctx).length : 0),
+      navOrder: 4 + extraPages.length,
       heroType: heroType('splitPanel'),
       heroHeading: 'Get in touch',
       heroSub: contactLine || 'Tell us what you need.',
