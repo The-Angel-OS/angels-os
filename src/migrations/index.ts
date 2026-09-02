@@ -93,7 +93,8 @@ import * as migration_20260829_100000_site_visits_country from './20260829_10000
 import * as migration_20260830_050000_posts_video_block from './20260830_050000_posts_video_block';
 import * as migration_20260901_090000_ab_variant_and_address from './20260901_090000_ab_variant_and_address';
 import * as migration_20260901_093000_media_text_width_side_playback from './20260901_093000_media_text_width_side_playback';
-import * as migration_20260901_120000_portal_plan_agency from './20260901_120000_portal_plan_agency';
+import * as migration_20260901_120000_portal_plan_agency from './20260901_120000_portal_plan_agency'
+import * as migration_20260901_210000_pages_version_parent from './20260901_210000_pages_version_parent';
 import * as migration_20260821_110000_availability_house_hours from './20260821_110000_availability_house_hours'
 import * as migration_20260821_100000_portal_plan_demo from './20260821_100000_portal_plan_demo'
 import * as migration_20260821_090000_open_community_spaces from './20260821_090000_open_community_spaces'
@@ -618,5 +619,10 @@ export const migrations = [
     up: migration_20260901_120000_portal_plan_agency.up,
     down: migration_20260901_120000_portal_plan_agency.down,
     name: '20260901_120000_portal_plan_agency',
+  },
+  {
+    up: migration_20260901_210000_pages_version_parent.up,
+    down: migration_20260901_210000_pages_version_parent.down,
+    name: '20260901_210000_pages_version_parent',
   },
 ];

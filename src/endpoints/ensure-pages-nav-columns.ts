@@ -28,9 +28,17 @@ const STATEMENTS: string[] = [
   `ALTER TABLE "_pages_v" ADD COLUMN IF NOT EXISTS "version_show_in_nav" boolean DEFAULT true;`,
   `ALTER TABLE "_pages_v" ADD COLUMN IF NOT EXISTS "version_nav_order" numeric;`,
   `ALTER TABLE "_pages_v" ADD COLUMN IF NOT EXISTS "version_nav_label" varchar;`,
-  // ── nested-docs: parent relationship ──
+  // ── parent relationship (menu nesting) ──
+  // BOTH tables. This block had `pages.parent_id` and not the version column
+  // for months, three lines under a comment describing that exact failure for
+  // the three fields above it — and it duly happened again on 260901: the
+  // public site was fine, the deploy was green, and every page save on every
+  // tenant threw `column "version_parent_id" does not exist`. If you add a
+  // field here, add its `version_` twin in the same edit.
   `ALTER TABLE "pages" ADD COLUMN IF NOT EXISTS "parent_id" integer;`,
   `CREATE INDEX IF NOT EXISTS "pages_parent_idx" ON "pages" ("parent_id");`,
+  `ALTER TABLE "_pages_v" ADD COLUMN IF NOT EXISTS "version_parent_id" integer;`,
+  `CREATE INDEX IF NOT EXISTS "_pages_v_version_version_parent_idx" ON "_pages_v" ("version_parent_id");`,
   // ── nested-docs: breadcrumbs array table (Payload array convention:
   //    _order/_parent_id/id + the array's own fields doc_id/url/label) ──
   `CREATE TABLE IF NOT EXISTS "pages_breadcrumbs" (
