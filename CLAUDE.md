@@ -10,15 +10,36 @@ Handoffs in `docs/handoffs/` are journal entries — a point in time, never the 
 
 ## Where production runs, right now
 
-> **260901 — production is BACK ON THE NODE.** The 260831 note below said Railway; it is
-> wrong and was left standing after the node came back up. Proof, not inference: the
-> `celersoft` tenant (#43) exists only in `angelos-pg` and is what
-> `celersoft.spacesangels.com` renders, and a `push-to-node.sh` deploy changed the live
-> page. Railway's Postgres has 24 tenants and has never seen #43 — it is a stale fork now,
-> not a failover you can cut back to without a reconcile.
+> **260902 — CUTTING BACK TO RAILWAY. The node is being demoted to QA.**
+> The laptop was switched off at 20:41 UTC to save power and heat, and took all 26 sites
+> down with it — it was still prime. Ken's call: Railway is prime, the node becomes QA.
 >
-> **Deploy is `push-to-node.sh` again** (the command below). `railway up -s Core` ships to
-> a service nothing is pointed at.
+> **Railway is BUILT AND VERIFIED as of 260902 ~21:50 UTC**, before any DNS moved:
+> current `main` deployed, the `pages_version_parent` migration applied, and Celersoft
+> rebuilt by re-running its three committed scripts (demo → site → children). Counts match
+> the node — 25 tenants, 163 pages, 21 Celersoft pages. Four tenants were proven serving by
+> resolving their hostnames straight at Railway's edge (`--resolve <host>:443:69.46.46.95`)
+> — do that before you ever move DNS.
+>
+> **The remaining step is DNS**, in the Cloudflare `spacesangels.com` zone:
+> `*` and `www` → `qh3cy3sm.up.railway.app`, apex → `brdq7dq2.up.railway.app`, proxied.
+> ⚠️ SSL/TLS mode must be **Full**, NOT Full (Strict), or every site 526s.
+>
+> **THE DATABASES WILL DIVERGE THE MOMENT BOTH ARE UP.** The node keeps a full copy and
+> keeps serving on its own tunnel. Once DNS moves, treat the node's database as QA scratch
+> and never as a source of truth again.
+>
+> **Deploy = `railway up -s Core`.** ⚠️ Migrations did NOT run on boot — not on the node
+> 260901, not on Railway 260902. Two for two. Apply them explicitly with
+> `railway run -s Core -- node src/scripts/_local/_prod.mjs migrate` and VERIFY the column
+> exists afterwards. Do not trust the boot.
+>
+> ⚠️ **Custom domains are capped at 2 per service on Hobby, both used** (`*.spacesangels.com`
+> and the apex). Plan: drop the apex binding, serve it with a Cloudflare redirect rule to
+> `www`, and spend the freed slot on `*.wheredideveryonego.net`. That fills it again — a
+> THIRD customer domain needs a Cloudflare Worker that forwards the original host in
+> `x-forwarded-host` (`resolveTenantFromHeaders.ts:52` already reads it, at lower
+> precedence; flipping that needs a shared-secret gate or it is tenant spoofing).
 
 **`*.spacesangels.com` is served by `angel-node-01`, a ThinkPad T440s on Ken's desk.**
 Railway's trial expired on 260827; the account is **demoted**, `railway up` refuses,
