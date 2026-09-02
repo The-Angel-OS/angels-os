@@ -10,7 +10,7 @@ import { resolveViewerStanding, isPageViewable } from '@/utilities/pageAccess'
 import { injectPostsUnderNav, type PostLite } from '@/utilities/postsNav'
 import { injectProductsUnderNav, type ProductLite, DEFAULT_SHOP_DROPDOWN_COUNT } from '@/utilities/productsNav'
 import { injectEventsUnderNav, type EventLite, DEFAULT_EVENTS_DROPDOWN_COUNT } from '@/utilities/eventsNav'
-import { hasFeature } from '@/utilities/tenantFeatures'
+import { hasFeature, isGivingOrg } from '@/utilities/tenantFeatures'
 import { getBookableServices } from '@/config/bookableServices'
 import { getMembershipPlans } from '@/utilities/membershipPlans'
 import { getNavOverrides, EMPTY_NAV_OVERRIDES, type NavOverrides } from '@/utilities/navOverrides'
@@ -190,7 +190,14 @@ export async function Header({ tenant }: Props) {
         // The membership page is lifted to its own primary item below, so keep
         // it out of the Home dropdown rather than listing it twice.
         excludeSlugs: [
-          ...ALWAYS_PROMOTED_PAGE_SLUGS,
+          // 'donate' is in ALWAYS_PROMOTED only because HeaderClient appends a
+          // Giving CTA — and it only does that for a ministry or nonprofit now.
+          // Excluding it anywhere else would drop a real /donate PAGE out of the
+          // Home dropdown in exchange for a promotion that never comes, leaving
+          // a published page with no route into the menu at all.
+          ...ALWAYS_PROMOTED_PAGE_SLUGS.filter(
+            (slug) => slug !== 'donate' || isGivingOrg(tenant?.businessType),
+          ),
           ...(membership ? [membership.url.replace(/^\//, '')] : []),
         ],
       })

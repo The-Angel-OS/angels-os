@@ -1,161 +1,103 @@
 /**
- * Unit tests for Header navigation logic.
+ * Header nav composition — against the REAL function.
  *
- * Tests the nav item composition rules:
- * - Posts and Events are ALWAYS visible (logged in or out)
- * - Spaces and Dashboard require authentication
- * - CMS-driven nav items appear first
+ * The previous version of this file re-implemented the composition by hand and
+ * asserted its own copy, so it agreed with itself rather than with production.
+ * It went on claiming "Posts and Events are ALWAYS visible" after that stopped
+ * being true, and it would have passed either way. `composeNavItems` is now
+ * exported and this imports it.
  *
- * This validates the logic without rendering React components.
+ * The rule, in order: what the OWNER stored wins, then what the endeavor
+ * actually HAS, then platform chrome.
  *
  * @see src/components/Header/index.client.tsx
  */
 import { describe, it, expect } from 'vitest'
+import { composeNavItems } from '@/components/Header/index.client'
 
-// ---------------------------------------------------------------------------
-// Extract the navigation composition logic for testing
-// ---------------------------------------------------------------------------
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const urls = (items: any[]) => items.map((i) => i?.link?.url)
+const stored = (url: string, label = url) => ({ id: url, link: { type: 'custom', label, url } })
 
-const POSTS_NAV_ITEM = {
-  id: 'posts',
-  link: { type: 'custom' as const, label: 'Posts', url: '/posts', newTab: false },
-}
-
-const EVENTS_NAV_ITEM = {
-  id: 'events',
-  link: { type: 'custom' as const, label: 'Events', url: '/events', newTab: false },
-}
-
-const SPACES_NAV_ITEM = {
-  id: 'spaces',
-  link: { type: 'custom' as const, label: 'Spaces', url: '/spaces', newTab: false },
-}
-
-const DASHBOARD_NAV_ITEM = {
-  id: 'dashboard',
-  link: { type: 'custom' as const, label: 'Dashboard', url: '/dashboard', newTab: false },
-}
-
-type NavItem = {
-  id: string
-  link: { type: string; label: string; url: string; newTab: boolean }
-}
-
-/**
- * Mirrors the useMemo logic in HeaderClient.
- * @param baseMenu — CMS-driven nav items from Payload header collection
- * @param user — truthy if authenticated
- */
-function buildNavMenu(baseMenu: NavItem[], user: unknown): NavItem[] {
-  const items = [...baseMenu, POSTS_NAV_ITEM, EVENTS_NAV_ITEM]
-  if (user) {
-    items.push(SPACES_NAV_ITEM, DASHBOARD_NAV_ITEM)
-  }
-  return items
-}
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
-describe('Header Navigation Composition', () => {
-  describe('logged out (user = null)', () => {
-    it('includes Posts link', () => {
-      const menu = buildNavMenu([], null)
-      expect(menu.find((i) => i.id === 'posts')).toBeDefined()
-    })
-
-    it('includes Events link', () => {
-      const menu = buildNavMenu([], null)
-      expect(menu.find((i) => i.id === 'events')).toBeDefined()
-    })
-
-    it('does NOT include Spaces link', () => {
-      const menu = buildNavMenu([], null)
-      expect(menu.find((i) => i.id === 'spaces')).toBeUndefined()
-    })
-
-    it('does NOT include Dashboard link', () => {
-      const menu = buildNavMenu([], null)
-      expect(menu.find((i) => i.id === 'dashboard')).toBeUndefined()
-    })
-
-    it('returns 2 items with empty CMS menu', () => {
-      const menu = buildNavMenu([], null)
-      expect(menu).toHaveLength(2) // Posts + Events
-    })
+describe('composeNavItems', () => {
+  it('guarantees Home first even when the header doc omits it', () => {
+    expect(urls(composeNavItems({ navItems: [stored('/about')] }))[0]).toBe('/')
   })
 
-  describe('logged in (user = truthy)', () => {
-    const fakeUser = { id: 1, email: 'test@example.com' }
+  // --- populated or absent -------------------------------------------------
 
-    it('includes Posts link', () => {
-      const menu = buildNavMenu([], fakeUser)
-      expect(menu.find((i) => i.id === 'posts')).toBeDefined()
-    })
-
-    it('includes Events link', () => {
-      const menu = buildNavMenu([], fakeUser)
-      expect(menu.find((i) => i.id === 'events')).toBeDefined()
-    })
-
-    it('includes Spaces link', () => {
-      const menu = buildNavMenu([], fakeUser)
-      expect(menu.find((i) => i.id === 'spaces')).toBeDefined()
-    })
-
-    it('includes Dashboard link', () => {
-      const menu = buildNavMenu([], fakeUser)
-      expect(menu.find((i) => i.id === 'dashboard')).toBeDefined()
-    })
-
-    it('returns 4 items with empty CMS menu', () => {
-      const menu = buildNavMenu([], fakeUser)
-      expect(menu).toHaveLength(4) // Posts + Events + Spaces + Dashboard
-    })
+  it('omits Posts, Events and Book entirely when there is nothing in them', () => {
+    const out = urls(composeNavItems({ navItems: [stored('/')], isStorefront: true }))
+    expect(out).not.toContain('/posts')
+    expect(out).not.toContain('/events')
+    expect(out).not.toContain('/book')
   })
 
-  describe('CMS-driven nav items', () => {
-    const cmsItems: NavItem[] = [
-      { id: 'shop', link: { type: 'custom', label: 'Shop', url: '/shop', newTab: false } },
-      { id: 'about', link: { type: 'custom', label: 'About', url: '/about', newTab: false } },
-    ]
-
-    it('CMS items appear before hardcoded items', () => {
-      const menu = buildNavMenu(cmsItems, null)
-      expect(menu[0].id).toBe('shop')
-      expect(menu[1].id).toBe('about')
-      expect(menu[2].id).toBe('posts')
-      expect(menu[3].id).toBe('events')
-    })
-
-    it('CMS + hardcoded items combine correctly when logged in', () => {
-      const menu = buildNavMenu(cmsItems, { id: 1 })
-      expect(menu).toHaveLength(6) // 2 CMS + Posts + Events + Spaces + Dashboard
-    })
-
-    it('CMS + hardcoded items combine correctly when logged out', () => {
-      const menu = buildNavMenu(cmsItems, null)
-      expect(menu).toHaveLength(4) // 2 CMS + Posts + Events
-    })
+  it('adds each one as soon as it is populated', () => {
+    const out = urls(
+      composeNavItems({
+        navItems: [stored('/')],
+        isStorefront: true,
+        hasPosts: true,
+        hasEvents: true,
+        hasBook: true,
+      }),
+    )
+    expect(out).toContain('/posts')
+    expect(out).toContain('/events')
+    expect(out).toContain('/book')
   })
 
-  describe('nav item structure', () => {
-    it('all items have required fields', () => {
-      const menu = buildNavMenu([], { id: 1 })
-      for (const item of menu) {
-        expect(item.id).toBeTruthy()
-        expect(item.link.label).toBeTruthy()
-        expect(item.link.url).toMatch(/^\//)
-        expect(item.link.type).toBe('custom')
-      }
-    })
+  it('never overrides what the owner stored — an empty section they pinned stays', () => {
+    // hasEvents false, but the owner put Events in their own navItems.
+    const out = composeNavItems({ navItems: [stored('/'), stored('/events', 'Events')] })
+    expect(urls(out).filter((u) => u === '/events')).toHaveLength(1)
+  })
 
-    it('no items open in new tab', () => {
-      const menu = buildNavMenu([], { id: 1 })
-      for (const item of menu) {
-        expect(item.link.newTab).toBe(false)
-      }
-    })
+  // --- giving --------------------------------------------------------------
+
+  it('offers Giving only to an organization that takes donations', () => {
+    expect(urls(composeNavItems({ navItems: [stored('/')] }))).not.toContain('/donate')
+    expect(urls(composeNavItems({ navItems: [stored('/')], givingOrg: true }))).toContain('/donate')
+  })
+
+  it('keeps Giving off a storefront even if it is somehow flagged as giving', () => {
+    const out = composeNavItems({ navItems: [stored('/')], givingOrg: true, isStorefront: true })
+    expect(urls(out)).not.toContain('/donate')
+  })
+
+  // --- chrome --------------------------------------------------------------
+
+  it('keeps mission chrome off a storefront and on a community site', () => {
+    const shop = urls(composeNavItems({ navItems: [stored('/')], isStorefront: true }))
+    expect(shop).not.toContain('/works')
+    expect(shop).not.toContain('/learn')
+    expect(shop).not.toContain('/dashboard/spaces')
+
+    const community = urls(composeNavItems({ navItems: [stored('/')] }))
+    expect(community).toEqual(expect.arrayContaining(['/works', '/learn', '/dashboard/spaces']))
+  })
+
+  it('always offers Dashboard — the layout handles the auth redirect', () => {
+    expect(urls(composeNavItems({ navItems: [stored('/')], isStorefront: true }))).toContain('/dashboard')
+  })
+
+  it('adds Discovery only when the Endeavor switch is on', () => {
+    expect(urls(composeNavItems({ navItems: [stored('/')] }))).not.toContain('/federation/discover')
+    expect(urls(composeNavItems({ navItems: [stored('/')], discoveryEnabled: true }))).toContain(
+      '/federation/discover',
+    )
+  })
+
+  // --- membership ----------------------------------------------------------
+
+  it('puts Join right after Home, because position IS the mobile position', () => {
+    const out = urls(
+      composeNavItems({
+        navItems: [stored('/'), stored('/about')],
+        membership: { url: '/join', label: 'Join' },
+      }),
+    )
+    expect(out.slice(0, 2)).toEqual(['/', '/join'])
   })
 })

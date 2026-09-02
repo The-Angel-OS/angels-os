@@ -15,6 +15,7 @@ import { usePresence } from '@/hooks/usePresence'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/utilities/cn'
 import { partitionNavItems } from '@/utilities/navPartition'
+import { isGivingOrg } from '@/utilities/tenantFeatures'
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -172,6 +173,84 @@ function resolveHref(link: { type?: string | null; url?: string | null; referenc
   return link.url || '#'
 }
 
+/**
+ * Compose the rendered menu from the stored nav plus what the endeavor has.
+ *
+ * Pure and exported so the rules can be tested against the REAL implementation.
+ * The previous test for this file re-implemented the composition by hand, which
+ * means it agreed with itself rather than with production — and went on
+ * asserting "Posts and Events are ALWAYS visible" after that stopped being
+ * true.
+ *
+ * Precedence, in one line: what the OWNER stored wins, then what the endeavor
+ * actually HAS, then platform chrome.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function composeNavItems(opts: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  navItems?: any[] | null
+  hasPosts?: boolean
+  hasEvents?: boolean
+  hasBook?: boolean
+  isStorefront?: boolean
+  givingOrg?: boolean
+  discoveryEnabled?: boolean
+  membership?: { url: string; label: string } | null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  donateItem?: any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+}): any[] {
+  const {
+    navItems,
+    hasPosts = false,
+    hasEvents = false,
+    hasBook = false,
+    isStorefront = false,
+    givingOrg = false,
+    discoveryEnabled = false,
+    membership = null,
+    donateItem = DONATE_NAV_ITEM,
+  } = opts
+  const items = [...(navItems ?? [])]
+  const urls = new Set(items.map((i) => i?.link?.url))
+  // Home is always present and always FIRST — the appended defaults below never
+  // include it, so when the header doc fails to load (or omits Home) the nav
+  // would otherwise have no Home link at all (only the logo). Guarantee it.
+  if (!urls.has('/')) items.unshift(HOME_NAV_ITEM)
+  // Insert right AFTER Home, not appended. forcePrimaryUrls only reorders the
+  // desktop split; the mobile sheet renders this array in raw order, so pushing
+  // it to the end moved the join link from 3rd to 16th of 25 — past every
+  // product and post. Position in this array IS the mobile position.
+  if (membership && !urls.has(membership.url)) {
+    const item = { link: { type: 'custom', label: membership.label, url: membership.url } }
+    const homeIdx = items.findIndex((i) => i?.link?.url === '/')
+    items.splice(homeIdx >= 0 ? homeIdx + 1 : 0, 0, item)
+  }
+  // Populated or absent — NOT "always there, demoted when empty". An endeavor
+  // with no events had an Events link sitting in More pointing at an empty
+  // page, which is tenantFeatures' own rule broken: an empty room advertised in
+  // the nav is worse than no nav item at all. A route the OWNER put in their
+  // stored navItems is untouched by this — `urls.has` wins first.
+  if (hasPosts && !urls.has('/posts')) items.push(POSTS_NAV_ITEM)
+  if (hasEvents && !urls.has('/events')) items.push(EVENTS_NAV_ITEM)
+  if (hasBook && !urls.has('/book')) items.push(BOOK_NAV_ITEM)
+  // Discovery is its own switch (Endeavor "Show in Discovery" toggle).
+  if (discoveryEnabled && !urls.has('/federation/discover')) items.push(DISCOVER_NAV_ITEM)
+  // Mission/platform chrome — community endeavors only, never a commercial storefront.
+  if (!isStorefront) {
+    // Same rule. Giving is top-level for a ministry and absent for everyone
+    // else — it used to sit in More on every community site, soliciting
+    // donations for organizations that do not take them.
+    if (givingOrg && !urls.has('/donate')) items.push(donateItem)
+    if (!urls.has('/works')) items.push(WORKS_NAV_ITEM)
+    if (!urls.has('/learn')) items.push(LEARN_NAV_ITEM)
+    if (!urls.has('/dashboard/spaces')) items.push(SPACES_NAV_ITEM)
+  }
+  // Dashboard is always visible — the dashboard layout handles auth redirect.
+  if (!urls.has('/dashboard')) items.push(DASHBOARD_NAV_ITEM)
+  return items
+}
+
 export function HeaderClient({ canEditContent: canEditContentProp = false, header, tenant, hasProducts = true, hasEvents = true, hasPosts = true, hasWorks = false, hasBook = true, showDiscovery, membership, navOverrides }: Props) {
   const { user } = useAuth()
 
@@ -237,46 +316,28 @@ export function HeaderClient({ canEditContent: canEditContentProp = false, heade
   // A giving org (church/ministry/nonprofit) gets Giving promoted to top-level; for
   // any other community site the link still exists but stays in More until configured.
   // Label flips to "Giving" for a church/ministry, "Donate" otherwise.
-  const isGivingOrg = ['ministry', 'nonprofit'].includes(businessType || '')
+  const givingOrg = isGivingOrg(businessType)
   const donateItem = useMemo(
     () => (businessType === 'ministry'
       ? { ...DONATE_NAV_ITEM, link: { ...DONATE_NAV_ITEM.link, label: 'Giving' } }
       : DONATE_NAV_ITEM),
     [businessType],
   )
-  const menu = useMemo(() => {
-    const items = [...(navItems ?? [])]
-    const urls = new Set(items.map((i) => i.link?.url))
-    // Home is always present and always FIRST — the appended defaults below never
-    // include it, so when the header doc fails to load (or omits Home) the nav
-    // would otherwise have no Home link at all (only the logo). Guarantee it.
-    if (!urls.has('/')) items.unshift(HOME_NAV_ITEM)
-    // Ensure Posts, Events always present (even if CMS omits them)
-    // Insert right AFTER Home, not appended. forcePrimaryUrls only reorders the
-    // desktop split; the mobile sheet renders `menu` in raw order, so pushing it
-    // to the end moved the join link from 3rd to 16th of 25 — past every product
-    // and post. Position in this array IS the mobile position.
-    if (membership && !urls.has(membership.url)) {
-      const item = { link: { type: 'custom', label: membership.label, url: membership.url } } as never
-      const homeIdx = items.findIndex((i) => i?.link?.url === '/')
-      items.splice(homeIdx >= 0 ? homeIdx + 1 : 0, 0, item)
-    }
-    if (!urls.has('/posts')) items.push(POSTS_NAV_ITEM)
-    if (!urls.has('/events')) items.push(EVENTS_NAV_ITEM)
-    if (!urls.has('/book')) items.push(BOOK_NAV_ITEM)
-    // Discovery is its own switch (Endeavor "Show in Discovery" toggle).
-    if (discoveryEnabled && !urls.has('/federation/discover')) items.push(DISCOVER_NAV_ITEM)
-    // Mission/platform chrome — community endeavors only, never a commercial storefront.
-    if (!isStorefront) {
-      if (!urls.has('/donate')) items.push(donateItem)
-      if (!urls.has('/works')) items.push(WORKS_NAV_ITEM)
-      if (!urls.has('/learn')) items.push(LEARN_NAV_ITEM)
-      if (!urls.has('/dashboard/spaces')) items.push(SPACES_NAV_ITEM)
-    }
-    // Dashboard is always visible — the dashboard layout handles auth redirect.
-    if (!urls.has('/dashboard')) items.push(DASHBOARD_NAV_ITEM)
-    return items
-  }, [navItems, isStorefront, discoveryEnabled, donateItem, membership])
+  const menu = useMemo(
+    () =>
+      composeNavItems({
+        navItems,
+        hasPosts,
+        hasEvents,
+        hasBook,
+        isStorefront,
+        givingOrg,
+        discoveryEnabled,
+        membership,
+        donateItem,
+      }),
+    [navItems, isStorefront, discoveryEnabled, donateItem, membership, givingOrg, hasPosts, hasEvents, hasBook],
+  )
   const tenantLogoUrl = (tenant?.branding?.logo as Media | null)?.url
   const logoUrl = tenantLogoUrl || defaultLogoUrl
   const pathname = usePathname()
@@ -284,22 +345,20 @@ export function HeaderClient({ canEditContent: canEditContentProp = false, heade
   // Keep primary items inline; collapse the rest into "More ▾". Dashboard always
   // lives in More; Shop/Posts/Events demote to More until they're populated (then
   // they become first-class automatically, since the flags come from live counts).
+  // Only /shop and /works can still be present-but-empty: /shop when an owner
+  // pinned it into their own navItems, /works when the feature is on and the
+  // catalog is not. The rest are no longer injected at all when empty, so
+  // demoting them was describing a state that cannot occur.
   const demoteUrls: string[] = []
   if (!hasProducts) demoteUrls.push('/shop')
-  if (!hasEvents) demoteUrls.push('/events')
-  if (!hasPosts) demoteUrls.push('/posts')
   if (!hasWorks) demoteUrls.push('/works')
-  if (!hasBook) demoteUrls.push('/book')
-  // Giving promotes to top-level only for a church/ministry/nonprofit; otherwise it
-  // lives in More (the link still exists for any community site, just not up front).
-  if (!isGivingOrg) demoteUrls.push('/donate')
   // Revenue CTAs stay PRIMARY when populated — booking a service and buying a
   // product are how the endeavor earns, so they're never buried in More past the
   // inline cap. (Populated = the section actually has something to sell/book.)
   const forcePrimaryUrls: string[] = discoveryEnabled ? ['/federation/discover'] : []
   if (hasBook) forcePrimaryUrls.push('/book')
   if (hasProducts) forcePrimaryUrls.push('/shop')
-  if (isGivingOrg) forcePrimaryUrls.push('/donate')
+  if (givingOrg) forcePrimaryUrls.push('/donate')
   if (membership) forcePrimaryUrls.push(membership.url)
   // The menu above is DERIVED from what the endeavor actually has. These three
   // are the only things derivation can't know, because they're the owner's
