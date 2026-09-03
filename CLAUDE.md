@@ -10,7 +10,7 @@ Handoffs in `docs/handoffs/` are journal entries — a point in time, never the 
 
 ## Where production runs, right now
 
-> **260902 — CUTTING BACK TO RAILWAY. The node is being demoted to QA.**
+> **260902 — PRODUCTION IS RAILWAY. Cutover COMPLETE at ~22:05 UTC. The node is QA.**
 > The laptop was switched off at 20:41 UTC to save power and heat, and took all 26 sites
 > down with it — it was still prime. Ken's call: Railway is prime, the node becomes QA.
 >
@@ -21,9 +21,12 @@ Handoffs in `docs/handoffs/` are journal entries — a point in time, never the 
 > resolving their hostnames straight at Railway's edge (`--resolve <host>:443:69.46.46.95`)
 > — do that before you ever move DNS.
 >
-> **The remaining step is DNS**, in the Cloudflare `spacesangels.com` zone:
-> `*` and `www` → `qh3cy3sm.up.railway.app`, apex → `brdq7dq2.up.railway.app`, proxied.
-> ⚠️ SSL/TLS mode must be **Full**, NOT Full (Strict), or every site 526s.
+> **DNS is DONE** — in the Cloudflare `spacesangels.com` zone, `*` and `www` are CNAMEs to
+> `qh3cy3sm.up.railway.app` and the apex to `brdq7dq2.up.railway.app`, all proxied.
+> Verified by byte-comparison: the public response for a tenant is identical to Railway's
+> and differs from the node's. **Rollback = point those three back at the tunnel,
+> `7ec2ed85-6fda-4648-9257-0bfbd1a86cac.cfargotunnel.com`.**
+> ⚠️ SSL/TLS mode must stay **Full**, NOT Full (Strict), or every site 526s.
 >
 > **THE DATABASES WILL DIVERGE THE MOMENT BOTH ARE UP.** The node keeps a full copy and
 > keeps serving on its own tunnel. Once DNS moves, treat the node's database as QA scratch
