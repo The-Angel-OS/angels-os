@@ -8,7 +8,8 @@
  *   - Forget: ANYTHING older than `maxDays` (the hard retention ceiling).
  *   - Forget: resolved logs older than `resolvedDays` (they've been handled).
  *   - Forget: info/debug logs older than `noiseDays` (telemetry noise).
- *   - Forget: site-visit rows older than `visitDays` (the Site Log's ceiling).
+ *   - Forget: site-visit rows older than `visitDays` (the Site Log's ceiling),
+ *     and crawler rows (isBot) older than `botDays`.
  *   - Before pruning, write ONE rollup summary log so the memory of *volume*
  *     survives even as the detail is forgotten.
  *
@@ -48,6 +49,8 @@ export const logConsolidateHandler: PayloadHandler = async (req) => {
   // Site Log rows keep longer than error logs — 90 days is enough to see a season
   // of traffic, and still bounded.
   const visitDays = clampDays(url.searchParams.get('visitDays'), 90)
+  // Crawler rows are volume, not signal — the reports exclude them by default.
+  const botDays = clampDays(url.searchParams.get('botDays'), 3)
   const now = Date.now()
   const resolvedCutoff = new Date(now - resolvedDays * DAY_MS).toISOString()
   const noiseCutoff = new Date(now - noiseDays * DAY_MS).toISOString()
@@ -110,7 +113,13 @@ export const logConsolidateHandler: PayloadHandler = async (req) => {
     let visitsForgotten = 0
     try {
       const visitCutoff = new Date(now - visitDays * DAY_MS).toISOString()
-      const stale = { createdAt: { less_than: visitCutoff } } as Where
+      const botCutoff = new Date(now - botDays * DAY_MS).toISOString()
+      const stale = {
+        or: [
+          { createdAt: { less_than: visitCutoff } },
+          { and: [{ isBot: { equals: true } }, { createdAt: { less_than: botCutoff } }] },
+        ],
+      } as Where
       const c = await payload.count({ collection: 'site-visits', where: stale, overrideAccess: true })
       visitsForgotten = c.totalDocs
       if (!dry && visitsForgotten > 0) {
@@ -120,7 +129,7 @@ export const logConsolidateHandler: PayloadHandler = async (req) => {
       // A node without the table yet — nothing to prune, nothing to report.
     }
 
-    return Response.json({ ok: true, forgot: toForget.totalDocs, unresolvedKept: unresolved.totalDocs, visitsForgotten, policy: { maxDays, resolvedDays, noiseDays, visitDays } })
+    return Response.json({ ok: true, forgot: toForget.totalDocs, unresolvedKept: unresolved.totalDocs, visitsForgotten, policy: { maxDays, resolvedDays, noiseDays, visitDays, botDays } })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     payload.logger?.error?.(`[log-consolidate] ${msg}`)
