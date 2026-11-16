@@ -6,7 +6,7 @@ import rawLandmassPolygons from '@/data/world-landmass.json'
 
 const landmassPolygons = rawLandmassPolygons as number[][][]
 
-export import { DonkeyExcavationHero } from '@/components/mlb/DonkeyExcavationHero'
+import { DonkeyExcavationHero } from '@/components/mlb/DonkeyExcavationHero'
 
 interface AtlasPlace {
   id: string

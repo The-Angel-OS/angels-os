@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef, useState, useId } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 
 interface Hotspot {
@@ -49,7 +49,7 @@ export const DonkeyExcavationHero: React.FC<{
   const [depthFt, setDepthFt] = useState<number>(0)
   const [activeHotspot, setActiveHotspot] = useState<Hotspot | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isRadarSweeping, setIsRadarSweeping] = useState(true)
+  const isRadarSweeping = true
 
   // Neon sign letters for "MY LUNCH BREAK LIVE"
   // The 'U' has a realistic vintage tube flicker (delayed ignition)
@@ -278,7 +278,6 @@ export const DonkeyExcavationHero: React.FC<{
       ctx.fill()
 
       // Legs with trotting / idle gait
-      const legBob = Math.sin(t * 2) * 0.4
       for (const [idx, lx] of [-7, -3, 4, 7].entries()) {
         const step = Math.sin(t * 3.5 + idx * 1.5) * 0.8
         ctx.beginPath()
