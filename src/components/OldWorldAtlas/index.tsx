@@ -826,7 +826,8 @@ export const OldWorldAtlas: React.FC<{
 
       {/* ── 2. Spy-Satellite Mode Switcher & Live City / Carnegie / Post Office Scanner ── */}
       {showGlobeAndRecon && (
-        <div className="border-b border-slate-800 bg-[#0b101b] px-6 py-4 space-y-3">
+        <>
+          <div className="border-b border-slate-800 bg-[#0b101b] px-6 py-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           {/* View Mode Tabs */}
           <div className="flex flex-wrap items-center gap-1.5">
@@ -1351,6 +1352,7 @@ export const OldWorldAtlas: React.FC<{
           </div>
         )}
       </div>
+        </>
       )}
     </section>
   )
