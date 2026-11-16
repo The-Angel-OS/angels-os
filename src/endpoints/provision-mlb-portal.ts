@@ -283,12 +283,14 @@ export const provisionMlbPortalHandler: PayloadHandler = async (req) => {
     }
 
     // Deduplicate episodes by number, preferring entries that have a YouTube videoUrl
-    const epByNum = new Map<number, (typeof mlbArchive.episodes)[number]>()
+    type ValidEpisode = (typeof mlbArchive.episodes)[number] & { number: number }
+    const epByNum = new Map<number, ValidEpisode>()
     for (const ep of mlbArchive.episodes) {
-      if (!ep.number) continue
-      const prev = epByNum.get(ep.number)
-      if (!prev || (!prev.videoUrl && ep.videoUrl)) {
-        epByNum.set(ep.number, ep)
+      if (typeof ep.number !== 'number') continue
+      const validEp = ep as ValidEpisode
+      const prev = epByNum.get(validEp.number)
+      if (!prev || (!prev.videoUrl && validEp.videoUrl)) {
+        epByNum.set(validEp.number, validEp)
       }
     }
     const sortedEpisodes = Array.from(epByNum.values()).sort((a, b) => b.number - a.number)

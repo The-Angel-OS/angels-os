@@ -34,7 +34,7 @@ export const EpisodeNavigator: React.FC<EpisodeNavigatorProps> = ({
       : null
 
   const episodesWithVideo = mlbArchive.episodes
-    .filter((e) => Boolean(e.number))
+    .filter((e): e is (typeof mlbArchive.episodes)[number] & { number: number } => typeof e.number === 'number')
     .sort((a, b) => a.number - b.number)
 
   // Deduplicate by episode number
