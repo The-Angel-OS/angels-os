@@ -56,8 +56,9 @@ export const provisionMlbPortalHandler: PayloadHandler = async (req) => {
   try {
     const log: string[] = []
 
-    // 1. Create or update the `mlb` tenant
-    const tenant = await findOrCreateTenant(payload, req, {
+    // 1. Create or update the `mlb` tenant (pass undefined for req so the
+    // tenant insert commits immediately and downstream page/post FK checks see it)
+    const tenant = await findOrCreateTenant(payload, undefined, {
       name: NAME,
       slug: SLUG,
       domain: DOMAIN,
@@ -394,7 +395,6 @@ export const provisionMlbPortalHandler: PayloadHandler = async (req) => {
           data: postData as any,
           depth: 0,
           overrideAccess: true,
-          req,
         })
         postsCreated++
       } else {
@@ -405,7 +405,6 @@ export const provisionMlbPortalHandler: PayloadHandler = async (req) => {
           data: postData as any,
           depth: 0,
           overrideAccess: true,
-          req,
         })
         postsUpdated++
       }

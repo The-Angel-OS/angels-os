@@ -451,7 +451,7 @@ export function HeaderClient({ canEditContent: canEditContentProp = false, heade
                             {item.link.label}
                           </NavigationMenuTrigger>
                           <NavigationMenuContent>
-                            <ul className={cn('grid gap-0.5 p-2 text-start', children.some((c: { image?: string }) => c.image) ? 'w-72' : 'w-56')}>
+                            <ul className={cn('grid gap-0.5 p-2 text-start max-h-[68vh] overflow-y-auto', children.some((c: { image?: string }) => c.image) ? 'w-80' : 'w-56')}>
                               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                               {([item, ...children] as any[]).map((c: any, ci: number) => (
                                 <li key={c.id || `${item.id}-c${ci}`}>

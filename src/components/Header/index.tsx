@@ -8,6 +8,7 @@ import { getTenantCachedDoc } from '@/utilities/getTenantCachedDoc'
 import { injectPagesUnderHome, ALWAYS_PROMOTED_PAGE_SLUGS, type PageLite } from '@/utilities/pagesNav'
 import { resolveViewerStanding, isPageViewable } from '@/utilities/pageAccess'
 import { injectPostsUnderNav, type PostLite } from '@/utilities/postsNav'
+import { computeEmbedUrl } from '@/utilities/computeEmbedUrl'
 import { injectProductsUnderNav, type ProductLite, DEFAULT_SHOP_DROPDOWN_COUNT } from '@/utilities/productsNav'
 import { injectEventsUnderNav, type EventLite, DEFAULT_EVENTS_DROPDOWN_COUNT } from '@/utilities/eventsNav'
 import { hasFeature, isGivingOrg } from '@/utilities/tenantFeatures'
@@ -126,24 +127,42 @@ export async function Header({ tenant }: Props) {
           parent: p.parent as PageLite['parent'],
         }))
 
-      // Latest posts → Posts dropdown, each with its meta image as a thumbnail.
+      // Latest posts → Posts dropdown, each with its meta image (or YouTube thumbnail)
+      // as a thumbnail. Fetch up to 200 so episode-heavy portals (MLB) can scroll
+      // their full archive inside the Posts dropdown.
       const posts = await payload.find({
         collection: 'posts',
         where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'published' } }] },
-        limit: 5,
+        limit: 200,
         depth: 1, // resolve meta.image → media
         sort: '-publishedOn',
         overrideAccess: true,
       })
-      const thumb = (m: unknown): string | null => {
-        if (!m || typeof m !== 'object') return null
-        const media = m as { url?: string | null; sizes?: { thumbnail?: { url?: string | null } } }
-        return media.sizes?.thumbnail?.url || media.url || null
+      const thumb = (m: unknown, sourceUrl?: string | null): string | null => {
+        if (m && typeof m === 'object') {
+          const media = m as { url?: string | null; sizes?: { thumbnail?: { url?: string | null } } }
+          const resolved = media.sizes?.thumbnail?.url || media.url || null
+          if (resolved) return resolved
+        }
+        if (sourceUrl) {
+          const embed = computeEmbedUrl(sourceUrl)
+          if (embed.provider === 'youtube' && embed.videoId) {
+            return `https://i.ytimg.com/vi/${embed.videoId}/hqdefault.jpg`
+          }
+        }
+        return null
       }
-      const postList: PostLite[] = (posts.docs as Array<{ slug?: string | null; title?: string | null; meta?: { image?: unknown } }>).map((p) => ({
+      const postList: PostLite[] = (
+        posts.docs as Array<{
+          slug?: string | null
+          title?: string | null
+          sourceUrl?: string | null
+          meta?: { image?: unknown }
+        }>
+      ).map((p) => ({
         slug: p.slug,
         title: p.title,
-        image: thumb(p.meta?.image),
+        image: thumb(p.meta?.image, p.sourceUrl),
       }))
 
       // Top products → Shop dropdown, each with its first gallery image as a
@@ -201,7 +220,7 @@ export async function Header({ tenant }: Props) {
           ...(membership ? [membership.url.replace(/^\//, '')] : []),
         ],
       })
-      navItems = injectPostsUnderNav(navItems, postList)
+      navItems = injectPostsUnderNav(navItems, postList, { max: 200 })
       navItems = injectProductsUnderNav(navItems, productList)
       navItems = injectEventsUnderNav(navItems, eventList)
       header = { ...header, navItems }
