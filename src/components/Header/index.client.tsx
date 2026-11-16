@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/navigation-menu'
 
 // How many primary nav items stay inline before the rest collapse into "More ▾".
-const MAX_INLINE_NAV = 6
+const MAX_INLINE_NAV = 7
 
 type Props = {
   header: Header | null
@@ -387,6 +387,7 @@ export function HeaderClient({ canEditContent: canEditContentProp = false, heade
   // inline cap. (Populated = the section actually has something to sell/book.)
   const forcePrimaryUrls: string[] = discoveryEnabled ? ['/federation/discover'] : []
   if (hasBook) forcePrimaryUrls.push('/book')
+  if (hasEpisodes) forcePrimaryUrls.push('/episodes')
   if (hasProducts) forcePrimaryUrls.push('/shop')
   if (givingOrg) forcePrimaryUrls.push('/donate')
   if (membership) forcePrimaryUrls.push(membership.url)
