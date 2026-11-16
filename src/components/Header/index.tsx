@@ -331,5 +331,8 @@ export async function Header({ tenant }: Props) {
     /* anonymous, or roles unavailable — no edit affordance, the safe side */
   }
 
-  return <HeaderClient canEditContent={canEditContent} header={header} tenant={tenant} hasProducts={hasProducts} hasEpisodes={hasEpisodes} hasEvents={hasEvents} hasPosts={hasPosts} hasBook={hasBook} hasWorks={hasWorks} showDiscovery={showDiscovery} membership={membership} navOverrides={navOverrides} />
+  const isAffiliateCatalog = tenant?.slug === 'mlb'
+  const enableCart = hasProducts && !isAffiliateCatalog
+
+  return <HeaderClient canEditContent={canEditContent} header={header} tenant={tenant} hasProducts={hasProducts} enableCart={enableCart} hasEpisodes={hasEpisodes} hasEvents={hasEvents} hasPosts={hasPosts} hasBook={hasBook} hasWorks={hasWorks} showDiscovery={showDiscovery} membership={membership} navOverrides={navOverrides} />
 }

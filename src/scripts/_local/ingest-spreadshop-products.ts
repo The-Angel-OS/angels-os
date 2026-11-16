@@ -105,19 +105,24 @@ for (const item of rawProducts) {
   const numPrice = parseFloat(item.price.replace(/[^0-9.]/g, '')) || 24.99
   const centsPrice = Math.round(numPrice * 100)
 
-  // 1. Front View (main product image)
-  const legacyFilename = `mlb-merch-${slug.slice(0, 30)}.jpg`
-  const frontId = await ensureMediaFromUrl(item.imageUrl, legacyFilename, `${item.title} - Front View`)
+  // 1. Front View (main product image) — upgrade to 1400x1400 master resolution
+  const front1400Url = item.imageUrl.replace(',width=650,height=650', ',width=1400,height=1400')
+  const frontFilename = `mlb-merch-${slug.slice(0, 30)}-1400.jpg`
+  const frontId = await ensureMediaFromUrl(front1400Url, frontFilename, `${item.title} - Front View (1400px Master)`)
 
-  // 2. Back View
-  const backUrl = item.imageUrl.replace('/views/1', '/views/2')
-  const backFilename = `mlb-merch-${slug.slice(0, 30)}-back.jpg`
-  const backId = await ensureMediaFromUrl(backUrl, backFilename, `${item.title} - Back View`)
+  // 2. Back View (1400px)
+  const back1400Url = item.imageUrl
+    .replace('/views/1', '/views/2')
+    .replace(',width=650,height=650', ',width=1400,height=1400')
+  const backFilename = `mlb-merch-${slug.slice(0, 30)}-back-1400.jpg`
+  const backId = await ensureMediaFromUrl(back1400Url, backFilename, `${item.title} - Back View (1400px Master)`)
 
-  // 3. Composition / Graphic Zoom View
-  const compUrl = item.imageUrl.replace('/products/', '/compositions/')
-  const compFilename = `mlb-merch-${slug.slice(0, 30)}-zoom.jpg`
-  const compId = await ensureMediaFromUrl(compUrl, compFilename, `${item.title} - Graphic Zoom`)
+  // 3. Composition / Graphic Zoom View (1400px master)
+  const comp1400Url = item.imageUrl
+    .replace('/products/', '/compositions/')
+    .replace(',width=650,height=650', ',width=1400,height=1400')
+  const compFilename = `mlb-merch-${slug.slice(0, 30)}-zoom-1400.jpg`
+  const compId = await ensureMediaFromUrl(comp1400Url, compFilename, `${item.title} - Composition Zoom (1400px Master)`)
 
   // 4. Source Artwork Graphic (transparent PNG)
   const designMatch = item.imageUrl.match(/D(\d+)/)

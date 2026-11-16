@@ -13,6 +13,27 @@ import { useCurrency } from '@payloadcms/plugin-ecommerce/client/react'
 import { StockIndicator } from '@/components/product/StockIndicator'
 import { trackViewItem } from '@/utilities/gtagEcommerce'
 
+function extractExternalOrderUrl(description: any): string | null {
+  if (!description?.root?.children) return null
+  for (const child of description.root.children) {
+    if (child.type === 'paragraph' && Array.isArray(child.children)) {
+      for (const grandChild of child.children) {
+        if (grandChild.type === 'link' && grandChild.fields?.url) {
+          const url = grandChild.fields.url
+          if (
+            url.includes('spreadshop.com') ||
+            url.includes('myspreadshop') ||
+            grandChild.children?.[0]?.text?.includes('Order')
+          ) {
+            return url
+          }
+        }
+      }
+    }
+  }
+  return null
+}
+
 export function ProductDescription({ product }: { product: Product }) {
   const { currency } = useCurrency()
   let amount = 0,
@@ -65,6 +86,8 @@ export function ProductDescription({ product }: { product: Product }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.id])
 
+  const externalOrderUrl = extractExternalOrderUrl(product.description)
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
@@ -80,31 +103,56 @@ export function ProductDescription({ product }: { product: Product }) {
       {product.description ? (
         <RichText className="" data={product.description} enableGutter={false} />
       ) : null}
-      <hr />
-      {hasVariants && (
-        <>
-          <Suspense fallback={null}>
-            <VariantSelector product={product} />
-          </Suspense>
 
+      {!externalOrderUrl && (
+        <>
           <hr />
+          {hasVariants && (
+            <>
+              <Suspense fallback={null}>
+                <VariantSelector product={product} />
+              </Suspense>
+              <hr />
+            </>
+          )}
+          <div className="flex items-center justify-between">
+            <Suspense fallback={null}>
+              <StockIndicator product={product} />
+            </Suspense>
+          </div>
         </>
       )}
-      <div className="flex items-center justify-between">
-        <Suspense fallback={null}>
-          <StockIndicator product={product} />
-        </Suspense>
-      </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <Suspense fallback={null}>
-          <BuyNow product={product} />
-        </Suspense>
-        <Suspense fallback={null}>
-          <AddToCart product={product} />
-        </Suspense>
-        <ContactSeller product={product} />
-      </div>
+      {externalOrderUrl ? (
+        <div className="flex flex-wrap items-center gap-4 pt-2">
+          <a
+            href={externalOrderUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center rounded-lg bg-amber-500 px-7 py-3.5 text-base font-bold text-slate-950 transition hover:bg-amber-400 hover:shadow-lg hover:shadow-amber-500/20"
+          >
+            Order Direct on Spreadshop →
+          </a>
+          <a
+            href="https://spacesangels.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center rounded-lg border border-slate-700 bg-slate-900/80 px-4 py-3.5 text-xs font-medium text-slate-300 hover:border-slate-500 hover:text-white transition"
+          >
+            ⚡ Open Your Free Shop
+          </a>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-3">
+          <Suspense fallback={null}>
+            <BuyNow product={product} />
+          </Suspense>
+          <Suspense fallback={null}>
+            <AddToCart product={product} />
+          </Suspense>
+          <ContactSeller product={product} />
+        </div>
+      )}
     </div>
   )
 }

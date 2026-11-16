@@ -34,6 +34,8 @@ type Props = {
   tenant?: Tenant | null
   /** Shop is first-class only when there are products; else it collapses to More. */
   hasProducts?: boolean
+  /** Whether the shopping cart icon is enabled (hidden when in affiliate catalog mode). */
+  enableCart?: boolean
   /** Episodes is first-class only when there are video episodes. */
   hasEpisodes?: boolean
   /** Events is first-class only when there are events; else it collapses to More. */
@@ -279,7 +281,7 @@ export function composeNavItems(opts: {
   return items
 }
 
-export function HeaderClient({ canEditContent: canEditContentProp = false, header, tenant, hasProducts = true, hasEpisodes = false, hasEvents = true, hasPosts = true, hasWorks = false, hasBook = true, showDiscovery, membership, navOverrides }: Props) {
+export function HeaderClient({ canEditContent: canEditContentProp = false, header, tenant, hasProducts = true, enableCart = true, hasEpisodes = false, hasEvents = true, hasPosts = true, hasWorks = false, hasBook = true, showDiscovery, membership, navOverrides }: Props) {
   const { user } = useAuth()
 
   // "Edit this page" is now decided on the SERVER, because the answer depends on
@@ -625,10 +627,8 @@ export function HeaderClient({ canEditContent: canEditContentProp = false, heade
               </>
             )}
             {/* A cart on a tenant with nothing to sell is the loudest tell that
-                the site is somebody's template. `hasProducts` is already the
-                populated check the nav uses for /shop -- reuse it rather than
-                add a second one. */}
-            {hasProducts && (
+                the site is somebody's template. Hidden when in affiliate catalog mode. */}
+            {hasProducts && enableCart && (
               <Suspense fallback={<OpenCartButton />}>
                 <Cart />
               </Suspense>

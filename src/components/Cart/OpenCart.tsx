@@ -23,7 +23,7 @@ export function OpenCartButton({
       // corner then rides the header's edge and gets clipped. An icon button wants
       // a square, centered box of its own.
       className={cn(
-        'navLink relative hover:cursor-pointer h-9 w-9 self-center items-center justify-center p-0 pt-0 pb-0',
+        'relative hover:cursor-pointer h-9 w-9 self-center inline-flex items-center justify-center p-0 overflow-visible text-foreground hover:text-primary transition-colors',
         className,
       )}
       {...rest}
