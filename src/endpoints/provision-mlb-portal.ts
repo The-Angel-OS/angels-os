@@ -147,8 +147,8 @@ export const provisionMlbPortalHandler: PayloadHandler = async (req) => {
       log.push(`home page #${home.id} updated with old-world-atlas + episode archive`)
     }
 
-    // 3. Ensure `atlas` page exists on `mlb`, `wheredideveryonego`, and `clearwater-cruisin`
-    for (const targetSlug of ['mlb', 'wheredideveryonego', 'clearwater-cruisin']) {
+    // 3. Ensure `atlas` page exists ONLY on `mlb` (do not touch other tenants)
+    for (const targetSlug of ['mlb']) {
       const tRes = await payload.find({
         collection: 'tenants',
         where: { slug: { equals: targetSlug } },

@@ -113,12 +113,21 @@ const CATEGORY_COLORS: Record<string, string> = {
 const QUICK_SECTORS = [
   { label: '📍 Clearwater, FL (1933 Post Office)', lat: 27.9656, lon: -82.7959, zoom: 14, city: 'Clearwater, FL' },
   { label: '📍 Tampa, FL (1891 Plant Palace)', lat: 27.9467, lon: -82.4639, zoom: 14, city: 'Tampa, FL' },
+  { label: '📍 Mumbai, India (Victoria Terminus)', lat: 18.9401, lon: 72.8355, zoom: 14, city: 'Mumbai, India' },
   { label: '📍 St. Petersburg, FL', lat: 27.7725, lon: -82.6386, zoom: 14, city: 'St. Petersburg, FL' },
   { label: '📍 San Diego (Balboa Park)', lat: 32.7314, lon: -117.1453, zoom: 15, city: 'San Diego, CA' },
   { label: '📍 Chicago (World’s Fair)', lat: 41.7905, lon: -87.5806, zoom: 13, city: 'Chicago, IL' },
   { label: '📍 Istanbul (Old World)', lat: 41.0082, lon: 28.9784, zoom: 14, city: 'Istanbul' },
   { label: '📍 London, UK', lat: 51.5074, lon: -0.1278, zoom: 13, city: 'London' },
-  { label: '📍 Giza / Cairo', lat: 29.9792, lon: 31.1342, zoom: 12, city: 'Cairo' },
+]
+
+const GLOBAL_LAYERS = [
+  { key: 'train_stations', label: '🚂 Old World Grand Train Stations' },
+  { key: 'cathedrals', label: '⛪ World Cathedrals & Basilicas' },
+  { key: 'carnegie', label: '📚 Carnegie Libraries Worldwide' },
+  { key: 'nrhp_landmarks', label: '🏛 U.S. Historic Landmarks (NRHP)' },
+  { key: 'star_forts', label: '🏰 Star Forts & Citadels' },
+  { key: 'asylums', label: '🏥 Kirkbride Asylums' },
 ]
 
 const MILESTONES = [
@@ -138,6 +147,8 @@ export const OldWorldAtlas: React.FC<{
 }) => {
   const [data, setData] = useState<AtlasArchiveData | null>(initialData ?? null)
   const [scannedPlaces, setScannedPlaces] = useState<AtlasPlace[]>([])
+  const [activeGlobalLayers, setActiveGlobalLayers] = useState<Record<string, boolean>>({})
+  const [showMlbLayer, setShowMlbLayer] = useState(true)
   const [isScanning, setIsScanning] = useState(false)
   const [scanStatus, setScanStatus] = useState<string | null>(null)
   const [scanCityInput, setScanCityInput] = useState('Tampa, FL')
@@ -187,10 +198,40 @@ export const OldWorldAtlas: React.FC<{
 
   // Combine built-in places + live scanned places (deduplicated)
   const allPlaces = useMemo(() => {
-    const base = data?.places ?? []
+    const base = showMlbLayer ? data?.places ?? [] : []
     const seen = new Set(base.map((p) => p.id))
     return [...scannedPlaces.filter((p) => !seen.has(p.id)), ...base]
-  }, [data?.places, scannedPlaces])
+  }, [data?.places, scannedPlaces, showMlbLayer])
+
+  const toggleGlobalLayer = useCallback(
+    async (layerKey: string) => {
+      const currentlyOn = Boolean(activeGlobalLayers[layerKey])
+      if (currentlyOn) {
+        setActiveGlobalLayers((prev) => ({ ...prev, [layerKey]: false }))
+        setScannedPlaces((prev) => prev.filter((p) => !p.id.startsWith(`layer-${layerKey}-`)))
+        return
+      }
+      setActiveGlobalLayers((prev) => ({ ...prev, [layerKey]: true }))
+      setIsScanning(true)
+      setScanStatus(`Loading global layer: ${layerKey.replace('_', ' ')}...`)
+      try {
+        const res = await fetch(`/api/atlas?globalLayer=${encodeURIComponent(layerKey)}`)
+        const json = (await res.json()) as { places?: AtlasPlace[] }
+        if (json.places?.length) {
+          setScannedPlaces((prev) => {
+            const ids = new Set(prev.map((p) => p.id))
+            return [...json.places!.filter((p) => !ids.has(p.id)), ...prev]
+          })
+          setScanStatus(`Loaded +${json.places.length} global pins for ${layerKey.replace('_', ' ')}.`)
+        }
+      } catch {
+        setScanStatus('Could not load global layer.')
+      } finally {
+        setIsScanning(false)
+      }
+    },
+    [activeGlobalLayers],
+  )
 
   // Map episodeId -> episode object
   const episodeMap = useMemo(() => {
@@ -855,6 +896,39 @@ export const OldWorldAtlas: React.FC<{
           {scanStatus && (
             <span className="w-full text-[11px] font-mono text-emerald-400 mt-1">{scanStatus}</span>
           )}
+        </div>
+
+        {/* Global Architectural Layers Bar */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] font-mono text-amber-400 mr-1">GLOBAL LAYERS:</span>
+          <button
+            type="button"
+            onClick={() => setShowMlbLayer((v) => !v)}
+            className={`rounded border px-2.5 py-1 text-[11px] font-mono transition-colors ${
+              showMlbLayer
+                ? 'border-amber-400 bg-amber-500/20 text-amber-300'
+                : 'border-slate-800 bg-slate-900 text-slate-400'
+            }`}
+          >
+            🎬 MLB Episodes Layer ({data?.places?.length ?? 256})
+          </button>
+          {GLOBAL_LAYERS.map((layer) => {
+            const active = Boolean(activeGlobalLayers[layer.key])
+            return (
+              <button
+                key={layer.key}
+                type="button"
+                onClick={() => toggleGlobalLayer(layer.key)}
+                className={`rounded border px-2.5 py-1 text-[11px] font-mono transition-colors ${
+                  active
+                    ? 'border-emerald-400 bg-emerald-500/20 text-emerald-300'
+                    : 'border-slate-800 bg-slate-900 text-slate-300 hover:border-cyan-400/50'
+                }`}
+              >
+                {layer.label} {active ? '✓' : '+'}
+              </button>
+            )
+          })}
         </div>
 
         {/* Quick Sector Jump Buttons */}

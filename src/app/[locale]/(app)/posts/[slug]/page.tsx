@@ -50,6 +50,8 @@ export default async function PostPage({ params }: Args) {
   }
 
   const { hero, layout, id, relatedPosts, title, publishedOn, categories, sourceUrl, sourceType } = post
+  const { tenant } = await resolveTenantFromHeaders()
+  const isMlbTenant = tenant?.slug === 'mlb' || tenant?.slug === 'sls'
   // Frame an embedded video (YouTube/Vimeo) between the hero and the body when the
   // post carries one — e.g. a travel vlogger's post: first photo = hero, their video
   // framed here, their photos in the gallery block below.
@@ -109,7 +111,9 @@ export default async function PostPage({ params }: Args) {
           <VideoEmbed embedUrl={video.embedUrl} provider={video.provider} title={title} />
         </div>
       )}
-      <EpisodeNavigator currentSlug={slug} currentTitle={String(title || '')} sourceUrl={sourceUrl} />
+      {isMlbTenant && (
+        <EpisodeNavigator currentSlug={slug} currentTitle={String(title || '')} sourceUrl={sourceUrl} />
+      )}
       <RenderBlocks blocks={layout} docContext={{ id, collection: 'posts' }} />
       {related.length > 0 && (
         <div className="container mt-16">

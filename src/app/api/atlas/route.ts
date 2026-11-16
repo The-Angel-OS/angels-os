@@ -252,8 +252,163 @@ LIMIT 120
   }
 }
 
+const GLOBAL_LAYER_SPARQL: Record<string, { category: string; sparql: string }> = {
+  train_stations: {
+    category: 'Castle & Palace',
+    sparql: `
+SELECT DISTINCT ?item ?itemLabel ?itemDescription ?coord ?image ?inception ?article WHERE {
+  ?item wdt:P31 wd:Q55488 ;
+        wdt:P625 ?coord ;
+        wdt:P1435 ?heritage ;
+        wdt:P18 ?image ;
+        wdt:P571 ?inception .
+  FILTER(YEAR(?inception) <= 1935)
+  OPTIONAL { ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> . }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+}
+LIMIT 250`,
+  },
+  cathedrals: {
+    category: 'Religious',
+    sparql: `
+SELECT DISTINCT ?item ?itemLabel ?itemDescription ?coord ?image ?inception ?article WHERE {
+  ?item wdt:P31 wd:Q2977 ;
+        wdt:P625 ?coord ;
+        wdt:P18 ?image .
+  OPTIONAL { ?item wdt:P571 ?inception . }
+  OPTIONAL { ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> . }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+}
+LIMIT 300`,
+  },
+  carnegie: {
+    category: 'Museum & Library',
+    sparql: `
+SELECT DISTINCT ?item ?itemLabel ?itemDescription ?coord ?image ?inception ?article WHERE {
+  ?item wdt:P31 wd:Q51576574 ;
+        wdt:P625 ?coord .
+  OPTIONAL { ?item wdt:P18 ?image . }
+  OPTIONAL { ?item wdt:P571 ?inception . }
+  OPTIONAL { ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> . }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+}
+LIMIT 300`,
+  },
+  star_forts: {
+    category: 'Castle & Palace',
+    sparql: `
+SELECT DISTINCT ?item ?itemLabel ?itemDescription ?coord ?image ?inception ?article WHERE {
+  VALUES ?type { wd:Q695850 wd:Q88291 }
+  ?item wdt:P31 ?type ;
+        wdt:P625 ?coord .
+  OPTIONAL { ?item wdt:P18 ?image . }
+  OPTIONAL { ?item wdt:P571 ?inception . }
+  OPTIONAL { ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> . }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+}
+LIMIT 250`,
+  },
+  asylums: {
+    category: 'Government',
+    sparql: `
+SELECT DISTINCT ?item ?itemLabel ?itemDescription ?coord ?image ?inception ?article WHERE {
+  VALUES ?type { wd:Q6415596 wd:Q2109993 }
+  ?item wdt:P31 ?type ;
+        wdt:P625 ?coord .
+  OPTIONAL { ?item wdt:P18 ?image . }
+  OPTIONAL { ?item wdt:P571 ?inception . }
+  OPTIONAL { ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> . }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+}
+LIMIT 200`,
+  },
+  nrhp_landmarks: {
+    category: 'Government',
+    sparql: `
+SELECT DISTINCT ?item ?itemLabel ?itemDescription ?coord ?image ?inception ?article WHERE {
+  ?item wdt:P1435 wd:Q15243209 ;
+        wdt:P31/wdt:P279* wd:Q41176 ;
+        wdt:P625 ?coord ;
+        wdt:P18 ?image ;
+        wdt:P571 ?inception .
+  FILTER(YEAR(?inception) <= 1935)
+  OPTIONAL { ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> . }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+}
+LIMIT 300`,
+  },
+}
+
+const globalLayerCache = new Map<string, ScannedPlace[]>()
+
+async function fetchGlobalLayer(layerKey: string): Promise<ScannedPlace[]> {
+  if (globalLayerCache.has(layerKey)) {
+    return globalLayerCache.get(layerKey)!
+  }
+  const spec = GLOBAL_LAYER_SPARQL[layerKey]
+  if (!spec) return []
+
+  const places: ScannedPlace[] = []
+  const seen = new Set<string>()
+  try {
+    const wdUrl = `https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(spec.sparql.trim())}`
+    const res = await fetch(wdUrl, {
+      headers: {
+        Accept: 'application/sparql-results+json',
+        'User-Agent': 'AngelOS-OldWorldAtlas/1.0 (https://www.spacesangels.com)',
+      },
+    })
+    if (res.ok) {
+      const json = (await res.json()) as {
+        results?: { bindings?: Array<Record<string, { value?: string }>> }
+      }
+      for (const b of json.results?.bindings || []) {
+        const uri = b.item?.value || ''
+        const qid = uri.split('/').pop() || ''
+        const label = b.itemLabel?.value || ''
+        if (!qid || !label || /^Q\d+$/.test(label) || seen.has(qid)) continue
+        const m = (b.coord?.value || '').match(/Point\(([-\d.]+)\s+([-\d.]+)\)/i)
+        if (!m) continue
+        seen.add(qid)
+        const yearMatch = (b.inception?.value || '').match(/^(\d{4})/)
+        const year = yearMatch ? yearMatch[1] : null
+        const desc = b.itemDescription?.value || `Global ${layerKey.replace('_', ' ')} landmark`
+        places.push({
+          id: `layer-${layerKey}-${qid}`,
+          name: label,
+          city: null,
+          state: null,
+          country: null,
+          longitude: m[1],
+          latitude: m[2],
+          category: spec.category,
+          existence: /demolished|former|ruin|destroyed/i.test(desc) ? 'demolished' : 'standing',
+          construction: year,
+          photo: b.image?.value ? b.image.value.replace(/^http:/, 'https:') : null,
+          sourceUrl: b.article?.value || `https://www.wikidata.org/wiki/${qid}`,
+          description: `${desc}${year ? ` — Recorded construction: ${year}.` : ''}`,
+          status: 'verified',
+          isLiveScan: true,
+        })
+      }
+      if (places.length > 0) {
+        globalLayerCache.set(layerKey, places)
+      }
+    }
+  } catch {
+    // Return empty on error
+  }
+  return places
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url)
+  const globalLayer = url.searchParams.get('globalLayer')
+  if (globalLayer) {
+    const places = await fetchGlobalLayer(globalLayer)
+    return NextResponse.json({ layer: globalLayer, count: places.length, places })
+  }
+
   const scanCity = url.searchParams.get('scanCity')
   const latParam = url.searchParams.get('lat')
   const lonParam = url.searchParams.get('lon')

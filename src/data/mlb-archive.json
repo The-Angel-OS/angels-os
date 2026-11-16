@@ -1,5 +1,5 @@
 {
-  "asOf": "2026-11-16T09:16:18.894Z",
+  "asOf": "2026-11-16T09:23:26.564Z",
   "places": [
     {
       "id": "tb-clearwater-post-office-1933",
@@ -46,7 +46,7 @@
       "construction": "1897",
       "photo": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Belleview_Biltmore_Hotel_01.jpg/960px-Belleview_Biltmore_Hotel_01.jpg",
       "sourceUrl": "https://en.wikipedia.org/wiki/Belleview_Biltmore_Hotel",
-      "description": "Massive 820,000-square-foot Queen Anne palace perched on the bluff overlooking Clearwater Harbor. Featuring Tiffany stained glass, underground service tunnels, a private rail spur, and grand ballrooms, nearly the entire structure was demolished in 2015–2016 despite historic preservation battles.",
+      "description": "Massive 820,000-square-foot Queen Anne palace perched on the bluff overlooking Clearwater Harbor. Featuring Tiffany stained glass, underground service tunnels, a private rail spur, and grand ballrooms, nearly the entire structure was demolished in 2015–2016.",
       "status": "verified"
     },
     {
@@ -207,6 +207,86 @@
       "photo": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Snell_Arcade_St_Pete_FL_02.jpg/960px-Snell_Arcade_St_Pete_FL_02.jpg",
       "sourceUrl": "https://en.wikipedia.org/wiki/Snell_Arcade",
       "description": "Ornate Mediterranean and Gothic Revival tower in downtown St. Petersburg featuring glazed tile domes, gargoyles, carved stone reliefs, and a subterranean basement shopping arcade.",
+      "status": "verified"
+    },
+    {
+      "id": "mum-victoria-terminus-1887",
+      "name": "Chhatrapati Shivaji Terminus (Victoria Terminus)",
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "country": "India",
+      "latitude": "18.9401",
+      "longitude": "72.8355",
+      "category": "Castle & Palace",
+      "existence": "standing",
+      "construction": "1878–1887",
+      "photo": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Chhatrapati_Shivaji_Terminus_%28Victoria_Terminus%29.jpg/960px-Chhatrapati_Shivaji_Terminus_%28Victoria_Terminus%29.jpg",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Chhatrapati_Shivaji_Terminus",
+      "description": "Cathedral-scale Victorian Gothic Revival railway palace in Mumbai with a massive stone masonry dome, flying buttresses, stained glass, and gargoyles—allegedly built in 10 years as a train depot.",
+      "status": "verified"
+    },
+    {
+      "id": "mum-bmc-building-1893",
+      "name": "Brihanmumbai Municipal Corporation Building",
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "country": "India",
+      "latitude": "18.9408",
+      "longitude": "72.8339",
+      "category": "Government",
+      "existence": "standing",
+      "construction": "1884–1893",
+      "photo": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Mumbai_03-2016_46_BMC_headquarters.jpg/960px-Mumbai_03-2016_46_BMC_headquarters.jpg",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Brihanmumbai_Municipal_Corporation_building",
+      "description": "Towering 255-foot Indo-Saracenic and Gothic Revival civic palace directly opposite Victoria Terminus in Mumbai, crowned by a monumental central dome and winged allegorical statues.",
+      "status": "verified"
+    },
+    {
+      "id": "mum-western-railway-hq-1899",
+      "name": "Western Railway Headquarters (Churchgate, Mumbai)",
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "country": "India",
+      "latitude": "18.9326",
+      "longitude": "72.8266",
+      "category": "Castle & Palace",
+      "existence": "standing",
+      "construction": "1894–1899",
+      "photo": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Western_Railway_Headquarters_Mumbai.jpg/960px-Western_Railway_Headquarters_Mumbai.jpg",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Western_Railway_Headquarters_Building",
+      "description": "Blue-basalt and Porbandar limestone Indo-Saracenic palace at Churchgate in Mumbai featuring a massive central tower dome, corner turrets, and intricate stone tracery.",
+      "status": "verified"
+    },
+    {
+      "id": "mum-general-post-office-1913",
+      "name": "Mumbai General Post Office (GPO Dome Palace)",
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "country": "India",
+      "latitude": "18.9383",
+      "longitude": "72.8375",
+      "category": "Government",
+      "existence": "standing",
+      "construction": "1904–1913",
+      "photo": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a3/General_Post_Office%2C_Mumbai.jpg/960px-General_Post_Office%2C_Mumbai.jpg",
+      "sourceUrl": "https://en.wikipedia.org/wiki/General_Post_Office,_Mumbai",
+      "description": "120,000-square-foot Indo-Saracenic basalt and yellow stone palace in Mumbai featuring a 65-foot-diameter central dome modeled on the Gol Gumbaz.",
+      "status": "verified"
+    },
+    {
+      "id": "mum-bombay-high-court-1878",
+      "name": "Bombay High Court Castle",
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "country": "India",
+      "latitude": "18.9292",
+      "longitude": "72.8306",
+      "category": "Government",
+      "existence": "standing",
+      "construction": "1871–1878",
+      "photo": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/Bombay_High_Court.jpg/960px-Bombay_High_Court.jpg",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Bombay_High_Court",
+      "description": "562-foot-long Early English Gothic castle in black basalt with twin octagonal towers and a 178-foot central keep overlooking Oval Maidan in Mumbai.",
       "status": "verified"
     },
     {
@@ -10699,7 +10779,167 @@
       "status": "verified"
     }
   ],
-  "fires": [],
+  "fires": [
+    {
+      "episodeFeatures": [
+        {
+          "placeId": "Q162082",
+          "episodes": [
+            {
+              "id": "ep:133",
+              "number": 133,
+              "title": "EP 133",
+              "videoUrl": "https://www.youtube.com/watch?v=U_RyenVfaNk"
+            }
+          ]
+        }
+      ],
+      "verificationStatus": "confirmed",
+      "monitorCategory": "episode",
+      "latitude": 47.61111111,
+      "longitude": 13.04166667,
+      "locationPrecision": "building",
+      "locationSource": "https://en.wikipedia.org/wiki/Kehlsteinhaus",
+      "id": "b79d8cefbfb32327dfdb41bc83216cfb340762ce9576b39f1b554360bbf28343",
+      "building": "Kehlsteinhaus",
+      "city": "Berchtesgaden",
+      "state": null,
+      "country": "Germany",
+      "year": 1938,
+      "fireAt": 1792713600000,
+      "reportAt": 1792921679918,
+      "description": "Confirmed fire reported at this episode location. The extent of structural damage or destruction is not yet independently confirmed; see the source for updates.",
+      "firstTickerAt": 1792817880611,
+      "url": "https://www.br.de/nachrichten/bayern/brand-in-berggasthof-kehlsteinhaus-in-berchtesgaden,VYuStBs",
+      "sourceUrls": [
+        "https://www.br.de/nachrichten/bayern/brand-in-berggasthof-kehlsteinhaus-in-berchtesgaden,VYuStBs",
+        "https://www.bbc.co.uk/news/articles/cr93zwjw1k4qo?at_medium=RSS&at_campaign=rss",
+        "https://www.thehindu.com/news/international/fire-breaks-out-at-hitlers-mountain-retreat-suspect-arrested/article71619208.ece",
+        "https://www.theguardian.com/world/2026/oct/24/blaze-engulfs-hitlers-eagles-nest-mountain-retreat-in-bavaria",
+        "https://www.tagesschau.de/inland/gesellschaft/berchtesgaden-feuer-nazihaus-100.html",
+        "https://www.franceinfo.fr/monde/europe/allemagne/la-residence-de-villegiature-d-adolphe-hitler-le-nid-d-aigle-incendiee-en-baviere-un-suspect-arrete_8251921.html",
+        "https://www.br.de/nachrichten/bayern/ermittler-zu-kehlsteinhaus-brand-verursacher-wohl-gefasst,VYxErQH",
+        "https://www.br.de/nachrichten/bayern/nach-kehlsteinhaus-brand-feuer-voruebergehend-wieder-aufgeflammt,VZ3CEjX",
+        "https://www.franceinfo.fr/monde/europe/allemagne/faut-il-reconstruire-le-nid-d-aigle-cet-endroit-prise-d-adolf-hitler-et-des-nazis-apres-l-incendie-qui-l-a-ravage_8279987.html"
+      ]
+    },
+    {
+      "latitude": 45.8263,
+      "longitude": 1.26056,
+      "locationPrecision": "building",
+      "locationSource": "https://www.wikidata.org/wiki/Q3146156",
+      "id": "2c4c2eb4d6aa0e8fd2ef19f3028a9b3c2d504f1746ea304d39f1f7e853144fe2",
+      "building": "hôtel de ville de Limoges",
+      "city": "Limoges",
+      "state": null,
+      "country": "France",
+      "year": 1883,
+      "fireAt": 1792195200000,
+      "reportAt": 1793360248000,
+      "description": "Fire reported at this historic building. See the source for confirmed details.",
+      "firstTickerAt": 1792270855991,
+      "url": "https://www.tf1info.fr/justice-faits-divers/la-mairie-de-limoges-est-en-feu-l-hotel-de-ville-incendie-par-des-individus-en-marge-de-la-mobilisation-du-17-octobre-2470543.html",
+      "sourceUrls": [
+        "https://www.tf1info.fr/justice-faits-divers/la-mairie-de-limoges-est-en-feu-l-hotel-de-ville-incendie-par-des-individus-en-marge-de-la-mobilisation-du-17-octobre-2470543.html",
+        "https://www.europe1.fr/societe/manifestations-du-17-octobre-un-incendie-en-cours-a-lhotel-de-ville-de-limoges-1157859",
+        "https://www.tf1info.fr/justice-faits-divers/violences-du-17-octobre-le-feu-qui-a-ravage-la-mairie-de-limoges-est-circonscrit-la-facade-quasi-a-100-detruite-annonce-le-prefet-sur-lci-2470583.html",
+        "https://www.europe1.fr/societe/mairie-de-limoges-ravagee-par-les-flammes-des-centaines-de-personnes-rassemblees-devant-le-batiment-eventre-1160691",
+        "https://www.tf1info.fr/justice-faits-divers/video-on-a-pu-recuperer-le-standard-a-limoges-la-municipalite-se-reorganise-apres-l-incendie-de-l-hotel-de-ville-2470778.html",
+        "https://www.tf1info.fr/justice-faits-divers/incendie-de-la-mairie-de-limoges-que-sait-on-du-suspect-interpelle-ce-mardi-par-le-raid-2470922.html",
+        "https://www.europe1.fr/societe/on-a-ete-debordes-ce-policier-explique-comment-la-mairie-de-limoges-a-ete-incendiee-le-17-octobre-1166373",
+        "https://www.europe1.fr/societe/mairie-de-limoges-incendiee-un-suspect-interpelle-en-haute-vienne-1166478",
+        "https://www.rfi.fr/fr/france/20261020-direct-france-une-premi%C3%A8re-nuit-sous-couvre-feu-apr%C3%A8s-les-violences-du-week-end",
+        "https://www.estrepublicain.fr/faits-divers-justice/2026/10/20/incendie-de-la-mairie-de-limoges-ce-que-l-on-sait-de-l-homme-de-40-ans-fiche-s-interpelle",
+        "https://www.europe1.fr/societe/mairie-de-limoges-incendiee-un-suspect-lie-a-lultragauche-interpelle-en-haute-vienne-1166478",
+        "https://www.tf1info.fr/justice-faits-divers/mairie-de-limoges-incendiee-la-fondation-du-patrimoine-lance-une-cagnotte-2471064.html",
+        "https://www.leparisien.fr/faits-divers/incendie-de-la-mairie-de-limoges-le-principal-suspect-un-activiste-dultragauche-interpelle-par-le-raid-ce-mardi-matin-20-10-2026-Z623XXXG6FGAPPQXJZ3IFFKD5I.php",
+        "https://www.leparisien.fr/haute-vienne-87/incendie-de-la-mairie-de-limoges-une-famille-atypique-et-militante-dans-le-village-ou-le-principal-suspect-a-ete-interpelle-20-10-2026-FVR6S6XCZBHDFNO5OF56QNBABI.php",
+        "https://www.leparisien.fr/faits-divers/incendie-a-la-mairie-de-limoges-qui-est-hodi-c-fiche-s-pour-son-appartenance-a-lultragauche-le-principal-suspect-interpelle-ce-mardi-20-10-2026-ICLCB55SKJAUXEBS3RPDETF4W4.php",
+        "https://www.rfi.fr/fr/france/20261021-mairie-de-limoges-incendi%C3%A9e-ce-que-l-on-sait-du-profil-du-suspect-interpell%C3%A9",
+        "https://www.rfi.fr/fr/france/20261021-direct-france-apr%C3%A8s-une-nouvelle-nuit-sous-couvre-feu-le-premier-ministre-re%C3%A7oit-les-syndicats",
+        "https://www.franceinfo.fr/societe/mobilisation-du-17-octobre/plus-225-000-euros-recoltes-en-deux-jours-pour-restaurer-la-mairie-de-limoges-incendiee-le-17-octobre_8248399.html",
+        "https://www.franceinfo.fr/societe/mobilisation-du-17-octobre/la-garde-a-vue-du-suspect-dans-l-incendie-de-la-mairie-de-limoges-a-ete-prolongee-de-48-heures_8248513.html",
+        "https://www.franceinfo.fr/societe/mobilisation-du-17-octobre/direct-mobilisation-du-17-octobre-les-partis-politiques-recus-a-matignon-dans-la-journee-le-renseignement-convoque-a-l-elysee-pour-un-conseil-de-securite_8248414.html",
+        "https://www.rfi.fr/fr/france/20261022-france-un-second-suspect-arr%C3%AAt%C3%A9-pour-l-incendie-de-la-mairie-de-limoges-les-habitants-encore-sous-le-choc",
+        "https://www.franceinfo.fr/societe/mobilisation-du-17-octobre/pourquoi-le-plateau-de-millevaches-est-il-pointe-du-doigt-comme-un-fief-de-l-ultragauche-par-certains-politiques-apres-l-incendie-de-la-mairie-de-limoges-le-17-octobre_8249275.html",
+        "https://www.franceinfo.fr/societe/manifestations/incendie-de-la-mairie-de-limoges-les-deux-suspects-mis-en-examen-et-places-en-detention-provisoire_8252050.html",
+        "https://www.europe1.fr/societe/mairie-de-limoges-incendiee-les-deux-suspects-mis-en-examen-et-places-en-detention-provisoire-1178262",
+        "https://www.franceinfo.fr/societe/mobilisation-du-17-octobre/incendie-de-la-mairie-de-limoges-le-principal-suspect-va-faire-appel-de-sa-mise-en-examen-et-de-son-placement-en-detention-provisoire_8252542.html",
+        "https://www.franceinfo.fr/faits-divers/incendie-de-la-mairie-de-limoges-un-formidable-elan-de-generosite-se-rejouit-la-fondation-du-patrimoine-avec-plus-de-543-000-euros-recoltes_8253259.html",
+        "https://www.europe1.fr/societe/incendie-de-lhotel-de-ville-de-limoges-plus-de-600000-euros-recoltes-par-la-fondation-du-patrimoine-pour-reconstruire-ledifice-1183434",
+        "https://www.rfi.fr/fr/podcasts/reportage-france/20261027-france-mission-sauvetage-des-%C5%93uvres-d-art-de-l-h%C3%B4tel-de-ville-de-limoges-apr%C3%A8s-l-incendie",
+        "https://www.franceinfo.fr/societe/mobilisation-du-17-octobre/le-maire-de-limoges-ne-comprend-pas-l-absence-d-appel-d-emmanuel-macron-apres-l-incendie-de-l-hotel-de-ville-le-17-octobre_8257384.html",
+        "https://www.franceinfo.fr/replay-magazine/france-2/envoye-special/video-17-octobre-dans-envoye-special-le-pere-de-l-homme-de-34-ans-suspecte-d-etre-implique-dans-l-incendie-de-la-mairie-de-limoges-s-exprime-pour-la-premiere-fois_8259338.html",
+        "https://www.franceinfo.fr/societe/manifestations/direct-manifestations-du-31-octobre-le-parcours-du-defile-parisien-objet-d-un-bras-de-fer-entre-les-syndicats-et-les-autorites_8259785.html"
+      ]
+    },
+    {
+      "latitude": 48.862805555556,
+      "longitude": 2.362,
+      "locationPrecision": "building",
+      "locationSource": "https://www.wikidata.org/wiki/Q3289922",
+      "id": "266c4add86fb0242048cdc632aab8d2e70a08c3153a21a8ebaf9d8bb8d9bd630",
+      "building": "marché des Enfants-Rouges",
+      "city": "Paris",
+      "state": null,
+      "country": "France",
+      "year": 1615,
+      "fireAt": 1791763200000,
+      "reportAt": 1792128146642,
+      "description": "Fire reported at this historic building. See the source for confirmed details.",
+      "firstTickerAt": null,
+      "url": "https://www.tf1info.fr/traditions-et-patrimoine/il-survivra-a-cet-incendie-le-marche-des-enfants-rouges-un-haut-lieu-indissociable-de-l-histoire-de-paris-2469447.html",
+      "sourceUrls": [
+        "https://www.tf1info.fr/traditions-et-patrimoine/il-survivra-a-cet-incendie-le-marche-des-enfants-rouges-un-haut-lieu-indissociable-de-l-histoire-de-paris-2469447.html",
+        "https://www.tf1info.fr/traditions-et-patrimoine/paris-incendie-du-marche-des-enfants-rouges-la-fondation-du-patrimoine-lance-un-appel-aux-dons-2470254.html",
+        "https://www.tf1info.fr/justice-faits-divers/paris-incendie-au-marche-des-enfants-rouges-dans-le-3e-arrondissement-le-site-entierement-ravage-2469364.html",
+        "https://www.france24.com/en/fire-destroys-historic-french-market-of-enfants-rouges-in-paris",
+        "https://www.france24.com/en/france/20261012-fire-burns-down-paris-s-oldest-covered-food-market",
+        "https://www.france24.com/en/video/20261012-fire-ravages-oldest-covered-food-market-in-paris"
+      ]
+    },
+    {
+      "latitude": 52.9534193,
+      "longitude": -1.1496461,
+      "locationPrecision": "city",
+      "locationSource": "https://www.openstreetmap.org/relation/123292",
+      "id": "nottingham-30-market-street-2026-10-05",
+      "building": "Escobar building (30 Market Street)",
+      "city": "Nottingham",
+      "state": null,
+      "country": "United Kingdom",
+      "year": 1875,
+      "fireAt": 1791234000000,
+      "reportAt": 1791282600000,
+      "description": "Fire damaged the building above Escobar; nearby properties were evacuated.",
+      "firstTickerAt": null,
+      "url": "https://www.nottinghamshire.police.uk/news/nottinghamshire/news/news/2026/october/two-arrests-after-large-scale-fire-in-nottingham-city-centre/",
+      "sourceUrls": [
+        "https://www.nottinghamshire.police.uk/news/nottinghamshire/news/news/2026/october/two-arrests-after-large-scale-fire-in-nottingham-city-centre/"
+      ]
+    },
+    {
+      "latitude": 48.5921,
+      "longitude": 6.50391,
+      "locationPrecision": "building",
+      "locationSource": "https://www.wikidata.org/wiki/Q2971220",
+      "id": "607221ad372c37a80878f1d127f74c2f9e5f9899ef71823ff78812c9fafe72fb",
+      "building": "château de la Favorite",
+      "city": "Lunéville",
+      "state": null,
+      "country": "France",
+      "year": 1730,
+      "fireAt": 1791158400000,
+      "reportAt": 1791925244000,
+      "description": "Fire reported at this historic building. See the source for confirmed details.",
+      "firstTickerAt": null,
+      "url": "https://www.tf1info.fr/justice-faits-divers/reportage-video-c-est-le-patrimoine-de-la-ville-qui-part-le-chateau-de-la-favorite-a-luneville-detruit-par-les-flammes-2468317.html",
+      "sourceUrls": [
+        "https://www.tf1info.fr/justice-faits-divers/reportage-video-c-est-le-patrimoine-de-la-ville-qui-part-le-chateau-de-la-favorite-a-luneville-detruit-par-les-flammes-2468317.html",
+        "https://www.blelorraine.fr/2026/10/le-chateau-de-la-favorite-a-luneville-ravage-par-les-flammes/"
+      ]
+    }
+  ],
   "dashboard": {
     "platforms": [
       {
