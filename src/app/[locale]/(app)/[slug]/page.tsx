@@ -70,8 +70,18 @@ export default async function Page({ params }: Args) {
     hero && typeof (hero as { media?: unknown }).media === 'object' && (hero as { media?: { url?: string } }).media?.url,
   )
 
+  // When a home page opens directly with an interactive hero like old-world-atlas,
+  // do not render the generic CollectionHero gradient banner above it.
+  const opensWithAtlas =
+    Array.isArray(layout) &&
+    Boolean(
+      layout[0] &&
+        ((layout[0] as { blockName?: string }).blockName === 'old-world-atlas' ||
+          (layout[0] as { blockType?: string }).blockType === 'old-world-atlas'),
+    )
+
   let homeSplash: React.ReactNode = null
-  if (slug === 'home' && !heroHasMedia) {
+  if (slug === 'home' && !heroHasMedia && !opensWithAtlas) {
     const { tenant } = await resolveTenantFromHeaders()
     const branding = (tenant as { branding?: { siteName?: string; tagline?: unknown } } | null)?.branding
     const siteName = branding?.siteName || (tenant as { name?: string } | null)?.name || 'Angel OS'
@@ -111,11 +121,11 @@ export default async function Page({ params }: Args) {
   // running into the nav is exactly what the padding exists to prevent.
   const BLEED_HEROES = new Set(['fullScreen', 'highImpact', 'splitPanel'])
   const bleedsToTop =
-    Boolean(homeSplash) || BLEED_HEROES.has((hero as { type?: string } | undefined)?.type ?? '')
+    opensWithAtlas || Boolean(homeSplash) || BLEED_HEROES.has((hero as { type?: string } | undefined)?.type ?? '')
 
   return (
-    <article className={bleedsToTop ? 'pb-24' : 'pt-16 pb-24'}>
-      {homeSplash ?? <RenderHero {...hero} />}
+    <article className={opensWithAtlas ? 'pt-0 pb-24' : bleedsToTop ? 'pb-24' : 'pt-16 pb-24'}>
+      {opensWithAtlas ? null : (homeSplash ?? <RenderHero {...hero} />)}
       {/* Above the pitch, not below it — a customer should not have to read
           the sales page to find the door back into their own portal. */}
       <AlreadyOnboardedBanner tenantSlug={tenantSlug} />
