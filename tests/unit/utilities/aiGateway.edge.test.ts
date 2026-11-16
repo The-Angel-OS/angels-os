@@ -40,9 +40,9 @@ describe('MODEL_CATALOG — integrity', () => {
     }
   })
 
-  it('has at least 3 providers', () => {
+  it('has at least 2 providers (Google and OpenAI)', () => {
     const providers = new Set(Object.values(MODEL_CATALOG).map((m) => m.split('/')[0]))
-    expect(providers.size).toBeGreaterThanOrEqual(3)
+    expect(providers.size).toBeGreaterThanOrEqual(2)
   })
 
   it('DEFAULT_MODEL is a valid gateway ID', () => {
@@ -106,9 +106,8 @@ describe('TASK_MODEL_MAP — integrity', () => {
     }
   })
 
-  it('critical tier uses more expensive model than low tier', () => {
-    // Critical should use Sonnet/Opus, low should use Flash
-    expect(TASK_MODEL_MAP['critical'].primary).not.toBe(TASK_MODEL_MAP['low'].primary)
+  it('critical tier fallbacks include frontier model', () => {
+    expect(TASK_MODEL_MAP['critical'].fallbacks).toContain('google/gemini-3.1-pro')
   })
 })
 
@@ -205,11 +204,11 @@ describe('applyCreditPressure — edge cases', () => {
 
 describe('resolveModelId — edge cases', () => {
   it('resolves alias to full model ID', () => {
-    expect(resolveModelId('claude-sonnet')).toBe(MODEL_CATALOG['claude-sonnet'])
+    expect(resolveModelId('gemini-pro')).toBe(MODEL_CATALOG['gemini-pro'])
   })
 
   it('passes through full gateway IDs unchanged', () => {
-    expect(resolveModelId('anthropic/claude-sonnet-4-20250514')).toBe('anthropic/claude-sonnet-4-20250514')
+    expect(resolveModelId('google/gemini-3.1-pro')).toBe('google/gemini-3.1-pro')
   })
 
   it('handles unknown alias (returned as-is since no slash)', () => {

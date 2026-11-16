@@ -66,7 +66,7 @@ export function CollectionHero({
         />
       )}
 
-      <div className="relative z-10 px-6 py-16 text-center sm:py-20 md:py-24">
+      <div className="relative z-10 px-6 py-8 text-center sm:py-10 md:py-12">
         {icon && (
           <div className="mb-4 text-4xl opacity-80" aria-hidden="true">
             {icon}

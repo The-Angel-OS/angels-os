@@ -6,8 +6,7 @@ import type { Metadata } from 'next'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import React from 'react'
 import Link from 'next/link'
-import { CollectionHero } from '@/components/CollectionHero'
-import { tenantHeroImage } from '@/utilities/tenantHeroImage'
+import { FeaturedProductsHero } from '@/components/shop/FeaturedProductsHero'
 
 export async function generateMetadata(): Promise<Metadata> {
   const { tenant } = await resolveTenantFromHeaders()
@@ -38,12 +37,7 @@ const PRODUCTS_PER_PAGE = 12
 export default async function ShopPage({ searchParams }: Props) {
   const { q: searchValue, sort, category, page: pageParam } = await searchParams
   const payload = await getPayload({ config: configPromise })
-  const { tenant, tenantFilter } = await resolveTenantFromHeaders()
-  // storefront.shopHeroImage existed in the admin — described there as the
-  // "Header image for the Shop list page" — but nothing ever read it, so setting
-  // it did nothing. Posts and Events both render CollectionHero; Shop was the
-  // one list page that didn't, which made the setting a promise the UI couldn't keep.
-  const heroImage = tenantHeroImage(tenant, 'shop')
+  const { tenantFilter } = await resolveTenantFromHeaders()
 
   const pageRaw = Array.isArray(pageParam) ? pageParam[0] : pageParam
   const page = Math.max(1, Number.parseInt(pageRaw || '1', 10) || 1)
@@ -92,20 +86,18 @@ export default async function ShopPage({ searchParams }: Props) {
 
   return (
     <div>
-      <CollectionHero
-        title="Shop"
-        subtitle="Handcrafted goods and gear"
-        icon="🛍️"
-        image={heroImage}
-      />
-
       {searchValue ? (
-        <p className="mb-4">
-          {products.docs?.length === 0
-            ? 'There are no products that match '
-            : `Showing ${products.docs.length} ${resultsText} for `}
-          <span className="font-bold">&quot;{searchValue}&quot;</span>
-        </p>
+        <div className="mb-8 rounded-xl border border-border bg-card/60 p-6">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Shop Search</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {products.docs?.length === 0
+              ? 'There are no products that match '
+              : `Showing ${products.docs.length} ${resultsText} for `}
+            <span className="font-semibold text-foreground">&quot;{searchValue}&quot;</span>
+          </p>
+        </div>
+      ) : products.docs.length > 0 ? (
+        <FeaturedProductsHero products={products.docs.slice(0, 4)} />
       ) : null}
 
       {!searchValue && products.docs?.length === 0 && (
@@ -175,6 +167,26 @@ export default async function ShopPage({ searchParams }: Props) {
           )}
         </>
       ) : null}
+
+      {/* Creator viral referral loop */}
+      <section className="mt-16 rounded-2xl border border-dashed border-amber-500/30 bg-card/40 p-8 text-center sm:p-10">
+        <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+          Run your own YouTube Channel or Creator Brand?
+        </h3>
+        <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
+          Sell custom apparel, schwag, and physical goods with automated zero-risk fulfillment and 3x higher margins than traditional merch stores.
+        </p>
+        <div className="mt-5">
+          <a
+            href="https://spacesangels.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-6 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-amber-400"
+          >
+            ⚡ Open your free Angel OS Shop Now →
+          </a>
+        </div>
+      </section>
     </div>
   )
 }
