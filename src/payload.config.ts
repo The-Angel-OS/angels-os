@@ -125,6 +125,7 @@ import { presencePingHandler } from '@/endpoints/presence-ping'
 import { presenceOnlineHandler } from '@/endpoints/presence-online'
 import { clientErrorHandler } from '@/endpoints/client-error'
 import { provisionWdegPortalHandler } from '@/endpoints/provision-wdeg-portal'
+import { provisionMlbPortalHandler } from '@/endpoints/provision-mlb-portal'
 import { provisionPortalHandler } from '@/endpoints/provision-portal'
 import { demoSiteHandler } from '@/endpoints/demo-site'
 import { prospectIntakeHandler } from '@/endpoints/prospect-intake'
@@ -1502,6 +1503,16 @@ export default buildConfig({
       path: '/provision-ops/endeavor-list',
       method: 'get',
       handler: endeavorListHandler,
+    },
+    {
+      path: '/provision-ops/mlb-portal',
+      method: 'get',
+      handler: provisionMlbPortalHandler,
+    },
+    {
+      path: '/provision-ops/mlb-portal',
+      method: 'post',
+      handler: provisionMlbPortalHandler,
     },
     {
       path: '/booking-ops/checkout',

@@ -14,6 +14,7 @@ import React from 'react'
 
 import { notFound } from 'next/navigation'
 import { CollectionArchive } from '@/components/CollectionArchive'
+import { EpisodeNavigator } from '@/components/EpisodeNavigator'
 import { VideoEmbed } from '@/components/VideoEmbed'
 import { computeEmbedUrl } from '@/utilities/computeEmbedUrl'
 import { JsonLd } from '@/components/JsonLd'
@@ -108,6 +109,7 @@ export default async function PostPage({ params }: Args) {
           <VideoEmbed embedUrl={video.embedUrl} provider={video.provider} title={title} />
         </div>
       )}
+      <EpisodeNavigator currentSlug={slug} currentTitle={String(title || '')} sourceUrl={sourceUrl} />
       <RenderBlocks blocks={layout} docContext={{ id, collection: 'posts' }} />
       {related.length > 0 && (
         <div className="container mt-16">

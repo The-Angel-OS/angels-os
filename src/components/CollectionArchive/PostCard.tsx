@@ -5,9 +5,13 @@ import React, { Fragment } from 'react'
 
 import type { Post } from '@/payload-types'
 import { Media } from '@/components/Media'
+import { computeEmbedUrl } from '@/utilities/computeEmbedUrl'
 import { cn } from '@/utilities/cn'
 
-export type PostCardData = Pick<Post, 'slug' | 'title' | 'categories' | 'meta' | 'publishedOn'> & {
+export type PostCardData = Pick<
+  Post,
+  'slug' | 'title' | 'categories' | 'meta' | 'publishedOn' | 'sourceUrl' | 'sourceType'
+> & {
   id?: number | string
   hero?: { media?: number | Post['hero']['media'] }
 }
@@ -20,10 +24,19 @@ export const PostCard: React.FC<{
    *  card, and every one of them linked to /posts/<slug> — a 404. */
   basePath?: string
 }> = ({ className, post, showCategories = true, basePath = '/posts' }) => {
-  const { slug, title, categories, meta, publishedOn, hero } = post
+  const { slug, title, categories, meta, publishedOn, hero, sourceUrl, sourceType } = post
   const metaImage = typeof meta?.image === 'object' ? meta.image : null
   const heroMedia = typeof hero?.media === 'object' ? hero.media : null
   const thumbnail = metaImage || heroMedia
+
+  const ytEmbed =
+    !thumbnail && sourceUrl && (sourceType === 'youtube' || sourceUrl.includes('youtu'))
+      ? computeEmbedUrl(sourceUrl)
+      : null
+  const ytFallbackThumb =
+    ytEmbed?.provider === 'youtube' && ytEmbed.videoId
+      ? `https://i.ytimg.com/vi/${ytEmbed.videoId}/hqdefault.jpg`
+      : null
 
   const description = typeof meta?.description === 'string' ? meta.description : undefined
   const hasCategories = categories && Array.isArray(categories) && categories.length > 0
@@ -39,6 +52,14 @@ export const PostCard: React.FC<{
         <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted">
           {thumbnail && typeof thumbnail === 'object' ? (
             <Media fill imgClassName="object-cover" resource={thumbnail} size="33vw" />
+          ) : ytFallbackThumb ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={ytFallbackThumb}
+              alt={title || 'Video thumbnail'}
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
           ) : (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
               No image

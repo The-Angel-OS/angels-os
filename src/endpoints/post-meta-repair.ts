@@ -60,8 +60,13 @@ export const postMetaRepairHandler: PayloadHandler = async (req) => {
     })
 
     const needing = (res.docs as unknown as Array<Record<string, unknown>>).filter((d) => {
-      const meta = d.meta as { description?: string } | undefined
-      return !meta?.description || !String(meta.description).trim()
+      const meta = d.meta as { description?: string; image?: unknown } | undefined
+      const missingDesc = !meta?.description || !String(meta.description).trim()
+      const isYouTube =
+        d.sourceType === 'youtube' ||
+        (typeof d.sourceUrl === 'string' && d.sourceUrl.includes('youtu'))
+      const missingThumb = isYouTube && !meta?.image
+      return missingDesc || missingThumb
     })
 
     if (dry) {

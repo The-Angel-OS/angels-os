@@ -51,6 +51,8 @@ export default async function PostsPageNumber({ params }: Args) {
         meta: true,
         hero: true,
         categories: true,
+        sourceUrl: true,
+        sourceType: true,
       },
       sort: '-publishedOn',
     })) as unknown as PaginatedDocs<Post>

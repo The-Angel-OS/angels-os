@@ -25,6 +25,7 @@ import { CourseStudioBlockComponent } from '@/blocks/CourseStudio/Component'
 import { VideoBlockComponent } from '@/blocks/Video/Component'
 import { ShowcaseBlock } from '@/blocks/Showcase/Component'
 import { ProductPanelBlock } from '@/blocks/ProductPanel/Component'
+import { OldWorldAtlas } from '@/components/OldWorldAtlas'
 import { toKebabCase } from '@/utilities/toKebabCase'
 import React, { Fragment } from 'react'
 
@@ -90,6 +91,23 @@ export const RenderBlocks: React.FC<{
       <Fragment>
         {blocks.map((block, index) => {
           const { blockName, blockType } = block
+          const normalizedName = typeof blockName === 'string' ? blockName.trim().toLowerCase() : ''
+
+          // Zero-migration directive: any Content block named "old-world-atlas",
+          // "spy-satellite-atlas", or "audience-monitor" renders the interactive
+          // 3D Spy-Satellite Globe, City Scanner & MLB Audience Monitor inline.
+          if (
+            blockType === 'content' &&
+            (normalizedName === 'old-world-atlas' ||
+              normalizedName === 'spy-satellite-atlas' ||
+              normalizedName === 'audience-monitor')
+          ) {
+            return (
+              <div className="container my-8" key={index}>
+                <OldWorldAtlas showAudienceMonitor={normalizedName !== 'spy-satellite-atlas'} />
+              </div>
+            )
+          }
 
           if (blockType && blockType in blockComponents) {
             // Each block has its own prop shape; cast to generic ComponentType

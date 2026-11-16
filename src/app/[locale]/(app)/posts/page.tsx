@@ -55,6 +55,8 @@ export default async function PostsPage() {
         meta: true,
         hero: true,
         categories: true,
+        sourceUrl: true,
+        sourceType: true,
       },
       sort: '-publishedOn',
     })) as unknown as PaginatedDocs<Post>
