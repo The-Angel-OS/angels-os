@@ -34,6 +34,8 @@ type Props = {
   tenant?: Tenant | null
   /** Shop is first-class only when there are products; else it collapses to More. */
   hasProducts?: boolean
+  /** Episodes is first-class only when there are video episodes. */
+  hasEpisodes?: boolean
   /** Events is first-class only when there are events; else it collapses to More. */
   hasEvents?: boolean
   /** Posts is first-class only when there are published posts; else it collapses to More. */
@@ -78,6 +80,26 @@ const POSTS_NAV_ITEM = {
     type: 'custom' as const,
     label: 'Posts',
     url: '/posts',
+    newTab: false,
+  },
+}
+
+const EPISODES_NAV_ITEM = {
+  id: 'episodes',
+  link: {
+    type: 'custom' as const,
+    label: 'Episodes',
+    url: '/episodes',
+    newTab: false,
+  },
+}
+
+const SHOP_NAV_ITEM = {
+  id: 'shop',
+  link: {
+    type: 'custom' as const,
+    label: 'Shop',
+    url: '/shop',
     newTab: false,
   },
 }
@@ -189,9 +211,11 @@ function resolveHref(link: { type?: string | null; url?: string | null; referenc
 export function composeNavItems(opts: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   navItems?: any[] | null
+  hasEpisodes?: boolean
   hasPosts?: boolean
   hasEvents?: boolean
   hasBook?: boolean
+  hasProducts?: boolean
   isStorefront?: boolean
   givingOrg?: boolean
   discoveryEnabled?: boolean
@@ -202,9 +226,11 @@ export function composeNavItems(opts: {
 }): any[] {
   const {
     navItems,
+    hasEpisodes = false,
     hasPosts = false,
     hasEvents = false,
     hasBook = false,
+    hasProducts = false,
     isStorefront = false,
     givingOrg = false,
     discoveryEnabled = false,
@@ -231,9 +257,11 @@ export function composeNavItems(opts: {
   // page, which is tenantFeatures' own rule broken: an empty room advertised in
   // the nav is worse than no nav item at all. A route the OWNER put in their
   // stored navItems is untouched by this — `urls.has` wins first.
+  if (hasEpisodes && !urls.has('/episodes')) items.push(EPISODES_NAV_ITEM)
   if (hasPosts && !urls.has('/posts')) items.push(POSTS_NAV_ITEM)
   if (hasEvents && !urls.has('/events')) items.push(EVENTS_NAV_ITEM)
   if (hasBook && !urls.has('/book')) items.push(BOOK_NAV_ITEM)
+  if (hasProducts && !urls.has('/shop') && !urls.has('/products')) items.push(SHOP_NAV_ITEM)
   // Discovery is its own switch (Endeavor "Show in Discovery" toggle).
   if (discoveryEnabled && !urls.has('/federation/discover')) items.push(DISCOVER_NAV_ITEM)
   // Mission/platform chrome — community endeavors only, never a commercial storefront.
@@ -251,7 +279,7 @@ export function composeNavItems(opts: {
   return items
 }
 
-export function HeaderClient({ canEditContent: canEditContentProp = false, header, tenant, hasProducts = true, hasEvents = true, hasPosts = true, hasWorks = false, hasBook = true, showDiscovery, membership, navOverrides }: Props) {
+export function HeaderClient({ canEditContent: canEditContentProp = false, header, tenant, hasProducts = true, hasEpisodes = false, hasEvents = true, hasPosts = true, hasWorks = false, hasBook = true, showDiscovery, membership, navOverrides }: Props) {
   const { user } = useAuth()
 
   // "Edit this page" is now decided on the SERVER, because the answer depends on
@@ -327,16 +355,18 @@ export function HeaderClient({ canEditContent: canEditContentProp = false, heade
     () =>
       composeNavItems({
         navItems,
+        hasEpisodes,
         hasPosts,
         hasEvents,
         hasBook,
+        hasProducts,
         isStorefront,
         givingOrg,
         discoveryEnabled,
         membership,
         donateItem,
       }),
-    [navItems, isStorefront, discoveryEnabled, donateItem, membership, givingOrg, hasPosts, hasEvents, hasBook],
+    [navItems, isStorefront, discoveryEnabled, donateItem, membership, givingOrg, hasEpisodes, hasPosts, hasEvents, hasBook, hasProducts],
   )
   const tenantLogoUrl = (tenant?.branding?.logo as Media | null)?.url
   const logoUrl = tenantLogoUrl || defaultLogoUrl

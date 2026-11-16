@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { injectPostsUnderNav } from '@/utilities/postsNav'
+import { injectPostsUnderNav, injectEpisodesUnderNav } from '@/utilities/postsNav'
 
 const item = (label: string, url: string, extra: Record<string, unknown> = {}) => ({
   id: url,
@@ -42,5 +42,26 @@ describe('postsNav.injectPostsUnderNav', () => {
     const nav = [item('Posts', '/posts', { children: [{ link: { type: 'custom', label: 'Pinned', url: '/posts/hello' } }] })]
     const out = injectPostsUnderNav(nav, [{ slug: 'hello', title: 'Hello' }, { slug: 'new', title: 'New' }])
     expect(out[0].children.map((c: { link: { url: string } }) => c.link.url)).toEqual(['/posts/hello', '/posts/new'])
+  })
+})
+
+describe('postsNav.injectEpisodesUnderNav', () => {
+  const EP_NAV = [item('Home', '/'), item('Episodes', '/episodes'), item('Posts', '/posts')]
+
+  it('hangs latest episodes under the Episodes item with /posts/<slug> + image', () => {
+    const out = injectEpisodesUnderNav(EP_NAV, [
+      { slug: 'ep-202', title: 'Episode 202', image: '/t/ep202.jpg' },
+      { slug: 'ep-201', title: 'Episode 201' },
+    ])
+    const ep = out.find((i) => i.link.url === '/episodes')
+    expect(ep.children.map((c: { link: { url: string } }) => c.link.url)).toEqual(['/posts/ep-202', '/posts/ep-201'])
+    expect(ep.children[0].image).toBe('/t/ep202.jpg')
+  })
+
+  it('matches Video Log or Investigations as an Episodes item', () => {
+    const nav = [item('Video Log', '/video-log'), item('Posts', '/posts')]
+    const out = injectEpisodesUnderNav(nav, [{ slug: 'ep-1', title: 'Ep 1' }])
+    expect(out[0].children).toHaveLength(1)
+    expect(out[1].children).toBeUndefined()
   })
 })

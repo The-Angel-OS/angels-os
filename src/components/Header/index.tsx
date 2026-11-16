@@ -7,9 +7,9 @@ import { headers } from 'next/headers'
 import { getTenantCachedDoc } from '@/utilities/getTenantCachedDoc'
 import { injectPagesUnderHome, ALWAYS_PROMOTED_PAGE_SLUGS, type PageLite } from '@/utilities/pagesNav'
 import { resolveViewerStanding, isPageViewable } from '@/utilities/pageAccess'
-import { injectPostsUnderNav, type PostLite } from '@/utilities/postsNav'
+import { injectPostsUnderNav, injectEpisodesUnderNav, isEpisodesItem, type PostLite } from '@/utilities/postsNav'
 import { computeEmbedUrl } from '@/utilities/computeEmbedUrl'
-import { injectProductsUnderNav, type ProductLite, DEFAULT_SHOP_DROPDOWN_COUNT } from '@/utilities/productsNav'
+import { injectProductsUnderNav, isShopItem, type ProductLite, DEFAULT_SHOP_DROPDOWN_COUNT } from '@/utilities/productsNav'
 import { injectEventsUnderNav, type EventLite, DEFAULT_EVENTS_DROPDOWN_COUNT } from '@/utilities/eventsNav'
 import { hasFeature, isGivingOrg } from '@/utilities/tenantFeatures'
 import { getBookableServices } from '@/config/bookableServices'
@@ -90,6 +90,28 @@ export async function Header({ tenant }: Props) {
     }
   }
 
+  // Shop/Posts/Episodes/Events/Book are first-class only when populated — else they collapse into More.
+  let hasProducts = false
+  let hasEvents = false
+  let hasPosts = false
+  let hasEpisodes = false
+  let hasBook = false
+  if (tenantId) {
+    try {
+      const payload = await getPayload({ config })
+      const [productsCount, eventsCount, servicesCount] = await Promise.all([
+        payload.count({ collection: 'products', where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'published' } }] }, overrideAccess: true }),
+        payload.count({ collection: 'events', where: { and: [{ tenant: { equals: tenantId } }, { status: { in: ['upcoming', 'live'] } }] }, overrideAccess: true }),
+        payload.count({ collection: 'services', where: { and: [{ tenant: { equals: tenantId } }, { enabled: { equals: true } }] }, overrideAccess: true }),
+      ])
+      hasProducts = productsCount.totalDocs > 0
+      hasEvents = eventsCount.totalDocs > 0
+      hasBook = servicesCount.totalDocs > 0 || getBookableServices(tenant?.slug).length > 0
+    } catch (err) {
+      console.error('[Header] Failed to count products/events/services:', err)
+    }
+  }
+
   if (header && tenantId) {
     try {
       const payload = await getPayload({ config })
@@ -152,18 +174,37 @@ export async function Header({ tenant }: Props) {
         }
         return null
       }
-      const postList: PostLite[] = (
+      const allPosts = (
         posts.docs as Array<{
           slug?: string | null
           title?: string | null
           sourceUrl?: string | null
+          sourceType?: string | null
           meta?: { image?: unknown }
         }>
-      ).map((p) => ({
+      )
+      const episodeDocs = allPosts.filter(
+        (p) =>
+          p.sourceType === 'youtube' ||
+          p.sourceType === 'vimeo' ||
+          Boolean(p.sourceUrl?.includes('youtube.com') || p.sourceUrl?.includes('youtu.be')),
+      )
+      const postDocs = allPosts.filter((p) => !episodeDocs.includes(p))
+
+      const episodeList: PostLite[] = episodeDocs.map((p) => ({
         slug: p.slug,
         title: p.title,
         image: thumb(p.meta?.image, p.sourceUrl),
       }))
+
+      const postList: PostLite[] = postDocs.map((p) => ({
+        slug: p.slug,
+        title: p.title,
+        image: thumb(p.meta?.image, p.sourceUrl),
+      }))
+
+      if (episodeList.length > 0) hasEpisodes = true
+      if (postList.length > 0) hasPosts = true
 
       // Top products → Shop dropdown, each with its first gallery image as a
       // thumbnail. Defaults to the top N (configurable via DEFAULT_SHOP_DROPDOWN_COUNT);
@@ -220,43 +261,22 @@ export async function Header({ tenant }: Props) {
           ...(membership ? [membership.url.replace(/^\//, '')] : []),
         ],
       })
-      navItems = injectPostsUnderNav(navItems, postList, { max: 200 })
+
+      if (hasEpisodes && !navItems.some(isEpisodesItem)) {
+        navItems.push({ id: 'episodes', link: { type: 'custom', label: 'Episodes', url: '/episodes' } })
+      }
+      if (hasProducts && !navItems.some(isShopItem)) {
+        navItems.push({ id: 'shop', link: { type: 'custom', label: 'Shop', url: '/shop' } })
+      }
+
+      navItems = injectEpisodesUnderNav(navItems, episodeList, { max: 200 })
+      navItems = injectPostsUnderNav(navItems, postList, { max: 50 })
       navItems = injectProductsUnderNav(navItems, productList)
       navItems = injectEventsUnderNav(navItems, eventList)
       header = { ...header, navItems }
     } catch (err) {
       console.error('[Header] Failed to inject dynamic nav (pages/posts/products/events):', err)
     }
-  }
-
-  // Shop/Posts/Events/Book are first-class only when populated — else they collapse into More.
-  let hasProducts = false
-  let hasEvents = false
-  let hasPosts = false
-  let hasBook = false
-  if (tenantId) {
-    try {
-      const payload = await getPayload({ config })
-      const [products, events, posts, services] = await Promise.all([
-        // Published only — a draft-only catalog shouldn't make Shop first-class.
-        payload.count({ collection: 'products', where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'published' } }] }, overrideAccess: true }),
-        payload.count({ collection: 'events', where: { and: [{ tenant: { equals: tenantId } }, { status: { in: ['upcoming', 'live'] } }] }, overrideAccess: true }),
-        payload.count({ collection: 'posts', where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'published' } }] }, overrideAccess: true }),
-        // Book promotes when the tenant has at least one enabled bookable service —
-        // DB `services` OR the static bookableServices seed (fallback-aware, matching
-        // what the /book page actually resolves via resolveServices). A tenant whose
-        // catalog lives only in the static config (e.g. clearwater-cruisin) was
-        // previously read as 0 and Book collapsed into "More".
-        payload.count({ collection: 'services', where: { and: [{ tenant: { equals: tenantId } }, { enabled: { equals: true } }] }, overrideAccess: true }),
-      ])
-      hasProducts = products.totalDocs > 0
-      hasEvents = events.totalDocs > 0
-      hasPosts = posts.totalDocs > 0
-      hasBook = services.totalDocs > 0 || getBookableServices(tenant?.slug).length > 0
-    } catch (err) {
-      console.error('[Header] Failed to count products/events/posts/services:', err)
-    }
-
   }
 
   // Works (catalog rows, subscription-scoped by tenant slug) — first-class only
@@ -311,5 +331,5 @@ export async function Header({ tenant }: Props) {
     /* anonymous, or roles unavailable — no edit affordance, the safe side */
   }
 
-  return <HeaderClient canEditContent={canEditContent} header={header} tenant={tenant} hasProducts={hasProducts} hasEvents={hasEvents} hasPosts={hasPosts} hasBook={hasBook} hasWorks={hasWorks} showDiscovery={showDiscovery} membership={membership} navOverrides={navOverrides} />
+  return <HeaderClient canEditContent={canEditContent} header={header} tenant={tenant} hasProducts={hasProducts} hasEpisodes={hasEpisodes} hasEvents={hasEvents} hasPosts={hasPosts} hasBook={hasBook} hasWorks={hasWorks} showDiscovery={showDiscovery} membership={membership} navOverrides={navOverrides} />
 }

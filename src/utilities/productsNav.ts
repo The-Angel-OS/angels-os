@@ -17,9 +17,18 @@ export interface ProductLite {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type NavItem = any
 
-const isShopItem = (item: NavItem): boolean => {
+export const isShopItem = (item: NavItem): boolean => {
   const link = item?.link
-  return link?.url === '/shop' || (typeof link?.label === 'string' && link.label.toLowerCase() === 'shop')
+  const url = link?.url?.toLowerCase()
+  const label = typeof link?.label === 'string' ? link.label.toLowerCase() : ''
+  return (
+    url === '/shop' ||
+    url === '/products' ||
+    label === 'shop' ||
+    label === 'store' ||
+    label === 'merch' ||
+    label === 'merchandise'
+  )
 }
 
 const productToChild = (p: ProductLite): NavItem => ({

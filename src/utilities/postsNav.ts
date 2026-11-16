@@ -16,15 +16,67 @@ export interface PostLite {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type NavItem = any
 
-const isPostsItem = (item: NavItem): boolean => {
+export const isEpisodesItem = (item: NavItem): boolean => {
   const link = item?.link
-  return link?.url === '/posts' || (typeof link?.label === 'string' && link.label.toLowerCase() === 'posts')
+  const url = link?.url?.toLowerCase()
+  const label = typeof link?.label === 'string' ? link.label.toLowerCase() : ''
+  return (
+    url === '/episodes' ||
+    label === 'episodes' ||
+    label === 'video log' ||
+    label === 'investigations'
+  )
 }
 
-const postToChild = (p: PostLite): NavItem => ({
-  link: { type: 'custom', label: (p.title || p.slug) as string, url: `/posts/${p.slug}` },
+export const isPostsItem = (item: NavItem): boolean => {
+  const link = item?.link
+  const url = link?.url?.toLowerCase()
+  const label = typeof link?.label === 'string' ? link.label.toLowerCase() : ''
+  if (url === '/episodes' || label === 'episodes' || label === 'video log' || label === 'investigations') {
+    return false
+  }
+  return (
+    url === '/posts' ||
+    label === 'posts' ||
+    label === 'news' ||
+    label === 'articles' ||
+    label === 'blog'
+  )
+}
+
+const postToChild = (p: PostLite, basePath: string = '/posts'): NavItem => ({
+  link: { type: 'custom', label: (p.title || p.slug) as string, url: `${basePath}/${p.slug}` },
   ...(p.image ? { image: p.image } : {}),
 })
+
+/**
+ * Inject the latest episodes as children of the Episodes nav item.
+ */
+export function injectEpisodesUnderNav(
+  navItems: NavItem[],
+  episodes: PostLite[],
+  opts: { max?: number } = {},
+): NavItem[] {
+  const max = opts.max ?? 200
+  const items = Array.isArray(navItems) ? navItems : []
+
+  const episodeChildren = (Array.isArray(episodes) ? episodes : [])
+    .filter((p): p is PostLite & { slug: string } => Boolean(p?.slug))
+    .slice(0, max)
+    .map((p) => postToChild(p, '/posts'))
+
+  if (episodeChildren.length === 0) return items
+
+  let injected = false
+  return items.map((item) => {
+    if (injected || !isEpisodesItem(item)) return item
+    injected = true
+    const existing = Array.isArray(item.children) ? item.children : []
+    const existingUrls = new Set(existing.map((c: NavItem) => c?.link?.url))
+    const merged = [...existing, ...episodeChildren.filter((c) => !existingUrls.has(c.link.url))]
+    return { ...item, children: merged }
+  })
+}
 
 /**
  * Inject the latest posts as children of the Posts nav item. Returns navItems
@@ -42,7 +94,7 @@ export function injectPostsUnderNav(
   const postChildren = (Array.isArray(posts) ? posts : [])
     .filter((p): p is PostLite & { slug: string } => Boolean(p?.slug))
     .slice(0, max)
-    .map(postToChild)
+    .map((p) => postToChild(p, '/posts'))
 
   if (postChildren.length === 0) return items
 

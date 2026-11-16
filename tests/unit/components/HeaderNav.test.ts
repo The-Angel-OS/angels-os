@@ -38,14 +38,18 @@ describe('composeNavItems', () => {
       composeNavItems({
         navItems: [stored('/')],
         isStorefront: true,
+        hasEpisodes: true,
         hasPosts: true,
         hasEvents: true,
         hasBook: true,
+        hasProducts: true,
       }),
     )
+    expect(out).toContain('/episodes')
     expect(out).toContain('/posts')
     expect(out).toContain('/events')
     expect(out).toContain('/book')
+    expect(out).toContain('/shop')
   })
 
   it('never overrides what the owner stored — an empty section they pinned stays', () => {
