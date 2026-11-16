@@ -69,7 +69,7 @@ export function FeaturedProductsHero({ products }: Props) {
           <div className="flex flex-wrap items-baseline gap-4 pt-1">
             {typeof activeProduct.priceInUSD === 'number' && (
               <span className="font-mono text-2xl sm:text-3xl font-extrabold text-amber-400">
-                ${activeProduct.priceInUSD.toFixed(2)}
+                ${(activeProduct.priceInUSD > 100 ? activeProduct.priceInUSD / 100 : activeProduct.priceInUSD).toFixed(2)}
               </span>
             )}
             <span className="text-xs font-mono text-emerald-400">

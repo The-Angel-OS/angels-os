@@ -174,12 +174,18 @@ export const OldWorldAtlas: React.FC<{
 
   // Selected Place Dossier
   const [selectedPlace, setSelectedPlace] = useState<AtlasPlace | null>(null)
+  const [imgError, setImgError] = useState(false)
 
-  // Camera state (shared between Globe & Recon Map)
+  // Reset img error on place change
+  useEffect(() => {
+    setImgError(false)
+  }, [selectedPlace?.id])
+
+  // Camera state (shared between Globe & Recon Map) - default to US Capitol
   const [camera, setCamera] = useState<{ lat: number; lon: number; zoom: number }>({
-    lat: 27.955,
-    lon: -82.62,
-    zoom: 3,
+    lat: 38.8897,
+    lon: -77.0089,
+    zoom: 12,
   })
 
   // Fetch initial archive if not passed as prop
@@ -189,15 +195,29 @@ export const OldWorldAtlas: React.FC<{
       .then((r) => r.json())
       .then((json: AtlasArchiveData) => {
         setData(json)
-        if (json.places?.[0]) setSelectedPlace(json.places[0])
+        if (json.places?.length) {
+          const defaultPlace = json.places.find((p) => p.id === 'Q54109') || json.places[0]
+          setSelectedPlace(defaultPlace)
+          const lat = parseFloat(defaultPlace.latitude)
+          const lon = parseFloat(defaultPlace.longitude)
+          if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
+            setCamera({ lat, lon, zoom: 12 })
+          }
+        }
       })
       .catch(() => {})
   }, [data])
 
-  // Select Clearwater 1933 Post Office by default once loaded
+  // Select US Capitol by default once loaded
   useEffect(() => {
     if (data?.places?.length && !selectedPlace) {
-      setSelectedPlace(data.places[0])
+      const defaultPlace = data.places.find((p) => p.id === 'Q54109') || data.places[0]
+      setSelectedPlace(defaultPlace)
+      const lat = parseFloat(defaultPlace.latitude)
+      const lon = parseFloat(defaultPlace.longitude)
+      if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
+        setCamera({ lat, lon, zoom: 12 })
+      }
     }
   }, [data, selectedPlace])
 
@@ -1171,15 +1191,38 @@ export const OldWorldAtlas: React.FC<{
                 </div>
               </div>
 
-              {selectedPlace.photo && (
-                <div className="relative h-44 w-full overflow-hidden rounded-lg border border-slate-800 bg-slate-950">
+              {selectedPlace.photo && !imgError ? (
+                <div className="relative h-48 w-full overflow-hidden rounded-lg border border-slate-800 bg-slate-950">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={selectedPlace.photo}
                     alt={selectedPlace.name}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-cover transition-opacity duration-300"
                     loading="lazy"
+                    onError={() => setImgError(true)}
                   />
+                </div>
+              ) : (
+                <div className="relative h-32 w-full overflow-hidden rounded-lg border border-cyan-900/40 bg-gradient-to-br from-slate-950 via-cyan-950/20 to-slate-950 p-3.5 flex flex-col justify-between">
+                  <div className="flex items-center justify-between text-[10px] font-mono text-cyan-400/90">
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                      SATELLITE RECON DOSSIER
+                    </span>
+                    <span className="rounded bg-cyan-950/80 px-1.5 py-0.5 border border-cyan-700/60 text-cyan-300">
+                      {selectedPlace.existence.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="py-1">
+                    <p className="font-semibold text-xs text-slate-200 line-clamp-1">{selectedPlace.name}</p>
+                    <p className="text-[10px] font-mono text-slate-400">
+                      {[selectedPlace.city, selectedPlace.state, selectedPlace.country].filter(Boolean).join(', ')}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] font-mono text-amber-400/80 border-t border-slate-800/80 pt-1.5">
+                    <span>COORDS: {parseFloat(selectedPlace.latitude).toFixed(4)}°, {parseFloat(selectedPlace.longitude).toFixed(4)}°</span>
+                    <span>{selectedPlace.category}</span>
+                  </div>
                 </div>
               )}
 
