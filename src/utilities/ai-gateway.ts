@@ -28,14 +28,11 @@ import { GENESIS_BREATH } from './genesis-breath'
 // ---------------------------------------------------------------------------
 
 export const MODEL_CATALOG = {
-  // Anthropic Claude (updated to latest 4.6 generation)
-  'claude-sonnet': 'anthropic/claude-sonnet-4-6',
-  'claude-opus': 'anthropic/claude-opus-4-6',
-  'claude-haiku': 'anthropic/claude-haiku-4-5-20251001',
-
-  // Google Gemini
+  // Google Gemini (Strictly Google Architecture)
   'gemini-pro': 'google/gemini-3.1-pro',
   'gemini-flash': 'google/gemini-flash-lite-latest',
+  'gemini-2.5-flash': 'google/gemini-2.5-flash',
+  'gemini-flash-lite': 'google/gemini-flash-lite-latest',
 
   // OpenAI
   'gpt-4o': 'openai/gpt-4o',
@@ -44,17 +41,11 @@ export const MODEL_CATALOG = {
 
 export type ModelAlias = keyof typeof MODEL_CATALOG
 
-/** Default model — Gemini Flash (6x cheaper than Sonnet, capable for 90% of tasks) */
-// LITE, not `gemini-flash-latest`. Both answer, but flash-latest is a THINKING
-// model: on a small max_tokens the reasoning consumes the whole budget and it
-// returns finish_reason=length with EMPTY content. This is the default/mechanical
-// lane — small budgets, high volume — so an empty completion here reproduces the
-// exact "..." that never resolves. Verified 260726 against the live key: at
-// max_tokens=20 flash-latest returns nothing usable, lite answers.
+/** Default model — Gemini Flash Lite (fast, no thinking-token blowout, cost-optimal) */
 export const DEFAULT_MODEL = 'google/gemini-flash-lite-latest'
 
 /** Fallback model when primary is unavailable */
-export const FALLBACK_MODEL = 'anthropic/claude-sonnet-4-6'
+export const FALLBACK_MODEL = 'google/gemini-3.1-pro'
 
 // ---------------------------------------------------------------------------
 // Task-Based Model Tiers — "Models as Commodities"
@@ -102,7 +93,7 @@ export type Lane = 'agentic' | 'mechanical'
 const csvList = (v: string | undefined): string[] | undefined =>
   v ? v.split(',').map((s) => s.trim()).filter(Boolean) : undefined
 
-/** Env-tunable model config for a lane. */
+/** Env-tunable model config for a lane. Strictly Google architecture. */
 export function getLaneConfig(lane: Lane): { primary: string; fallbacks: string[] } {
   if (lane === 'mechanical') {
     return {
@@ -111,8 +102,8 @@ export function getLaneConfig(lane: Lane): { primary: string; fallbacks: string[
     }
   }
   return {
-    primary: process.env.LEO_AGENTIC_MODEL || 'anthropic/claude-sonnet-4-6',
-    fallbacks: csvList(process.env.LEO_AGENTIC_FALLBACKS) || ['anthropic/claude-opus-4-6', 'google/gemini-3.1-pro'],
+    primary: process.env.LEO_AGENTIC_MODEL || 'google/gemini-flash-lite-latest',
+    fallbacks: csvList(process.env.LEO_AGENTIC_FALLBACKS) || ['google/gemini-2.5-flash', 'google/gemini-3.1-pro'],
   }
 }
 
@@ -558,12 +549,12 @@ type ProviderKind = 'ollama' | 'google' | 'groq' | 'nvidia' | 'gateway' | 'openr
 // order per-deployment with AI_PROVIDER_ORDER.
 const DEFAULT_PROVIDER_ORDER: ProviderKind[] = ['ollama', 'google', 'groq', 'nvidia', 'gateway', 'openrouter']
 
-/** Direct OpenRouter (OpenAI-compatible) model per tier — verified live 2026-06-15. */
+/** Direct OpenRouter (OpenAI-compatible) model per tier — Google Gemini. */
 const OPENROUTER_TIER_MAP: Record<TaskComplexity, string> = {
-  low: 'anthropic/claude-3.5-haiku',
-  medium: 'anthropic/claude-sonnet-4',
-  high: 'anthropic/claude-opus-4.1',
-  critical: 'anthropic/claude-opus-4.1',
+  low: 'google/gemini-flash-lite-latest',
+  medium: 'google/gemini-flash-lite-latest',
+  high: 'google/gemini-2.5-flash',
+  critical: 'google/gemini-3.1-pro',
 }
 
 /** NVIDIA NIM (build.nvidia.com) — OpenAI-compatible, free tier. Nemotron 3 Ultra

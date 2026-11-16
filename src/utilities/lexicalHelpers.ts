@@ -30,6 +30,33 @@ export const createTextNode = (text: string, format: number = 0): any => ({
   version: 1,
 })
 
+// Link node - compatible with LinkFeature
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const createLinkNode = (url: string, text: string, newTab: boolean = true, format: number = 0): any => ({
+  type: 'link',
+  children: [createTextNode(text, format)],
+  direction: 'ltr',
+  fields: {
+    linkType: 'custom',
+    newTab,
+    url,
+  },
+  format: '',
+  indent: 0,
+  version: 3,
+})
+
+// Paragraph node with mixed children (text and links)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const createRichParagraphNode = (children: any[]): any => ({
+  type: 'paragraph',
+  children,
+  direction: 'ltr',
+  format: '',
+  indent: 0,
+  version: 1,
+})
+
 // Paragraph node - compatible with ParagraphFeature
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const createParagraphNode = (text: string, format: number = 0): any => ({
@@ -133,7 +160,7 @@ export const validateLexicalContent = (content: unknown): { valid: boolean; erro
     }
 
     // Check for known node types
-    const validTypes = ['paragraph', 'heading', 'unorderedlist', 'orderedlist', 'listitem', 'text']
+    const validTypes = ['paragraph', 'heading', 'unorderedlist', 'orderedlist', 'listitem', 'text', 'link']
     if (childObj.type && !validTypes.includes(childObj.type as string)) {
       errors.push(`Child ${index} has unknown type: ${childObj.type}`)
     }

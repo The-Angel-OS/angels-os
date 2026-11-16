@@ -6,6 +6,9 @@ import {
   createLexicalContent,
   createHeadingNode,
   createParagraphNode,
+  createRichParagraphNode,
+  createLinkNode,
+  createTextNode,
 } from '@/utilities/lexicalHelpers'
 
 const payload = await getPayload({ config })
@@ -39,7 +42,12 @@ console.log(`Ingesting ${rawProducts.length} Spreadshop products for tenant #${t
 // Cache media uploads by URL
 const mediaCache = new Map<string, number>()
 
-async function ensureMediaFromUrl(rawUrl: string, filename: string, alt: string) {
+async function ensureMediaFromUrl(
+  rawUrl: string,
+  filename: string,
+  alt: string,
+  mimetype = 'image/jpeg',
+) {
   const url = rawUrl.replace('width=1200,height=1200', 'width=500,height=500')
   if (mediaCache.has(url)) return mediaCache.get(url)!
 
@@ -65,6 +73,7 @@ async function ensureMediaFromUrl(rawUrl: string, filename: string, alt: string)
         'Sec-Fetch-Dest': 'image',
         'Sec-Fetch-Mode': 'no-cors',
         'Sec-Fetch-Site': 'cross-site',
+        Referer: 'https://my-lunch-break.myspreadshop.com/',
       },
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -73,7 +82,7 @@ async function ensureMediaFromUrl(rawUrl: string, filename: string, alt: string)
     const doc = await (payload.create as any)({
       collection: 'media',
       data: { alt, tenant: tenantId },
-      file: { data: buf, mimetype: 'image/jpeg', name: filename, size: buf.length },
+      file: { data: buf, mimetype, name: filename, size: buf.length },
       overrideAccess: true,
     })
     mediaCache.set(url, doc.id as number)
@@ -96,18 +105,52 @@ for (const item of rawProducts) {
   const numPrice = parseFloat(item.price.replace(/[^0-9.]/g, '')) || 24.99
   const centsPrice = Math.round(numPrice * 100)
 
-  // Upload or reuse product image
-  const imgFilename = `mlb-merch-${slug.slice(0, 30)}.jpg`
-  const mediaId = await ensureMediaFromUrl(item.imageUrl, imgFilename, item.title)
+  // 1. Front View (main product image)
+  const legacyFilename = `mlb-merch-${slug.slice(0, 30)}.jpg`
+  const frontId = await ensureMediaFromUrl(item.imageUrl, legacyFilename, `${item.title} - Front View`)
+
+  // 2. Back View
+  const backUrl = item.imageUrl.replace('/views/1', '/views/2')
+  const backFilename = `mlb-merch-${slug.slice(0, 30)}-back.jpg`
+  const backId = await ensureMediaFromUrl(backUrl, backFilename, `${item.title} - Back View`)
+
+  // 3. Composition / Graphic Zoom View
+  const compUrl = item.imageUrl.replace('/products/', '/compositions/')
+  const compFilename = `mlb-merch-${slug.slice(0, 30)}-zoom.jpg`
+  const compId = await ensureMediaFromUrl(compUrl, compFilename, `${item.title} - Graphic Zoom`)
+
+  // 4. Source Artwork Graphic (transparent PNG)
+  const designMatch = item.imageUrl.match(/D(\d+)/)
+  const designId = designMatch ? designMatch[1] : null
+  let designGraphicId: number | null = null
+  if (designId) {
+    const designUrl = `https://image.spreadshirtmedia.com/image-server/v1/designs/${designId},width=800,height=800/graphic.png`
+    const designFilename = `mlb-artwork-design-${designId}.png`
+    designGraphicId = await ensureMediaFromUrl(
+      designUrl,
+      designFilename,
+      `${item.title} - Source Artwork Graphic`,
+      'image/png',
+    )
+  }
+
+  const galleryIds = [frontId, backId, compId, designGraphicId].filter(
+    (id): id is number => typeof id === 'number',
+  )
 
   const descriptionRichText = createLexicalContent([
     createHeadingNode(item.title, 'h2'),
     createParagraphNode(
       `Official My Lunch Break Merchandise. High quality ${item.category} featuring original Old World and Tartarian investigative channel emblems.`,
     ),
-    createParagraphNode(
-      `Available on Spreadshop: ${item.price}. Direct order link: ${item.productUrl}`,
-    ),
+    createRichParagraphNode([
+      createTextNode(`Price: ${item.price} · `),
+      createLinkNode(item.productUrl, 'Order Direct on Spreadshop →', true),
+    ]),
+    createRichParagraphNode([
+      createTextNode('⚡ Want your own creator merchandise hub? '),
+      createLinkNode('https://spacesangels.com', 'Open your free Angel OS Shop Now →', true),
+    ]),
   ])
 
   const existingProd = await payload.find({
@@ -127,11 +170,11 @@ for (const item of rawProducts) {
     priceInUSDEnabled: true,
     inventory: 999,
     description: descriptionRichText,
-    gallery: mediaId ? [{ image: mediaId }] : [],
+    gallery: galleryIds.map((id) => ({ image: id })),
     meta: {
       title: `${item.title} | My Lunch Break Merch`,
       description: `Official My Lunch Break apparel and accessories. ${item.category} priced at ${item.price}.`,
-      image: mediaId || undefined,
+      image: frontId || undefined,
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any
