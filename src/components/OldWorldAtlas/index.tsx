@@ -2,6 +2,9 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import rawLandmassPolygons from '@/data/world-landmass.json'
+
+const landmassPolygons = rawLandmassPolygons as number[][][]
 
 export interface AtlasPlace {
   id: string
@@ -465,6 +468,32 @@ export const OldWorldAtlas: React.FC<{
         return { x, y, cosc }
       }
 
+      // Draw continent landmass outlines on the 3D globe
+      ctx.fillStyle = shaderMode === 'flir' ? '#064e3b40' : shaderMode === 'thermal' ? '#451a0340' : '#1e3a5f40'
+      ctx.strokeStyle = shaderMode === 'flir' ? '#10b98166' : shaderMode === 'thermal' ? '#f9731666' : '#38bdf855'
+      ctx.lineWidth = 1
+      for (const poly of landmassPolygons) {
+        ctx.beginPath()
+        let started = false
+        for (let i = 0; i < poly.length; i++) {
+          const pt = project(poly[i][1], poly[i][0])
+          if (pt) {
+            if (!started) {
+              ctx.moveTo(pt.x, pt.y)
+              started = true
+            } else {
+              ctx.lineTo(pt.x, pt.y)
+            }
+          } else {
+            started = false
+          }
+        }
+        if (started) {
+          ctx.stroke()
+          ctx.fill()
+        }
+      }
+
       // Draw latitude/longitude graticule lines
       ctx.strokeStyle = `${primaryStroke}26`
       ctx.lineWidth = 0.8
@@ -592,7 +621,7 @@ export const OldWorldAtlas: React.FC<{
           center: [camera.lat, camera.lon],
           zoom: Math.max(camera.zoom, 5),
         })
-        // Esri World Imagery Satellite Layer + Carto Dark Labels
+        // Esri World Imagery Satellite Layer + Carto Dark Labels (with Carto fallback to Stamen/OSM labels)
         L.tileLayer(
           'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
           {
@@ -600,10 +629,13 @@ export const OldWorldAtlas: React.FC<{
             maxZoom: 19,
           },
         ).addTo(map)
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', {
-          subdomains: 'abcd',
-          maxZoom: 19,
-        }).addTo(map)
+        L.tileLayer(
+          'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png',
+          {
+            subdomains: 'abcd',
+            maxZoom: 19,
+          },
+        ).addTo(map)
 
         markersLayerRef.current = L.layerGroup().addTo(map)
         leafletMapRef.current = map

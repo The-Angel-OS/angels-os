@@ -4909,1444 +4909,1822 @@
   ],
   "episodes": [
     {
-      "id": "video:tdpaBMgz2mE",
+      "id": "ep:202",
       "number": 202,
-      "title": "EP 202 - Istanbul Should NOT Exist - Pt 6 of 6",
+      "title": "EP 202 — Istanbul Should NOT Exist - Pt 6 of 6",
       "videoUrl": "https://www.youtube.com/watch?v=tdpaBMgz2mE",
-      "publishedAt": "2026-11-14T21:30:00+00:00",
+      "thumbnailUrl": "https://i.ytimg.com/vi/tdpaBMgz2mE/hqdefault.jpg",
+      "publishedAt": null,
       "status": "verified"
     },
     {
-      "id": "video:nBSqPxRjzzQ",
-      "number": 200,
-      "title": "J200: Welcome to the Old World",
-      "videoUrl": "https://www.youtube.com/watch?v=nBSqPxRjzzQ",
-      "publishedAt": "2026-10-24T13:30:38-07:00",
-      "status": "needs-script"
+      "id": "ep:201",
+      "number": 201,
+      "title": "EP 201 — 10,000 Old World Temples",
+      "videoUrl": "https://www.youtube.com/watch?v=u9ZE90GRFO4",
+      "thumbnailUrl": "https://i.ytimg.com/vi/u9ZE90GRFO4/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
-      "id": "video:DPY9Sgat6Qc",
+      "id": "ep:200",
+      "number": 200,
+      "title": "EP 200 — J200: Welcome to the Old World",
+      "videoUrl": "https://www.youtube.com/watch?v=nBSqPxRjzzQ",
+      "thumbnailUrl": "https://i.ytimg.com/vi/nBSqPxRjzzQ/hqdefault.jpg",
+      "publishedAt": "2026-10-24T13:30:38-07:00",
+      "status": "verified"
+    },
+    {
+      "id": "ep:199",
       "number": 199,
-      "title": "The GREAT RESET Already Happened",
+      "title": "EP 199 — The GREAT RESET Already Happened",
       "videoUrl": "https://www.youtube.com/watch?v=DPY9Sgat6Qc",
+      "thumbnailUrl": "https://i.ytimg.com/vi/DPY9Sgat6Qc/hqdefault.jpg",
       "publishedAt": "2026-10-17T13:30:11-07:00",
-      "status": "reviewed-script-excerpt"
+      "status": "verified"
     },
     {
       "id": "ep:198",
       "number": 198,
       "title": "EP 198 - THE GREAT ARCHITECTURE COMPETITION",
-      "videoUrl": null,
+      "videoUrl": "https://www.youtube.com/watch?v=tsM7Dk7_Aig",
+      "thumbnailUrl": "https://i.ytimg.com/vi/tsM7Dk7_Aig/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:197",
       "number": 197,
-      "title": "EP 197",
-      "videoUrl": null,
+      "title": "EP 197 — MISSING RECORDS of the U.S. Capitols - Pt 3",
+      "videoUrl": "https://www.youtube.com/watch?v=_B2Zj5NlPdE",
+      "thumbnailUrl": "https://i.ytimg.com/vi/_B2Zj5NlPdE/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:196",
       "number": 196,
-      "title": "EP 196",
+      "title": "EP 196 — MISSING RECORDS of the U.S. Capitols - Pt 2",
       "videoUrl": "https://www.youtube.com/watch?v=IRO2JNQte70",
+      "thumbnailUrl": "https://i.ytimg.com/vi/IRO2JNQte70/hqdefault.jpg",
       "publishedAt": "2026-09-26T13:30:39-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:195",
       "number": 195,
-      "title": "EP 195",
+      "title": "EP 195 — MISSING RECORDS of the U.S. Capitols - Pt 1",
       "videoUrl": "https://www.youtube.com/watch?v=zmwmaxnG8oo",
+      "thumbnailUrl": "https://i.ytimg.com/vi/zmwmaxnG8oo/hqdefault.jpg",
       "publishedAt": "2026-09-19T20:30:25+00:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:194",
       "number": 194,
-      "title": "EP 194",
-      "videoUrl": null,
+      "title": "EP 194 — The Master List - Pt 3",
+      "videoUrl": "https://www.youtube.com/watch?v=ZgipETkuRmg",
+      "thumbnailUrl": "https://i.ytimg.com/vi/ZgipETkuRmg/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:193",
       "number": 193,
       "title": "EP 193 LITTLE TARTARIA - PT 2",
       "videoUrl": "https://www.youtube.com/watch?v=v-lNYAY9IEI",
+      "thumbnailUrl": "https://i.ytimg.com/vi/v-lNYAY9IEI/hqdefault.jpg",
       "publishedAt": "2026-09-05T13:30:04-07:00",
-      "status": "script"
+      "status": "verified"
+    },
+    {
+      "id": "ep:192",
+      "number": 192,
+      "title": "EP 192 — Little Tartaria -  Pt 1",
+      "videoUrl": "https://www.youtube.com/watch?v=fhz21pI9-6g",
+      "thumbnailUrl": "https://i.ytimg.com/vi/fhz21pI9-6g/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
       "id": "ep:191",
       "number": 191,
       "title": "EP 191 - THE GREAT 70 YEAR RESET",
       "videoUrl": "https://www.youtube.com/watch?v=MvsWmOVDP6M",
+      "thumbnailUrl": "https://i.ytimg.com/vi/MvsWmOVDP6M/hqdefault.jpg",
       "publishedAt": "2026-08-22T13:30:24-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:190",
       "number": 190,
       "title": "EP 190 - BURNING THE BOOKS",
-      "videoUrl": null,
+      "videoUrl": "https://www.youtube.com/watch?v=1TjxszWxY6c",
+      "thumbnailUrl": "https://i.ytimg.com/vi/1TjxszWxY6c/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:189",
       "number": 189,
-      "title": "EP 189",
-      "videoUrl": null,
+      "title": "EP 189 — Replacing the Old World: Before & After",
+      "videoUrl": "https://www.youtube.com/watch?v=5YFlAkYQ5Hk",
+      "thumbnailUrl": "https://i.ytimg.com/vi/5YFlAkYQ5Hk/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:188",
       "number": 188,
-      "title": "EP 188",
-      "videoUrl": null,
+      "title": "EP 188 — Re-Writing 1908",
+      "videoUrl": "https://www.youtube.com/watch?v=DuX1_3rqpm0",
+      "thumbnailUrl": "https://i.ytimg.com/vi/DuX1_3rqpm0/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
+    },
+    {
+      "id": "ep:187",
+      "number": 187,
+      "title": "EP 187 — The Orphan Trains",
+      "videoUrl": "https://www.youtube.com/watch?v=4yV338hOWjU",
+      "thumbnailUrl": "https://i.ytimg.com/vi/4yV338hOWjU/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
       "id": "ep:186",
       "number": 186,
       "title": "EP 186 - 1800 Made People Insane? - Pt 2",
       "videoUrl": "https://www.youtube.com/watch?v=4ljlZxfjewA",
+      "thumbnailUrl": "https://i.ytimg.com/vi/4ljlZxfjewA/hqdefault.jpg",
       "publishedAt": "2026-07-18T13:30:11-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:185",
       "number": 185,
-      "title": "Ep 185",
-      "videoUrl": null,
+      "title": "EP 185 — The Pillar of Fire",
+      "videoUrl": "https://www.youtube.com/watch?v=-62QY3ivmtc",
+      "thumbnailUrl": "https://i.ytimg.com/vi/-62QY3ivmtc/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:184",
       "number": 184,
       "title": "EP 184 - THE (OLD) WORLD’S FAIR",
-      "videoUrl": null,
+      "videoUrl": "https://www.youtube.com/watch?v=CK7g8hneFv4",
+      "thumbnailUrl": "https://i.ytimg.com/vi/CK7g8hneFv4/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
+    },
+    {
+      "id": "ep:183",
+      "number": 183,
+      "title": "EP 183 — The Old World's Fair - Pt 1",
+      "videoUrl": "https://www.youtube.com/watch?v=qqTHmCG8P64",
+      "thumbnailUrl": "https://i.ytimg.com/vi/qqTHmCG8P64/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
       "id": "ep:182",
       "number": 182,
-      "title": "EPISODE 182",
-      "videoUrl": null,
+      "title": "EP 182 — Welcome to the Middle of Nowhere",
+      "videoUrl": "https://www.youtube.com/watch?v=a07-5aLq9dY",
+      "thumbnailUrl": "https://i.ytimg.com/vi/a07-5aLq9dY/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:181",
       "number": 181,
-      "title": "EP 181",
-      "videoUrl": null,
+      "title": "EP 181 — Sinking the Old World: Glen Canyon Dam",
+      "videoUrl": "https://www.youtube.com/watch?v=dyOSXDkm_8Y",
+      "thumbnailUrl": "https://i.ytimg.com/vi/dyOSXDkm_8Y/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:180",
       "number": 180,
-      "title": "EP 180",
-      "videoUrl": null,
+      "title": "EP 180 — Batman in Melbourne",
+      "videoUrl": "https://www.youtube.com/watch?v=tunWUWJL9sA",
+      "thumbnailUrl": "https://i.ytimg.com/vi/tunWUWJL9sA/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:179",
       "number": 179,
-      "title": "Ep 179 - THEY WERE NEVER ALIENS",
+      "title": "EP 179 — THEY WERE NEVER ALIENS",
       "videoUrl": "https://www.youtube.com/watch?v=M4B_Fx1U4RI",
+      "thumbnailUrl": "https://i.ytimg.com/vi/M4B_Fx1U4RI/hqdefault.jpg",
       "publishedAt": "2026-05-30T13:30:05-07:00",
-      "status": "script"
+      "status": "verified"
+    },
+    {
+      "id": "ep:178",
+      "number": 178,
+      "title": "EP 178 — Who's Doing This?",
+      "videoUrl": "https://www.youtube.com/watch?v=yXq2RmS-5tE",
+      "thumbnailUrl": "https://i.ytimg.com/vi/yXq2RmS-5tE/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:177",
+      "number": 177,
+      "title": "EP 177 — The Dark Truth in Canada",
+      "videoUrl": "https://www.youtube.com/watch?v=MudhsB9-F44",
+      "thumbnailUrl": "https://i.ytimg.com/vi/MudhsB9-F44/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
       "id": "ep:176",
       "number": 176,
-      "title": "EP 176",
-      "videoUrl": null,
+      "title": "EP 176 — The Hired Arsonist?",
+      "videoUrl": "https://www.youtube.com/watch?v=dtQdCJxin80",
+      "thumbnailUrl": "https://i.ytimg.com/vi/dtQdCJxin80/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
+    },
+    {
+      "id": "ep:175",
+      "number": 175,
+      "title": "EP 175 — The 1908 Lie",
+      "videoUrl": "https://www.youtube.com/watch?v=OqCr9HFCnKE",
+      "thumbnailUrl": "https://i.ytimg.com/vi/OqCr9HFCnKE/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
       "id": "ep:174",
       "number": 174,
       "title": "EP 174  - FIRE = MONEY",
-      "videoUrl": null,
+      "videoUrl": "https://www.youtube.com/watch?v=5BGyj4xIE_w",
+      "thumbnailUrl": "https://i.ytimg.com/vi/5BGyj4xIE_w/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
+    },
+    {
+      "id": "ep:173",
+      "number": 173,
+      "title": "EP 173 — The Civil War: A War Against Us",
+      "videoUrl": "https://www.youtube.com/watch?v=qrK7NAQIiRE",
+      "thumbnailUrl": "https://i.ytimg.com/vi/qrK7NAQIiRE/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:172",
+      "number": 172,
+      "title": "EP 172 — Old World Lighthouses",
+      "videoUrl": "https://www.youtube.com/watch?v=P-SaCiYObJA",
+      "thumbnailUrl": "https://i.ytimg.com/vi/P-SaCiYObJA/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
       "id": "ep:171",
       "number": 171,
       "title": "EP 171 - WHERE ARE THE BLUEPRINTS?",
       "videoUrl": "https://www.youtube.com/watch?v=jiF-mPaljc4",
+      "thumbnailUrl": "https://i.ytimg.com/vi/jiF-mPaljc4/hqdefault.jpg",
       "publishedAt": "2026-03-28T13:30:00-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:170",
       "number": 170,
-      "title": "EP 170",
-      "videoUrl": null,
+      "title": "EP 170 — Old World Bell & Towers",
+      "videoUrl": "https://www.youtube.com/watch?v=utvZY-73VDk",
+      "thumbnailUrl": "https://i.ytimg.com/vi/utvZY-73VDk/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:169",
       "number": 169,
-      "title": "EP 169",
+      "title": "EP 169 — Little Rock. Destroyed by A.I.",
       "videoUrl": "https://www.youtube.com/watch?v=yPuY26uj9XQ",
+      "thumbnailUrl": "https://i.ytimg.com/vi/yPuY26uj9XQ/hqdefault.jpg",
       "publishedAt": "2026-03-14T13:30:17-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:168",
       "number": 168,
-      "title": "EP 168",
-      "videoUrl": null,
+      "title": "EP 168 — The Catacombs - Pt 4",
+      "videoUrl": "https://www.youtube.com/watch?v=MPbgS4kiMv8",
+      "thumbnailUrl": "https://i.ytimg.com/vi/MPbgS4kiMv8/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:167",
       "number": 167,
-      "title": "EP 167",
+      "title": "EP 167 — FOIA is Destroying History",
       "videoUrl": "https://www.youtube.com/watch?v=SS8uBN4sRoE",
+      "thumbnailUrl": "https://i.ytimg.com/vi/SS8uBN4sRoE/hqdefault.jpg",
       "publishedAt": "2026-02-28T13:30:05-08:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:166",
       "number": 166,
       "title": "EP 166 - The Nephilim Return",
-      "videoUrl": null,
+      "videoUrl": "https://www.youtube.com/watch?v=8Sz6btSbimw",
+      "thumbnailUrl": "https://i.ytimg.com/vi/8Sz6btSbimw/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:165",
       "number": 165,
-      "title": "EP 165",
-      "videoUrl": null,
+      "title": "EP 165 — Chicago's Hidden Tunnel Network",
+      "videoUrl": "https://www.youtube.com/watch?v=gzAJ00jG4QQ",
+      "thumbnailUrl": "https://i.ytimg.com/vi/gzAJ00jG4QQ/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:164",
       "number": 164,
       "title": "EP 164 - THE TIMELINE IS FAKE",
       "videoUrl": "https://www.youtube.com/watch?v=-zmWaG6HTRQ",
+      "thumbnailUrl": "https://i.ytimg.com/vi/-zmWaG6HTRQ/hqdefault.jpg",
       "publishedAt": "2026-02-07T13:30:11-08:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:163",
       "number": 163,
       "title": "EP 163 - The Dam Gold Rush",
-      "videoUrl": null,
+      "videoUrl": "https://www.youtube.com/watch?v=k9EGk4wlLO0",
+      "thumbnailUrl": "https://i.ytimg.com/vi/k9EGk4wlLO0/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:162",
       "number": 162,
       "title": "EP 162 - The Master List 2",
-      "videoUrl": null,
+      "videoUrl": "https://www.youtube.com/watch?v=vrHJEowesQU",
+      "thumbnailUrl": "https://i.ytimg.com/vi/vrHJEowesQU/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
+    },
+    {
+      "id": "ep:161",
+      "number": 161,
+      "title": "EP 161 — Timeline Begins in 1800? - Pt 3",
+      "videoUrl": "https://www.youtube.com/watch?v=jjd3WdYrUIw",
+      "thumbnailUrl": "https://i.ytimg.com/vi/jjd3WdYrUIw/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
       "id": "ep:160",
       "number": 160,
-      "title": "EP 160",
+      "title": "EP 160 — Who Built the U.S. Capitol Building?",
       "videoUrl": "https://www.youtube.com/watch?v=adykSVHNz38",
+      "thumbnailUrl": "https://i.ytimg.com/vi/adykSVHNz38/hqdefault.jpg",
       "publishedAt": "2026-01-10T13:34:21-08:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:159",
       "number": 159,
       "title": "EP 159 - The Master List",
       "videoUrl": "https://www.youtube.com/watch?v=3oTgXBQXJuw",
+      "thumbnailUrl": "https://i.ytimg.com/vi/3oTgXBQXJuw/hqdefault.jpg",
       "publishedAt": "2026-01-03T13:30:11-08:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:158",
       "number": 158,
       "title": "EP 158 - THE FOIA REQUEST",
-      "videoUrl": null,
+      "videoUrl": "https://www.youtube.com/watch?v=c_FhxXh1DZM",
+      "thumbnailUrl": "https://i.ytimg.com/vi/c_FhxXh1DZM/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:157",
       "number": 157,
       "title": "EP 157 -",
-      "videoUrl": null,
+      "videoUrl": "https://www.youtube.com/watch?v=TrBTfZNCbU0",
+      "thumbnailUrl": "https://i.ytimg.com/vi/TrBTfZNCbU0/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:156",
       "number": 156,
-      "title": "EP 156",
+      "title": "EP 156 — The Field Museum is From Another Timeline: Pt 2",
       "videoUrl": "https://www.youtube.com/watch?v=9xnqDSx2nL8",
+      "thumbnailUrl": "https://i.ytimg.com/vi/9xnqDSx2nL8/hqdefault.jpg",
       "publishedAt": "2025-12-13T13:30:02-08:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:155",
       "number": 155,
-      "title": "EP 155",
+      "title": "EP 155 — The Field Museum is From Another Timeline: Pt 1",
       "videoUrl": "https://www.youtube.com/watch?v=otmhZo1AI_Q",
+      "thumbnailUrl": "https://i.ytimg.com/vi/otmhZo1AI_Q/hqdefault.jpg",
       "publishedAt": "2025-12-06T13:30:17-08:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:154",
       "number": 154,
       "title": "EP 154 - Taking Big Ben to Court - Pt 1",
       "videoUrl": "https://www.youtube.com/watch?v=44FFbSdFnBs",
+      "thumbnailUrl": "https://i.ytimg.com/vi/44FFbSdFnBs/hqdefault.jpg",
       "publishedAt": "2025-11-29T13:30:01-08:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:153",
       "number": 153,
       "title": "EP 153 - We Want the Blueprints",
       "videoUrl": "https://www.youtube.com/watch?v=nUm31FI4epQ",
+      "thumbnailUrl": "https://i.ytimg.com/vi/nUm31FI4epQ/hqdefault.jpg",
       "publishedAt": "2025-11-22T13:30:11-08:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:152",
       "number": 152,
-      "title": "EPISODE 152 - NO BLUEPRINTS - Pt 2",
-      "videoUrl": null,
+      "title": "EP 152 — EPISODE 152 - NO BLUEPRINTS - Pt 2",
+      "videoUrl": "https://www.youtube.com/watch?v=5QPcdVSWqB4",
+      "thumbnailUrl": "https://i.ytimg.com/vi/5QPcdVSWqB4/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:151",
       "number": 151,
       "title": "EP 151 - NO BLUEPRINTS - Pt 1",
-      "videoUrl": null,
+      "videoUrl": "https://www.youtube.com/watch?v=6-T4NJQdzRQ",
+      "thumbnailUrl": "https://i.ytimg.com/vi/6-T4NJQdzRQ/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:150",
       "number": 150,
-      "title": "EP 150",
-      "videoUrl": null,
+      "title": "EP 150 — Destroying Time.",
+      "videoUrl": "https://www.youtube.com/watch?v=3Jojng8WD_Q",
+      "thumbnailUrl": "https://i.ytimg.com/vi/3Jojng8WD_Q/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:149",
       "number": 149,
-      "title": "EP 149",
+      "title": "EP 149 — Under Prague",
       "videoUrl": "https://www.youtube.com/watch?v=YKm59vvTQq4",
+      "thumbnailUrl": "https://i.ytimg.com/vi/YKm59vvTQq4/hqdefault.jpg",
       "publishedAt": "2025-10-25T13:30:07-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:148",
       "number": 148,
-      "title": "EP 148",
+      "title": "EP 148 — The Sunken Basilica",
       "videoUrl": "https://www.youtube.com/watch?v=2-RWRct5L6c",
+      "thumbnailUrl": "https://i.ytimg.com/vi/2-RWRct5L6c/hqdefault.jpg",
       "publishedAt": "2025-10-18T13:30:02-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:147",
       "number": 147,
-      "title": "EP 147",
+      "title": "EP 147 — Istanbul Should NOT Exist - Pt 5 of 5 (DIM)",
       "videoUrl": "https://www.youtube.com/watch?v=ahLyKxkSw1A",
-      "publishedAt": "2025-10-14T11:03:31-07:00",
-      "status": "script"
-    },
-    {
-      "id": "video:m-c-uBc8WNI",
-      "number": 147,
-      "title": "Istanbul Should NOT Exist - Pt 5 of 5 (DIM)",
-      "videoUrl": "https://www.youtube.com/watch?v=m-c-uBc8WNI",
+      "thumbnailUrl": "https://i.ytimg.com/vi/ahLyKxkSw1A/hqdefault.jpg",
       "publishedAt": "2025-10-11T13:30:15-07:00",
-      "status": "needs-script"
+      "status": "verified"
     },
     {
       "id": "ep:146",
       "number": 146,
-      "title": "EP 146",
+      "title": "EP 146 — Istanbul Should NOT Exist - Pt 4 of 6",
       "videoUrl": "https://www.youtube.com/watch?v=G5eyWcwdTEY",
+      "thumbnailUrl": "https://i.ytimg.com/vi/G5eyWcwdTEY/hqdefault.jpg",
       "publishedAt": "2025-10-04T13:30:02-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:145",
       "number": 145,
-      "title": "EP 145",
+      "title": "EP 145 — Istanbul Should NOT Exist - Pt 3 of 6",
       "videoUrl": "https://www.youtube.com/watch?v=pM-DmRCHLcQ",
+      "thumbnailUrl": "https://i.ytimg.com/vi/pM-DmRCHLcQ/hqdefault.jpg",
       "publishedAt": "2025-09-27T13:30:11-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:144",
       "number": 144,
-      "title": "Ep 144",
-      "videoUrl": null,
+      "title": "EP 144 — Istanbul Should NOT Exist - Pt 2 of 6",
+      "videoUrl": "https://www.youtube.com/watch?v=fHyQ5TwT_bk",
+      "thumbnailUrl": "https://i.ytimg.com/vi/fHyQ5TwT_bk/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:143",
       "number": 143,
-      "title": "EP 143",
+      "title": "EP 143 — Istanbul Should NOT Exist - Pt 1 of 6",
       "videoUrl": "https://www.youtube.com/watch?v=nGTIZA7XWU0",
+      "thumbnailUrl": "https://i.ytimg.com/vi/nGTIZA7XWU0/hqdefault.jpg",
       "publishedAt": "2025-09-13T13:30:09-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:142",
       "number": 142,
       "title": "EP 142 - DAMS DESTROYED THE OZARKS",
       "videoUrl": "https://www.youtube.com/watch?v=Q3BRfjpdJoE",
+      "thumbnailUrl": "https://i.ytimg.com/vi/Q3BRfjpdJoE/hqdefault.jpg",
       "publishedAt": "2025-09-06T13:30:10-07:00",
-      "status": "script"
+      "status": "verified"
+    },
+    {
+      "id": "ep:141",
+      "number": 141,
+      "title": "EP 141 — Fault Lines are GATES - Pt 3",
+      "videoUrl": "https://www.youtube.com/watch?v=LEcfVE_0x-I",
+      "thumbnailUrl": "https://i.ytimg.com/vi/LEcfVE_0x-I/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
       "id": "ep:140",
       "number": 140,
       "title": "EP 140 - WELCOME TO THE DESTRUCTION",
       "videoUrl": "https://www.youtube.com/watch?v=RZsM58qtzCs",
+      "thumbnailUrl": "https://i.ytimg.com/vi/RZsM58qtzCs/hqdefault.jpg",
       "publishedAt": "2025-08-23T13:30:06-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:139",
       "number": 139,
       "title": "EP 139 - THEY ALREADY HAD A.I.",
       "videoUrl": "https://www.youtube.com/watch?v=l5Myb03TCo4",
+      "thumbnailUrl": "https://i.ytimg.com/vi/l5Myb03TCo4/hqdefault.jpg",
       "publishedAt": "2025-08-16T13:30:07-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:138",
       "number": 138,
       "title": "EP 138 - THE RAND CORPORATION",
       "videoUrl": "https://www.youtube.com/watch?v=KOqDF5-ztXw",
+      "thumbnailUrl": "https://i.ytimg.com/vi/KOqDF5-ztXw/hqdefault.jpg",
       "publishedAt": "2025-08-09T13:30:02-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:137",
       "number": 137,
       "title": "EP 137 - THE 5 EYES ARE WATCHING YOU? - PT 2",
       "videoUrl": "https://www.youtube.com/watch?v=fFMFzVo6JZY",
+      "thumbnailUrl": "https://i.ytimg.com/vi/fFMFzVo6JZY/hqdefault.jpg",
       "publishedAt": "2025-08-02T13:30:04-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:136",
       "number": 136,
       "title": "EP 136 - THE 5 EYES ARE WATCHING YOU? - PT 1",
       "videoUrl": "https://www.youtube.com/watch?v=K1HBvZhIXV4",
+      "thumbnailUrl": "https://i.ytimg.com/vi/K1HBvZhIXV4/hqdefault.jpg",
       "publishedAt": "2025-07-26T13:30:01-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:135",
       "number": 135,
-      "title": "EP 135",
+      "title": "EP 135 — Iran: The Target",
       "videoUrl": "https://www.youtube.com/watch?v=sw4FQKunBdY",
+      "thumbnailUrl": "https://i.ytimg.com/vi/sw4FQKunBdY/hqdefault.jpg",
       "publishedAt": "2025-07-19T13:30:13-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:134",
       "number": 134,
       "title": "EP 134 - A LITTLE SEASON",
-      "videoUrl": null,
+      "videoUrl": "https://www.youtube.com/watch?v=fqSfKsPPDXI",
+      "thumbnailUrl": "https://i.ytimg.com/vi/fqSfKsPPDXI/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:133",
       "number": 133,
-      "title": "EP 133",
+      "title": "EP 133 — Old World Dwarfs",
       "videoUrl": "https://www.youtube.com/watch?v=U_RyenVfaNk",
+      "thumbnailUrl": "https://i.ytimg.com/vi/U_RyenVfaNk/hqdefault.jpg",
       "publishedAt": "2025-07-05T13:30:03-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:132",
       "number": 132,
       "title": "EP 132 - Fault Lines are GATES - Pt 2",
       "videoUrl": "https://www.youtube.com/watch?v=EqSTvKL_TKY",
+      "thumbnailUrl": "https://i.ytimg.com/vi/EqSTvKL_TKY/hqdefault.jpg",
       "publishedAt": "2025-06-28T13:30:02-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:131",
       "number": 131,
       "title": "EP 131 - Fault Lines are GATES - Pt 1",
       "videoUrl": "https://www.youtube.com/watch?v=BViTl3BAiio",
+      "thumbnailUrl": "https://i.ytimg.com/vi/BViTl3BAiio/hqdefault.jpg",
       "publishedAt": "2025-06-21T13:30:04-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:130",
       "number": 130,
       "title": "EP 130 - MILITARY SITES STOLE THE OLD WORLD - PT 3",
       "videoUrl": "https://www.youtube.com/watch?v=gsqG9Njaw2s",
+      "thumbnailUrl": "https://i.ytimg.com/vi/gsqG9Njaw2s/hqdefault.jpg",
       "publishedAt": "2025-06-14T13:30:06-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:129",
       "number": 129,
-      "title": "EP 129",
+      "title": "EP 129 — Hoover Dam Wasn’t Built for You",
       "videoUrl": "https://www.youtube.com/watch?v=hm1eh2z0Z0s",
+      "thumbnailUrl": "https://i.ytimg.com/vi/hm1eh2z0Z0s/hqdefault.jpg",
       "publishedAt": "2025-06-07T13:30:07-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:128",
       "number": 128,
-      "title": "EP 128",
+      "title": "EP 128 — Military Sites STOLE the Old World - Pt 2",
       "videoUrl": "https://www.youtube.com/watch?v=F1uW3GV_mMs",
+      "thumbnailUrl": "https://i.ytimg.com/vi/F1uW3GV_mMs/hqdefault.jpg",
       "publishedAt": "2025-05-31T13:30:01-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:127",
       "number": 127,
       "title": "EP 127 - Military Sites Stole the Old World?",
       "videoUrl": "https://www.youtube.com/watch?v=uccKCIaRuYY",
+      "thumbnailUrl": "https://i.ytimg.com/vi/uccKCIaRuYY/hqdefault.jpg",
       "publishedAt": "2025-05-24T13:30:14-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:126",
       "number": 126,
       "title": "EP 126 - TOILETS / PLUMBING",
-      "videoUrl": null,
+      "videoUrl": "https://www.youtube.com/watch?v=qkaeR8IU7ro",
+      "thumbnailUrl": "https://i.ytimg.com/vi/qkaeR8IU7ro/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:125",
       "number": 125,
-      "title": "EP 125",
-      "videoUrl": null,
+      "title": "EP 125 — The Biggest Heist in Human History",
+      "videoUrl": "https://www.youtube.com/watch?v=1OKqnqBBW5s",
+      "thumbnailUrl": "https://i.ytimg.com/vi/1OKqnqBBW5s/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:124",
       "number": 124,
-      "title": "EP 124",
-      "videoUrl": null,
+      "title": "EP 124 — Pyramids of Giza Were Just Exposed",
+      "videoUrl": "https://www.youtube.com/watch?v=BOELqXMGmyw",
+      "thumbnailUrl": "https://i.ytimg.com/vi/BOELqXMGmyw/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:123",
       "number": 123,
       "title": "EP 123 -",
-      "videoUrl": null,
+      "videoUrl": "https://www.youtube.com/watch?v=_Lonw9f9Y28",
+      "thumbnailUrl": "https://i.ytimg.com/vi/_Lonw9f9Y28/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:122",
       "number": 122,
       "title": "EP 122 -",
       "videoUrl": "https://www.youtube.com/watch?v=bWB5COMVUi0",
+      "thumbnailUrl": "https://i.ytimg.com/vi/bWB5COMVUi0/hqdefault.jpg",
       "publishedAt": "2025-04-19T13:30:06-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:121",
       "number": 121,
       "title": "EP 121 - Dams Destroyed Egypt",
-      "videoUrl": null,
+      "videoUrl": "https://www.youtube.com/watch?v=zcslLsQ-mBg",
+      "thumbnailUrl": "https://i.ytimg.com/vi/zcslLsQ-mBg/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:120",
       "number": 120,
       "title": "EP 120 - Dams Destroyed Turkey",
-      "videoUrl": null,
+      "videoUrl": "https://www.youtube.com/watch?v=34P3gvLOLJ4",
+      "thumbnailUrl": "https://i.ytimg.com/vi/34P3gvLOLJ4/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:119",
       "number": 119,
-      "title": "EP 119",
-      "videoUrl": null,
+      "title": "EP 119 — Australia Was Found",
+      "videoUrl": "https://www.youtube.com/watch?v=_1qoAPKq-T4",
+      "thumbnailUrl": "https://i.ytimg.com/vi/_1qoAPKq-T4/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:118",
       "number": 118,
       "title": "EP 118 - AI CHAT GPT DESTROYS HISTORY",
       "videoUrl": "https://www.youtube.com/watch?v=YunkYffAIZA",
+      "thumbnailUrl": "https://i.ytimg.com/vi/YunkYffAIZA/hqdefault.jpg",
       "publishedAt": "2025-03-22T13:30:03-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:117",
       "number": 117,
-      "title": "EP 117",
-      "videoUrl": null,
+      "title": "EP 117 — Removing the Nephilim?",
+      "videoUrl": "https://www.youtube.com/watch?v=zDfioI9u3Ik",
+      "thumbnailUrl": "https://i.ytimg.com/vi/zDfioI9u3Ik/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:116",
       "number": 116,
-      "title": "EP 116",
-      "videoUrl": null,
+      "title": "EP 116 — Dilmun: Where Life Never Ends",
+      "videoUrl": "https://www.youtube.com/watch?v=uUUTgORYQdw",
+      "thumbnailUrl": "https://i.ytimg.com/vi/uUUTgORYQdw/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:115",
       "number": 115,
-      "title": "EP 115",
-      "videoUrl": null,
+      "title": "EP 115 — The Sumerian King's List",
+      "videoUrl": "https://www.youtube.com/watch?v=6xg-yNxiibU",
+      "thumbnailUrl": "https://i.ytimg.com/vi/6xg-yNxiibU/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:114",
       "number": 114,
       "title": "EP 114 - OFF LIMITS TO THE PUBLIC - PART 3",
-      "videoUrl": null,
+      "videoUrl": "https://www.youtube.com/watch?v=i1PmPYhJfV4",
+      "thumbnailUrl": "https://i.ytimg.com/vi/i1PmPYhJfV4/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:113",
       "number": 113,
-      "title": "EP 113",
-      "videoUrl": null,
+      "title": "EP 113 — The Nephilim Are Here",
+      "videoUrl": "https://www.youtube.com/watch?v=47tNks6PQAI",
+      "thumbnailUrl": "https://i.ytimg.com/vi/47tNks6PQAI/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:112",
       "number": 112,
-      "title": "EP 112",
+      "title": "EP 112 — Under The Necropolis - Pt 6",
       "videoUrl": "https://www.youtube.com/watch?v=82-m4UOzllI",
+      "thumbnailUrl": "https://i.ytimg.com/vi/82-m4UOzllI/hqdefault.jpg",
       "publishedAt": "2025-02-08T13:30:00-08:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:111",
       "number": 111,
-      "title": "EP 111",
+      "title": "EP 111 — Under The Necropolis - Pt 5",
       "videoUrl": "https://www.youtube.com/watch?v=HGmB8AFTd1w",
+      "thumbnailUrl": "https://i.ytimg.com/vi/HGmB8AFTd1w/hqdefault.jpg",
       "publishedAt": "2025-02-01T13:30:00-08:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:110",
       "number": 110,
-      "title": "EP 110",
-      "videoUrl": null,
+      "title": "EP 110 — Under The Necropolis - Pt 4",
+      "videoUrl": "https://www.youtube.com/watch?v=pl3fKXvFB_E",
+      "thumbnailUrl": "https://i.ytimg.com/vi/pl3fKXvFB_E/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:109",
       "number": 109,
-      "title": "EP 109",
-      "videoUrl": null,
+      "title": "EP 109 — Off Limits to the Public - Pt 2",
+      "videoUrl": "https://www.youtube.com/watch?v=XpND73HNtQE",
+      "thumbnailUrl": "https://i.ytimg.com/vi/XpND73HNtQE/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:108",
       "number": 108,
       "title": "EP 108 - UNDER THE NECROPOLIS - PART 3",
       "videoUrl": "https://www.youtube.com/watch?v=YhuSkRsozgM",
+      "thumbnailUrl": "https://i.ytimg.com/vi/YhuSkRsozgM/hqdefault.jpg",
       "publishedAt": "2025-01-11T13:30:06-08:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:107",
       "number": 107,
-      "title": "EP 107",
+      "title": "EP 107 — Off Limits to the Public - Pt 1",
       "videoUrl": "https://www.youtube.com/watch?v=FCRy2TLsy04",
+      "thumbnailUrl": "https://i.ytimg.com/vi/FCRy2TLsy04/hqdefault.jpg",
       "publishedAt": "2025-01-04T13:30:06-08:00",
-      "status": "script"
+      "status": "verified"
+    },
+    {
+      "id": "ep:106",
+      "number": 106,
+      "title": "EP 106 — Under The Necropolis - Pt 2",
+      "videoUrl": "https://www.youtube.com/watch?v=Eh60u47nMeE",
+      "thumbnailUrl": "https://i.ytimg.com/vi/Eh60u47nMeE/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
       "id": "ep:105",
       "number": 105,
-      "title": "EP 105",
-      "videoUrl": null,
+      "title": "EP 105 — Under The Necropolis - Pt 1",
+      "videoUrl": "https://www.youtube.com/watch?v=Afr-GaKa7i4",
+      "thumbnailUrl": "https://i.ytimg.com/vi/Afr-GaKa7i4/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
+    },
+    {
+      "id": "ep:104",
+      "number": 104,
+      "title": "EP 104 — The Hidden Tunnels of Osiris",
+      "videoUrl": "https://www.youtube.com/watch?v=dCN4O0H7HD4",
+      "thumbnailUrl": "https://i.ytimg.com/vi/dCN4O0H7HD4/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
       "id": "ep:103",
       "number": 103,
-      "title": "EP 103",
-      "videoUrl": null,
+      "title": "EP 103 — Secrets of the Giants",
+      "videoUrl": "https://www.youtube.com/watch?v=u_0b_I3wpEM",
+      "thumbnailUrl": "https://i.ytimg.com/vi/u_0b_I3wpEM/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:102",
       "number": 102,
-      "title": "EP 102",
-      "videoUrl": null,
+      "title": "EP 102 — The Lost City",
+      "videoUrl": "https://www.youtube.com/watch?v=Yt6GLKK4PdA",
+      "thumbnailUrl": "https://i.ytimg.com/vi/Yt6GLKK4PdA/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
+    },
+    {
+      "id": "ep:101",
+      "number": 101,
+      "title": "EP 101 — The Gate of All Nations",
+      "videoUrl": "https://www.youtube.com/watch?v=8JBo8jpvN-8",
+      "thumbnailUrl": "https://i.ytimg.com/vi/8JBo8jpvN-8/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
       "id": "ep:100",
       "number": 100,
-      "title": "EP 100",
+      "title": "EP 100 — A Century Gone",
       "videoUrl": "https://www.youtube.com/watch?v=G6gCwTOpbhU",
+      "thumbnailUrl": "https://i.ytimg.com/vi/G6gCwTOpbhU/hqdefault.jpg",
       "publishedAt": "2024-11-16T13:30:06-08:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:99",
       "number": 99,
-      "title": "EP 99",
-      "videoUrl": null,
+      "title": "EP 99 — The End of The Century",
+      "videoUrl": "https://www.youtube.com/watch?v=cTsb4-d3JJA",
+      "thumbnailUrl": "https://i.ytimg.com/vi/cTsb4-d3JJA/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:98",
       "number": 98,
       "title": "EP 98 -  THE BAAL CYCLE?",
       "videoUrl": "https://www.youtube.com/watch?v=FY1GqhN8Rik",
+      "thumbnailUrl": "https://i.ytimg.com/vi/FY1GqhN8Rik/hqdefault.jpg",
       "publishedAt": "2024-11-02T13:30:06-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:97",
       "number": 97,
-      "title": "EP 97",
+      "title": "EP 97 — The Baal Cycle - Pt 1",
       "videoUrl": "https://www.youtube.com/watch?v=1oDSFfPY5AY",
+      "thumbnailUrl": "https://i.ytimg.com/vi/1oDSFfPY5AY/hqdefault.jpg",
       "publishedAt": "2024-10-26T13:30:06-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:96",
       "number": 96,
-      "title": "EP 96",
+      "title": "EP 96 — The Old World, Under Our Feet?",
       "videoUrl": "https://www.youtube.com/watch?v=vPkMGGS7-Q0",
+      "thumbnailUrl": "https://i.ytimg.com/vi/vPkMGGS7-Q0/hqdefault.jpg",
       "publishedAt": "2024-10-19T13:30:05-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:95",
       "number": 95,
-      "title": "EP95",
-      "videoUrl": null,
+      "title": "EP 95 — 1700s Vienna: Secrets Behind The Facade?",
+      "videoUrl": "https://www.youtube.com/watch?v=1qpHxGSfhCQ",
+      "thumbnailUrl": "https://i.ytimg.com/vi/1qpHxGSfhCQ/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:94",
       "number": 94,
-      "title": "EP 94",
+      "title": "EP 94 — A Palace From The Past?",
       "videoUrl": "https://www.youtube.com/watch?v=tB566Q0JSy8",
+      "thumbnailUrl": "https://i.ytimg.com/vi/tB566Q0JSy8/hqdefault.jpg",
       "publishedAt": "2024-10-05T13:30:31-07:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:93",
       "number": 93,
-      "title": "EP 93",
-      "videoUrl": null,
+      "title": "EP 93 — The Palace in Dallas?",
+      "videoUrl": "https://www.youtube.com/watch?v=E5b1bQQdmZA",
+      "thumbnailUrl": "https://i.ytimg.com/vi/E5b1bQQdmZA/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:92",
       "number": 92,
-      "title": "EP 92",
-      "videoUrl": null,
+      "title": "EP 92 — The Catacombs - Pt 3",
+      "videoUrl": "https://www.youtube.com/watch?v=YwdDKk2YZKs",
+      "thumbnailUrl": "https://i.ytimg.com/vi/YwdDKk2YZKs/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:91",
       "number": 91,
-      "title": "EP 91",
-      "videoUrl": null,
+      "title": "EP 91 — Angels Helped Build the Old World? - Pt 2",
+      "videoUrl": "https://www.youtube.com/watch?v=WTnbYigAmuU",
+      "thumbnailUrl": "https://i.ytimg.com/vi/WTnbYigAmuU/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:90",
       "number": 90,
-      "title": "EP 90",
-      "videoUrl": null,
+      "title": "EP 90 — Have We Found Tartaria?",
+      "videoUrl": "https://www.youtube.com/watch?v=hY5GjAHF1kk",
+      "thumbnailUrl": "https://i.ytimg.com/vi/hY5GjAHF1kk/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:89",
       "number": 89,
-      "title": "EP 89",
-      "videoUrl": null,
+      "title": "EP 89 — Old World Structures in the USA?",
+      "videoUrl": "https://www.youtube.com/watch?v=Wfw383425co",
+      "thumbnailUrl": "https://i.ytimg.com/vi/Wfw383425co/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:88",
       "number": 88,
-      "title": "Ep 88",
-      "videoUrl": null,
+      "title": "EP 88 — History in the Making?",
+      "videoUrl": "https://www.youtube.com/watch?v=ufXRTWT9-lg",
+      "thumbnailUrl": "https://i.ytimg.com/vi/ufXRTWT9-lg/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
+    },
+    {
+      "id": "ep:87",
+      "number": 87,
+      "title": "EP 87 — Destroying the Old World?",
+      "videoUrl": "https://www.youtube.com/watch?v=j5NQ2amXh8Y",
+      "thumbnailUrl": "https://i.ytimg.com/vi/j5NQ2amXh8Y/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:86",
+      "number": 86,
+      "title": "EP 86 — Hidden Old World Senses?",
+      "videoUrl": "https://www.youtube.com/watch?v=GEkui3pPXm0",
+      "thumbnailUrl": "https://i.ytimg.com/vi/GEkui3pPXm0/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
       "id": "ep:85",
       "number": 85,
-      "title": "EP 85",
-      "videoUrl": null,
+      "title": "EP 85 — The REAL Reason USA Invaded Iraq?",
+      "videoUrl": "https://www.youtube.com/watch?v=Hsxz4czLf8M",
+      "thumbnailUrl": "https://i.ytimg.com/vi/Hsxz4czLf8M/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:84",
       "number": 84,
-      "title": "EP 84",
-      "videoUrl": null,
+      "title": "EP 84 — Old World Underground Cities & Maps?",
+      "videoUrl": "https://www.youtube.com/watch?v=sZCFEAxG8Xk",
+      "thumbnailUrl": "https://i.ytimg.com/vi/sZCFEAxG8Xk/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
+    },
+    {
+      "id": "ep:83",
+      "number": 83,
+      "title": "EP 83 — Here Be Dragons?",
+      "videoUrl": "https://www.youtube.com/watch?v=Mqb52_QECJs",
+      "thumbnailUrl": "https://i.ytimg.com/vi/Mqb52_QECJs/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
       "id": "ep:82",
       "number": 82,
-      "title": "EP 82",
-      "videoUrl": null,
+      "title": "EP 82 — Shredding History?",
+      "videoUrl": "https://www.youtube.com/watch?v=60hpq-1x1tI",
+      "thumbnailUrl": "https://i.ytimg.com/vi/60hpq-1x1tI/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:81",
       "number": 81,
-      "title": "EP 81",
-      "videoUrl": null,
+      "title": "EP 81 — Statues in the Sky?",
+      "videoUrl": "https://www.youtube.com/watch?v=uVcaIIHLC7M",
+      "thumbnailUrl": "https://i.ytimg.com/vi/uVcaIIHLC7M/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:80",
       "number": 80,
-      "title": "EP 80",
-      "videoUrl": null,
+      "title": "EP 80 — Exposing Chicago's Tunnel System?",
+      "videoUrl": "https://www.youtube.com/watch?v=J6ns_pLRlGI",
+      "thumbnailUrl": "https://i.ytimg.com/vi/J6ns_pLRlGI/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
+    },
+    {
+      "id": "ep:79",
+      "number": 79,
+      "title": "EP 79 — Finding Old World Pyramids?",
+      "videoUrl": "https://www.youtube.com/watch?v=oNCqbLaAKEY",
+      "thumbnailUrl": "https://i.ytimg.com/vi/oNCqbLaAKEY/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:78",
+      "number": 78,
+      "title": "EP 78 — The Catacombs - Pt 2",
+      "videoUrl": "https://www.youtube.com/watch?v=fJ9tbzXkf2M",
+      "thumbnailUrl": "https://i.ytimg.com/vi/fJ9tbzXkf2M/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:77",
+      "number": 77,
+      "title": "EP 77 — A Little Season in New York City",
+      "videoUrl": "https://www.youtube.com/watch?v=jOOK_cmPQSQ",
+      "thumbnailUrl": "https://i.ytimg.com/vi/jOOK_cmPQSQ/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:76",
+      "number": 76,
+      "title": "EP 76 — Old World Minnesota?",
+      "videoUrl": "https://www.youtube.com/watch?v=oD10DWDVoyM",
+      "thumbnailUrl": "https://i.ytimg.com/vi/oD10DWDVoyM/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:75",
+      "number": 75,
+      "title": "EP 75 — Angels Helped Build the Old World? - Pt 1",
+      "videoUrl": "https://www.youtube.com/watch?v=JFnfOCzV9cw",
+      "thumbnailUrl": "https://i.ytimg.com/vi/JFnfOCzV9cw/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:74",
+      "number": 74,
+      "title": "EP 74 — Tartaria, Russia & The Old World?",
+      "videoUrl": "https://www.youtube.com/watch?v=5TB7ZnwXJco",
+      "thumbnailUrl": "https://i.ytimg.com/vi/5TB7ZnwXJco/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:73",
+      "number": 73,
+      "title": "EP 73 — Finding the Old World Caves?",
+      "videoUrl": "https://www.youtube.com/watch?v=d-kQ8Nr2VQM",
+      "thumbnailUrl": "https://i.ytimg.com/vi/d-kQ8Nr2VQM/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:72",
+      "number": 72,
+      "title": "EP 72 — The Catacombs - Pt 1",
+      "videoUrl": "https://www.youtube.com/watch?v=x2c-dSktnzE",
+      "thumbnailUrl": "https://i.ytimg.com/vi/x2c-dSktnzE/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
       "id": "ep:71",
       "number": 71,
-      "title": "EP 71",
-      "videoUrl": null,
+      "title": "EP 71 — The Old World Fire Games - Chapter 3 (Cleveland, Ohio)",
+      "videoUrl": "https://www.youtube.com/watch?v=bVtaqdtnTDA",
+      "thumbnailUrl": "https://i.ytimg.com/vi/bVtaqdtnTDA/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:70",
       "number": 70,
-      "title": "EP 70",
-      "videoUrl": null,
+      "title": "EP 70 — A Forbidden Old World Map?",
+      "videoUrl": "https://www.youtube.com/watch?v=vV2FgTlbYFg",
+      "thumbnailUrl": "https://i.ytimg.com/vi/vV2FgTlbYFg/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
+    },
+    {
+      "id": "ep:69",
+      "number": 69,
+      "title": "EP 69 — The Old World Fire Games - Chapter 2 (Italy - Australia - Ireland)",
+      "videoUrl": "https://www.youtube.com/watch?v=l1kHfxhS2Zc",
+      "thumbnailUrl": "https://i.ytimg.com/vi/l1kHfxhS2Zc/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:68",
+      "number": 68,
+      "title": "EP 68 — The Old World Fire Games - Chapter 1 (Edinburgh, Scotland)",
+      "videoUrl": "https://www.youtube.com/watch?v=ZN5fDv4Z1yU",
+      "thumbnailUrl": "https://i.ytimg.com/vi/ZN5fDv4Z1yU/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
       "id": "ep:67",
       "number": 67,
-      "title": "EP 67",
-      "videoUrl": null,
+      "title": "EP 67 — Scotland's Hidden History?",
+      "videoUrl": "https://www.youtube.com/watch?v=4IBPDNAp_lI",
+      "thumbnailUrl": "https://i.ytimg.com/vi/4IBPDNAp_lI/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:66",
       "number": 66,
-      "title": "EP 66",
-      "videoUrl": null,
+      "title": "EP 66 — The World Was Prepared For Us?",
+      "videoUrl": "https://www.youtube.com/watch?v=R1xkJOPxaiM",
+      "thumbnailUrl": "https://i.ytimg.com/vi/R1xkJOPxaiM/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
+    },
+    {
+      "id": "ep:65",
+      "number": 65,
+      "title": "EP 65 — All Money is Brand New?",
+      "videoUrl": "https://www.youtube.com/watch?v=ER6-8YSo1z0",
+      "thumbnailUrl": "https://i.ytimg.com/vi/ER6-8YSo1z0/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
       "id": "ep:64",
       "number": 64,
-      "title": "EP 64",
-      "videoUrl": null,
+      "title": "EP 64 — Budapest is the Old World?",
+      "videoUrl": "https://www.youtube.com/watch?v=bsV7TgS8IL4",
+      "thumbnailUrl": "https://i.ytimg.com/vi/bsV7TgS8IL4/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:63",
       "number": 63,
-      "title": "EP 63",
-      "videoUrl": null,
+      "title": "EP 63 — The World Population Lie?",
+      "videoUrl": "https://www.youtube.com/watch?v=Meg0dC4z1Js",
+      "thumbnailUrl": "https://i.ytimg.com/vi/Meg0dC4z1Js/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
+    },
+    {
+      "id": "ep:62",
+      "number": 62,
+      "title": "EP 62 — The Hidden History of Texas?",
+      "videoUrl": "https://www.youtube.com/watch?v=wPG_JU9oohg",
+      "thumbnailUrl": "https://i.ytimg.com/vi/wPG_JU9oohg/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
       "id": "ep:61",
       "number": 61,
-      "title": "EP 61",
-      "videoUrl": null,
+      "title": "EP 61 — The Old World Origins?",
+      "videoUrl": "https://www.youtube.com/watch?v=7F7JsLynvMY",
+      "thumbnailUrl": "https://i.ytimg.com/vi/7F7JsLynvMY/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:60",
       "number": 60,
-      "title": "EP 60",
+      "title": "EP 60 — Easter Island, Atlantis & The Land of Mu?",
       "videoUrl": "https://www.youtube.com/watch?v=A81zn6tEcrc",
+      "thumbnailUrl": "https://i.ytimg.com/vi/A81zn6tEcrc/hqdefault.jpg",
       "publishedAt": "2024-02-10T13:30:00-08:00",
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:59",
       "number": 59,
-      "title": "59",
-      "videoUrl": null,
+      "title": "EP 59 — 59",
+      "videoUrl": "https://www.youtube.com/watch?v=TZqzu34sUYo",
+      "thumbnailUrl": "https://i.ytimg.com/vi/TZqzu34sUYo/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:58",
       "number": 58,
-      "title": "58",
-      "videoUrl": null,
+      "title": "EP 58 — 58",
+      "videoUrl": "https://www.youtube.com/watch?v=HaFsfBA4BGo",
+      "thumbnailUrl": "https://i.ytimg.com/vi/HaFsfBA4BGo/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:57",
       "number": 57,
-      "title": "EP 57",
-      "videoUrl": null,
+      "title": "EP 57 — Buildings Hold Old World Gold?",
+      "videoUrl": "https://www.youtube.com/watch?v=6v-dXvOn07A",
+      "thumbnailUrl": "https://i.ytimg.com/vi/6v-dXvOn07A/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:56",
       "number": 56,
       "title": "EP 56 SCRIPT",
-      "videoUrl": null,
+      "videoUrl": "https://www.youtube.com/watch?v=fiA0c6AnkNU",
+      "thumbnailUrl": "https://i.ytimg.com/vi/fiA0c6AnkNU/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:55",
       "number": 55,
-      "title": "EP 55",
-      "videoUrl": null,
+      "title": "EP 55 — Balboa Park, Revealing Old World California?",
+      "videoUrl": "https://www.youtube.com/watch?v=JURo13V5c18",
+      "thumbnailUrl": "https://i.ytimg.com/vi/JURo13V5c18/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:54",
       "number": 54,
-      "title": "EP 54",
-      "videoUrl": null,
+      "title": "EP 54 — Finding a Pre-Reset Building?",
+      "videoUrl": "https://www.youtube.com/watch?v=Wdo1AIjv72o",
+      "thumbnailUrl": "https://i.ytimg.com/vi/Wdo1AIjv72o/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:53",
       "number": 53,
-      "title": "Episode 53 Script",
-      "videoUrl": null,
+      "title": "EP 53 — Episode 53 Script",
+      "videoUrl": "https://www.youtube.com/watch?v=dzr78SYGg4k",
+      "thumbnailUrl": "https://i.ytimg.com/vi/dzr78SYGg4k/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:52",
       "number": 52,
-      "title": "EP 52",
-      "videoUrl": null,
+      "title": "EP 52 — 1800's, Giants, Orphans and Two Asylums?",
+      "videoUrl": "https://www.youtube.com/watch?v=zfYItZIRCh8",
+      "thumbnailUrl": "https://i.ytimg.com/vi/zfYItZIRCh8/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:51",
       "number": 51,
-      "title": "51",
-      "videoUrl": null,
+      "title": "EP 51 — 51",
+      "videoUrl": "https://www.youtube.com/watch?v=R-_mAap7tl0",
+      "thumbnailUrl": "https://i.ytimg.com/vi/R-_mAap7tl0/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:50",
       "number": 50,
-      "title": "EP 50",
-      "videoUrl": null,
+      "title": "EP 50 — The 1773 Swedish Lie?",
+      "videoUrl": "https://www.youtube.com/watch?v=APSf2M_4AlQ",
+      "thumbnailUrl": "https://i.ytimg.com/vi/APSf2M_4AlQ/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:49",
       "number": 49,
-      "title": "EP 49",
-      "videoUrl": null,
+      "title": "EP 49 — Photos Hold 1803 Words?",
+      "videoUrl": "https://www.youtube.com/watch?v=uyR80boIM6A",
+      "thumbnailUrl": "https://i.ytimg.com/vi/uyR80boIM6A/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
+    },
+    {
+      "id": "ep:48",
+      "number": 48,
+      "title": "EP 48 — Barbarians in Airships?",
+      "videoUrl": "https://www.youtube.com/watch?v=OpfK1A4r_8w",
+      "thumbnailUrl": "https://i.ytimg.com/vi/OpfK1A4r_8w/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:47",
+      "number": 47,
+      "title": "EP 47 — The Old World East Coast?",
+      "videoUrl": "https://www.youtube.com/watch?v=5cwrcEJqw-E",
+      "thumbnailUrl": "https://i.ytimg.com/vi/5cwrcEJqw-E/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:46",
+      "number": 46,
+      "title": "EP 46 — The Old World in Cream City?",
+      "videoUrl": "https://www.youtube.com/watch?v=dihtaAj7BkY",
+      "thumbnailUrl": "https://i.ytimg.com/vi/dihtaAj7BkY/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:45",
+      "number": 45,
+      "title": "EP 45 — St. Louis, The Gateway to Egypt? Pt. 2",
+      "videoUrl": "https://www.youtube.com/watch?v=UzuxqRoyQ1w",
+      "thumbnailUrl": "https://i.ytimg.com/vi/UzuxqRoyQ1w/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
       "id": "ep:44",
       "number": 44,
-      "title": "EPISODE 44",
-      "videoUrl": null,
+      "title": "EP 44 — St. Louis, The Gateway to Egypt? Pt. 1",
+      "videoUrl": "https://www.youtube.com/watch?v=Nb-bQAt4Odo",
+      "thumbnailUrl": "https://i.ytimg.com/vi/Nb-bQAt4Odo/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
+    },
+    {
+      "id": "ep:43",
+      "number": 43,
+      "title": "EP 43 — 25 Days of Horses and Wagons?",
+      "videoUrl": "https://www.youtube.com/watch?v=uQCK380-NY4",
+      "thumbnailUrl": "https://i.ytimg.com/vi/uQCK380-NY4/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
       "id": "ep:42",
       "number": 42,
-      "title": "EPISODE 42",
-      "videoUrl": null,
+      "title": "EP 42 — Tunnels Below Our Feet?",
+      "videoUrl": "https://www.youtube.com/watch?v=jciQKw9OyVI",
+      "thumbnailUrl": "https://i.ytimg.com/vi/jciQKw9OyVI/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
+    },
+    {
+      "id": "ep:41",
+      "number": 41,
+      "title": "EP 41 — Artificial Intelligence Exposes our History?",
+      "videoUrl": "https://www.youtube.com/watch?v=sQSO201RjpM",
+      "thumbnailUrl": "https://i.ytimg.com/vi/sQSO201RjpM/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:40",
+      "number": 40,
+      "title": "EP 40 — Welcome to Tartaria, Wisconsin?",
+      "videoUrl": "https://www.youtube.com/watch?v=FUbUkmQDBKs",
+      "thumbnailUrl": "https://i.ytimg.com/vi/FUbUkmQDBKs/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
       "id": "ep:39",
       "number": 39,
-      "title": "EPISODE 39",
-      "videoUrl": null,
+      "title": "EP 39 — Secrets Behind the Symbols?",
+      "videoUrl": "https://www.youtube.com/watch?v=kXONP_aYHdQ",
+      "thumbnailUrl": "https://i.ytimg.com/vi/kXONP_aYHdQ/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
+    },
+    {
+      "id": "ep:38",
+      "number": 38,
+      "title": "EP 38 — Timeline Begins in 1800? - Pt 2",
+      "videoUrl": "https://www.youtube.com/watch?v=DIvAKt1l90E",
+      "thumbnailUrl": "https://i.ytimg.com/vi/DIvAKt1l90E/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
       "id": "ep:37",
       "number": 37,
-      "title": "Episode 37",
-      "videoUrl": null,
+      "title": "EP 37 — Star Forts and Flames?",
+      "videoUrl": "https://www.youtube.com/watch?v=WI9_3ANC8Ao",
+      "thumbnailUrl": "https://i.ytimg.com/vi/WI9_3ANC8Ao/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:36",
       "number": 36,
-      "title": "Episode 36",
+      "title": "EP 36 — Ancient Champaign?",
       "videoUrl": "https://www.youtube.com/watch?v=uwAIlHoZvPc",
+      "thumbnailUrl": "https://i.ytimg.com/vi/uwAIlHoZvPc/hqdefault.jpg",
       "publishedAt": "2023-08-26T13:30:04-07:00",
-      "status": "script"
+      "status": "verified"
+    },
+    {
+      "id": "ep:35",
+      "number": 35,
+      "title": "EP 35 — Ancient Detroit?",
+      "videoUrl": "https://www.youtube.com/watch?v=em4wMeIhrR0",
+      "thumbnailUrl": "https://i.ytimg.com/vi/em4wMeIhrR0/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:34",
+      "number": 34,
+      "title": "EP 34 — Ancient Budapest?",
+      "videoUrl": "https://www.youtube.com/watch?v=YGkFHJMLZMU",
+      "thumbnailUrl": "https://i.ytimg.com/vi/YGkFHJMLZMU/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:33",
+      "number": 33,
+      "title": "EP 33 — Ancient Pasadena?",
+      "videoUrl": "https://www.youtube.com/watch?v=qvnJEhCjNYQ",
+      "thumbnailUrl": "https://i.ytimg.com/vi/qvnJEhCjNYQ/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:32",
+      "number": 32,
+      "title": "EP 32 — Egypt, Illinois?",
+      "videoUrl": "https://www.youtube.com/watch?v=_eo4iAIU_Mo",
+      "thumbnailUrl": "https://i.ytimg.com/vi/_eo4iAIU_Mo/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
       "id": "ep:31",
       "number": 31,
-      "title": "Episode 31",
-      "videoUrl": null,
+      "title": "EP 31 — Old World Richmond?",
+      "videoUrl": "https://www.youtube.com/watch?v=zmuF3PUENXc",
+      "thumbnailUrl": "https://i.ytimg.com/vi/zmuF3PUENXc/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:30",
       "number": 30,
-      "title": "Episode 30",
-      "videoUrl": null,
+      "title": "EP 30 — Shiva's Construction?",
+      "videoUrl": "https://www.youtube.com/watch?v=jtUWGDA8qEg",
+      "thumbnailUrl": "https://i.ytimg.com/vi/jtUWGDA8qEg/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
       "id": "ep:29",
       "number": 29,
-      "title": "Episode 29",
-      "videoUrl": null,
+      "title": "EP 29 — His Story, Not Ours? | Pt 9",
+      "videoUrl": "https://www.youtube.com/watch?v=DlrgG5KPbPY",
+      "thumbnailUrl": "https://i.ytimg.com/vi/DlrgG5KPbPY/hqdefault.jpg",
       "publishedAt": null,
-      "status": "script"
+      "status": "verified"
     },
     {
-      "id": "video:zTa4YOrevRw",
-      "number": null,
-      "title": "Under the Vatican",
-      "videoUrl": "https://www.youtube.com/watch?v=zTa4YOrevRw",
-      "publishedAt": "2026-09-15T12:15:06-07:00",
-      "status": "needs-script"
+      "id": "ep:28",
+      "number": 28,
+      "title": "EP 28 — Masons Hold the Keys?",
+      "videoUrl": "https://www.youtube.com/watch?v=Z4_hfyLgn30",
+      "thumbnailUrl": "https://i.ytimg.com/vi/Z4_hfyLgn30/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
-      "id": "video:owUBhdFupqM",
-      "number": null,
-      "title": "The 5th Capitol",
-      "videoUrl": "https://www.youtube.com/watch?v=owUBhdFupqM",
-      "publishedAt": "2026-09-01T16:00:35-07:00",
-      "status": "needs-script"
+      "id": "ep:27",
+      "number": 27,
+      "title": "EP 27 — His Story, Not Ours? | Pt 8",
+      "videoUrl": "https://www.youtube.com/watch?v=cSlC1a8lqWQ",
+      "thumbnailUrl": "https://i.ytimg.com/vi/cSlC1a8lqWQ/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
-      "id": "video:YBhetRSf_vI",
-      "number": null,
-      "title": "Below our Feet...",
-      "videoUrl": "https://www.youtube.com/watch?v=YBhetRSf_vI",
-      "publishedAt": "2026-08-27T10:15:23-07:00",
-      "status": "needs-script"
+      "id": "ep:26",
+      "number": 26,
+      "title": "EP 26 — His Story, Not Ours? | Pt 7",
+      "videoUrl": "https://www.youtube.com/watch?v=19Uq0BUrLEk",
+      "thumbnailUrl": "https://i.ytimg.com/vi/19Uq0BUrLEk/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
-      "id": "video:c-vFxUx8iKU",
-      "number": null,
-      "title": "Finding Stone Heads",
-      "videoUrl": "https://www.youtube.com/watch?v=c-vFxUx8iKU",
-      "publishedAt": "2026-07-30T11:00:03-07:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:o-cPWosO4VQ",
-      "number": null,
-      "title": "Easter Island & Mu",
-      "videoUrl": "https://www.youtube.com/watch?v=o-cPWosO4VQ",
-      "publishedAt": "2026-07-08T11:15:21-07:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:4oqd6oGIrEQ",
-      "number": null,
-      "title": "Denied Access at Balboa Park",
-      "videoUrl": "https://www.youtube.com/watch?v=4oqd6oGIrEQ",
-      "publishedAt": "2026-07-02T11:30:13-07:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:SxqMs4URd-s",
-      "number": null,
-      "title": "Hitting the Nail on the Head",
-      "videoUrl": "https://www.youtube.com/watch?v=SxqMs4URd-s",
-      "publishedAt": "2026-06-16T14:00:34-07:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:77KHqWK3Aww",
-      "number": null,
-      "title": "Old World Marathon #8",
-      "videoUrl": "https://www.youtube.com/watch?v=77KHqWK3Aww",
-      "publishedAt": "2026-06-09T11:00:35-07:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:-62QY3ivmtc",
-      "number": null,
-      "title": "The Pillar of Fire",
-      "videoUrl": "https://www.youtube.com/watch?v=-62QY3ivmtc",
-      "publishedAt": "2026-06-06T13:30:16-07:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:q11UD-av4-8",
-      "number": null,
-      "title": "Land of Mu & The Old World",
-      "videoUrl": "https://www.youtube.com/watch?v=q11UD-av4-8",
-      "publishedAt": "2026-04-28T09:30:18-07:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:syISeLEO29Y",
-      "number": null,
-      "title": "Old World Marathon #7",
-      "videoUrl": "https://www.youtube.com/watch?v=syISeLEO29Y",
-      "publishedAt": "2026-04-04T13:30:14-07:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:rpGQC0w9g24",
-      "number": null,
-      "title": "This Shouldn't Be Here?",
-      "videoUrl": "https://www.youtube.com/watch?v=rpGQC0w9g24",
-      "publishedAt": "2026-03-25T10:15:11-07:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:pT_bkHf2XPU",
-      "number": null,
-      "title": "Beings & Angels?",
-      "videoUrl": "https://www.youtube.com/watch?v=pT_bkHf2XPU",
-      "publishedAt": "2026-03-24T09:30:20-07:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:utvZY-73VDk",
-      "number": null,
-      "title": "Old World Bell & Towers",
-      "videoUrl": "https://www.youtube.com/watch?v=utvZY-73VDk",
-      "publishedAt": "2026-03-21T13:30:08-07:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:Mf4dgnPVh90",
-      "number": null,
-      "title": "The Baal Cycle",
-      "videoUrl": "https://www.youtube.com/watch?v=Mf4dgnPVh90",
-      "publishedAt": "2026-02-17T09:30:11-08:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:KHF0N1B6OqA",
-      "number": null,
-      "title": "Finding Things in the Jungle",
-      "videoUrl": "https://www.youtube.com/watch?v=KHF0N1B6OqA",
-      "publishedAt": "2026-02-05T09:30:11-08:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:8IaOXjwhDAY",
-      "number": null,
-      "title": "Hoover Dam's Hidden Purpose",
-      "videoUrl": "https://www.youtube.com/watch?v=8IaOXjwhDAY",
-      "publishedAt": "2026-02-03T09:00:11-08:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:B7ZLRjT4r3k",
-      "number": null,
-      "title": "Mountains are Military Bases?",
-      "videoUrl": "https://www.youtube.com/watch?v=B7ZLRjT4r3k",
-      "publishedAt": "2026-01-27T09:00:11-08:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:XOxI08bUZZU",
-      "number": null,
-      "title": "Sinking the Truth?",
-      "videoUrl": "https://www.youtube.com/watch?v=XOxI08bUZZU",
-      "publishedAt": "2026-01-20T12:20:11-08:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:FVimvHv2520",
-      "number": null,
-      "title": "Structures from the Previous Civilization",
-      "videoUrl": "https://www.youtube.com/watch?v=FVimvHv2520",
-      "publishedAt": "2025-12-31T09:00:23-08:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:TrBTfZNCbU0",
-      "number": null,
-      "title": "Backed Into a Corner: NYPL",
-      "videoUrl": "https://www.youtube.com/watch?v=TrBTfZNCbU0",
-      "publishedAt": "2025-12-20T13:30:09-08:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:nCioEefUGTg",
-      "number": null,
-      "title": "No Public Entry?",
-      "videoUrl": "https://www.youtube.com/watch?v=nCioEefUGTg",
-      "publishedAt": "2025-12-03T09:01:39-08:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:cwffR1IoaR8",
-      "number": null,
-      "title": "The Hidden World Beneath Us",
-      "videoUrl": "https://www.youtube.com/watch?v=cwffR1IoaR8",
-      "publishedAt": "2025-11-19T08:01:06-08:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:5QPcdVSWqB4",
-      "number": null,
-      "title": "No Blueprints: The Lead Up",
-      "videoUrl": "https://www.youtube.com/watch?v=5QPcdVSWqB4",
-      "publishedAt": "2025-11-15T13:30:01-08:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:tPF1zyrS_7c",
-      "number": null,
-      "title": "Old World Marathon #5",
-      "videoUrl": "https://www.youtube.com/watch?v=tPF1zyrS_7c",
-      "publishedAt": "2025-10-29T08:01:48-07:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:AP2l0ptA7Jw",
-      "number": null,
-      "title": "Old World Marathon #5 (DIM)",
-      "videoUrl": "https://www.youtube.com/watch?v=AP2l0ptA7Jw",
-      "publishedAt": "2025-10-10T08:44:47-07:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:2xd2w11DWtc",
-      "number": null,
-      "title": "History’s Most SHOCKING Claims?",
-      "videoUrl": "https://www.youtube.com/watch?v=2xd2w11DWtc",
-      "publishedAt": "2025-09-03T08:00:06-07:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:6SRKqlWcu48",
-      "number": null,
-      "title": "Old World Marathon #4",
-      "videoUrl": "https://www.youtube.com/watch?v=6SRKqlWcu48",
-      "publishedAt": "2025-08-20T08:00:12-07:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:ATN6FUGwRuY",
-      "number": null,
-      "title": "Old World Hidden Map?",
-      "videoUrl": "https://www.youtube.com/watch?v=ATN6FUGwRuY",
-      "publishedAt": "2025-06-04T08:00:29-07:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:Us29VQIpdb4",
-      "number": null,
-      "title": "Virginia, History in the Making?",
-      "videoUrl": "https://www.youtube.com/watch?v=Us29VQIpdb4",
-      "publishedAt": "2025-05-14T08:01:00-07:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:wWKGihsTZW0",
-      "number": null,
-      "title": "The Old World Was ERASED?",
-      "videoUrl": "https://www.youtube.com/watch?v=wWKGihsTZW0",
-      "publishedAt": "2025-05-07T08:01:42-07:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:7VFFovOd9p8",
-      "number": null,
-      "title": "A Little Help From Angels?",
-      "videoUrl": "https://www.youtube.com/watch?v=7VFFovOd9p8",
-      "publishedAt": "2025-02-19T08:00:08-08:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:PTBrNwIu3u0",
-      "number": null,
-      "title": "Old World Marathon #1",
-      "videoUrl": "https://www.youtube.com/watch?v=PTBrNwIu3u0",
-      "publishedAt": "2025-01-22T08:00:05-08:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:XpND73HNtQE",
-      "number": null,
-      "title": "Off Limits to the Public - Pt 2",
-      "videoUrl": "https://www.youtube.com/watch?v=XpND73HNtQE",
-      "publishedAt": "2025-01-18T13:30:06-08:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:sjliAaMSXvc",
-      "number": null,
-      "title": "The Old World Hidden Map?",
-      "videoUrl": "https://www.youtube.com/watch?v=sjliAaMSXvc",
-      "publishedAt": "2025-01-15T08:00:06-08:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:cTsb4-d3JJA",
-      "number": null,
-      "title": "The End of The Century",
-      "videoUrl": "https://www.youtube.com/watch?v=cTsb4-d3JJA",
-      "publishedAt": "2024-11-09T13:30:06-08:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:pg2DKvFHl9c",
-      "number": null,
-      "title": "An Island Filled With Giants?",
-      "videoUrl": "https://www.youtube.com/watch?v=pg2DKvFHl9c",
-      "publishedAt": "2024-10-30T08:00:05-07:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:-OZuUCLXX5M",
-      "number": null,
-      "title": "Balboa, One Final Time?",
-      "videoUrl": "https://www.youtube.com/watch?v=-OZuUCLXX5M",
-      "publishedAt": "2024-10-02T08:00:17-07:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:uVcaIIHLC7M",
-      "number": null,
-      "title": "Statues in the Sky?",
-      "videoUrl": "https://www.youtube.com/watch?v=uVcaIIHLC7M",
-      "publishedAt": "2024-07-06T13:30:04-07:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:7F7JsLynvMY",
-      "number": null,
-      "title": "The Old World Origins?",
-      "videoUrl": "https://www.youtube.com/watch?v=7F7JsLynvMY",
-      "publishedAt": "2024-02-17T13:30:00-08:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:6v-dXvOn07A",
-      "number": null,
-      "title": "Buildings Hold Old World Gold?",
-      "videoUrl": "https://www.youtube.com/watch?v=6v-dXvOn07A",
-      "publishedAt": "2024-01-20T13:30:00-08:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:fiA0c6AnkNU",
-      "number": null,
-      "title": "80 Years, Denying Public Access?",
-      "videoUrl": "https://www.youtube.com/watch?v=fiA0c6AnkNU",
-      "publishedAt": "2024-01-13T13:30:02-08:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:JURo13V5c18",
-      "number": null,
-      "title": "Balboa Park, Revealing Old World California?",
-      "videoUrl": "https://www.youtube.com/watch?v=JURo13V5c18",
-      "publishedAt": "2024-01-06T13:30:01-08:00",
-      "status": "needs-script"
-    },
-    {
-      "id": "video:rp_5j3_c1Gg",
-      "number": null,
-      "title": "Fabricated History?",
+      "id": "ep:25",
+      "number": 25,
+      "title": "EP 25 — Fabricated History?",
       "videoUrl": "https://www.youtube.com/watch?v=rp_5j3_c1Gg",
-      "publishedAt": "2023-06-10T13:30:03-07:00",
-      "status": "needs-script"
+      "thumbnailUrl": "https://i.ytimg.com/vi/rp_5j3_c1Gg/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
-      "id": "video:CcWUAnCg7G0",
-      "number": null,
-      "title": "Old World Scotland?",
+      "id": "ep:24",
+      "number": 24,
+      "title": "EP 24 — His Story, Not Ours? | Pt 6",
+      "videoUrl": "https://www.youtube.com/watch?v=vb6p-waGrfU",
+      "thumbnailUrl": "https://i.ytimg.com/vi/vb6p-waGrfU/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:23",
+      "number": 23,
+      "title": "EP 23 — His Story, Not Ours? | Pt 5",
+      "videoUrl": "https://www.youtube.com/watch?v=ZNiH5r7_3Gg",
+      "thumbnailUrl": "https://i.ytimg.com/vi/ZNiH5r7_3Gg/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:22",
+      "number": 22,
+      "title": "EP 22 — His Story, Not Ours? | Pt 4",
+      "videoUrl": "https://www.youtube.com/watch?v=wj6zmiL0QD4",
+      "thumbnailUrl": "https://i.ytimg.com/vi/wj6zmiL0QD4/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:21",
+      "number": 21,
+      "title": "EP 21 — His Story, Not Ours? | Pt 3",
+      "videoUrl": "https://www.youtube.com/watch?v=HMIMtL-bYY4",
+      "thumbnailUrl": "https://i.ytimg.com/vi/HMIMtL-bYY4/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:20",
+      "number": 20,
+      "title": "EP 20 — His Story, Not Ours? | Pt 2",
+      "videoUrl": "https://www.youtube.com/watch?v=q87OK8ctmX0",
+      "thumbnailUrl": "https://i.ytimg.com/vi/q87OK8ctmX0/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:19",
+      "number": 19,
+      "title": "EP 19 — His Story, Not Ours? | Pt 1",
+      "videoUrl": "https://www.youtube.com/watch?v=VoAwp9MNrlg",
+      "thumbnailUrl": "https://i.ytimg.com/vi/VoAwp9MNrlg/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:18",
+      "number": 18,
+      "title": "EP 18 — Old World is Worldwide? | Part 5",
+      "videoUrl": "https://www.youtube.com/watch?v=xLqrItMpfS4",
+      "thumbnailUrl": "https://i.ytimg.com/vi/xLqrItMpfS4/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:17",
+      "number": 17,
+      "title": "EP 17 — Old World is Worldwide? | Part 4",
+      "videoUrl": "https://www.youtube.com/watch?v=Xkx4PSe4vJ8",
+      "thumbnailUrl": "https://i.ytimg.com/vi/Xkx4PSe4vJ8/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:16",
+      "number": 16,
+      "title": "EP 16 — Old World is Worldwide? | Part 3",
+      "videoUrl": "https://www.youtube.com/watch?v=ExMsf7hzs-I",
+      "thumbnailUrl": "https://i.ytimg.com/vi/ExMsf7hzs-I/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:15",
+      "number": 15,
+      "title": "EP 15 — Old World is Worldwide? | Part 2",
+      "videoUrl": "https://www.youtube.com/watch?v=QdkOvKwhClA",
+      "thumbnailUrl": "https://i.ytimg.com/vi/QdkOvKwhClA/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:14",
+      "number": 14,
+      "title": "EP 14 — Old World is Worldwide? | Part 1",
+      "videoUrl": "https://www.youtube.com/watch?v=T7nDWSdPzvc",
+      "thumbnailUrl": "https://i.ytimg.com/vi/T7nDWSdPzvc/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:13",
+      "number": 13,
+      "title": "EP 13 — 1800 Made People Insane? - Pt 1",
+      "videoUrl": "https://www.youtube.com/watch?v=nXIXljqXrjQ",
+      "thumbnailUrl": "https://i.ytimg.com/vi/nXIXljqXrjQ/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:12",
+      "number": 12,
+      "title": "EP 12 — Ancient Star Fort Cities?",
+      "videoUrl": "https://www.youtube.com/watch?v=uvfyi5WGW4c",
+      "thumbnailUrl": "https://i.ytimg.com/vi/uvfyi5WGW4c/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:11",
+      "number": 11,
+      "title": "EP 11 — There Were Giants?",
+      "videoUrl": "https://www.youtube.com/watch?v=B24IGDO-w4s",
+      "thumbnailUrl": "https://i.ytimg.com/vi/B24IGDO-w4s/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:10",
+      "number": 10,
+      "title": "EP 10 — Timeline Begins in 1800? - Pt 1",
+      "videoUrl": "https://www.youtube.com/watch?v=MSvkRYoPCkk",
+      "thumbnailUrl": "https://i.ytimg.com/vi/MSvkRYoPCkk/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:9",
+      "number": 9,
+      "title": "EP 9 — Suburban Chicago is Ancient?",
+      "videoUrl": "https://www.youtube.com/watch?v=Mw8pFb8qfVY",
+      "thumbnailUrl": "https://i.ytimg.com/vi/Mw8pFb8qfVY/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:8",
+      "number": 8,
+      "title": "EP 8 — Old World Scotland?",
       "videoUrl": "https://www.youtube.com/watch?v=CcWUAnCg7G0",
-      "publishedAt": "2023-02-25T22:06:27-08:00",
-      "status": "needs-script"
+      "thumbnailUrl": "https://i.ytimg.com/vi/CcWUAnCg7G0/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     },
     {
-      "id": "video:dfNFeb3g4dQ",
-      "number": null,
-      "title": "Tombs of the Kings",
-      "videoUrl": "https://www.youtube.com/watch?v=dfNFeb3g4dQ",
-      "publishedAt": "2026-09-19T02:11:08+00:00",
-      "status": "needs-script"
+      "id": "ep:7",
+      "number": 7,
+      "title": "EP 7 — Great Fires in All Cities?",
+      "videoUrl": "https://www.youtube.com/watch?v=1HoXXkCMcjM",
+      "thumbnailUrl": "https://i.ytimg.com/vi/1HoXXkCMcjM/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:6",
+      "number": 6,
+      "title": "EP 6 — Who Built the US Capitol Buildings?",
+      "videoUrl": "https://www.youtube.com/watch?v=KQHKp0k_HAw",
+      "thumbnailUrl": "https://i.ytimg.com/vi/KQHKp0k_HAw/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:5",
+      "number": 5,
+      "title": "EP 5 — Melted Buildings are Mountains?",
+      "videoUrl": "https://www.youtube.com/watch?v=zHpb5_16bKE",
+      "thumbnailUrl": "https://i.ytimg.com/vi/zHpb5_16bKE/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:4",
+      "number": 4,
+      "title": "EP 4 — Destroying Ancient Buildings?",
+      "videoUrl": "https://www.youtube.com/watch?v=Nmlr1yayJo8",
+      "thumbnailUrl": "https://i.ytimg.com/vi/Nmlr1yayJo8/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:3",
+      "number": 3,
+      "title": "EP 3 — Earth is Ancient?",
+      "videoUrl": "https://www.youtube.com/watch?v=tdocqbYb7Jk",
+      "thumbnailUrl": "https://i.ytimg.com/vi/tdocqbYb7Jk/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:2",
+      "number": 2,
+      "title": "EP 2 — USA is Ancient? - History Different Than We’re Told - LB #19",
+      "videoUrl": "https://www.youtube.com/watch?v=_fU9CHW6QyU",
+      "thumbnailUrl": "https://i.ytimg.com/vi/_fU9CHW6QyU/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
+    },
+    {
+      "id": "ep:1",
+      "number": 1,
+      "title": "EP 1 — The Veiled Virgin - How did they make this amazing statue? - LB #1",
+      "videoUrl": "https://www.youtube.com/watch?v=qAyihacVFDg",
+      "thumbnailUrl": "https://i.ytimg.com/vi/qAyihacVFDg/hqdefault.jpg",
+      "publishedAt": null,
+      "status": "verified"
     }
   ],
   "appearances": [
