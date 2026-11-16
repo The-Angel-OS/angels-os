@@ -93,9 +93,9 @@ export const RenderBlocks: React.FC<{
           const { blockName, blockType } = block
           const normalizedName = typeof blockName === 'string' ? blockName.trim().toLowerCase() : ''
 
-          // Zero-migration directive: any Content block named "old-world-atlas",
-          // "spy-satellite-atlas", or "audience-monitor" renders the interactive
-          // 3D Spy-Satellite Globe, City Scanner & MLB Audience Monitor inline.
+          // Zero-migration directives:
+          // - "spy-satellite-atlas" / "old-world-atlas" -> renders 3D Globe + Sector Scanner (showAudienceMonitor: false if "spy-satellite-atlas")
+          // - "audience-monitor" -> renders 11-platform Audience Monitor
           if (
             blockType === 'content' &&
             (normalizedName === 'old-world-atlas' ||
@@ -104,7 +104,10 @@ export const RenderBlocks: React.FC<{
           ) {
             return (
               <div className="container my-8" key={index}>
-                <OldWorldAtlas showAudienceMonitor={normalizedName !== 'spy-satellite-atlas'} />
+                <OldWorldAtlas
+                  showAudienceMonitor={normalizedName === 'audience-monitor' || normalizedName === 'old-world-atlas'}
+                  showGlobeAndRecon={normalizedName !== 'audience-monitor'}
+                />
               </div>
             )
           }
