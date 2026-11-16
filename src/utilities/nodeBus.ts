@@ -235,7 +235,7 @@ export async function mintNodeToken(
   const secretKey = new TextEncoder().encode(payload.secret)
   const issuedAt = Math.floor(now.getTime() / 1000)
   const token = await new SignJWT({ id: user.id, email: user.email, collection: 'users', sid })
-    .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+    .setProtectedHeader({ alg: 'HS256', authVersion: 1, typ: 'JWT' })
     .setIssuedAt(issuedAt)
     .setExpirationTime(Math.floor(expiresAt.getTime() / 1000))
     .sign(secretKey)

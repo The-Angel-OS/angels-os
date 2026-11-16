@@ -426,7 +426,7 @@ export const authGithubCallbackHandler: PayloadHandler = async (req) => {
     const expiration = issuedAt + 14 * 24 * 60 * 60 // 14 days
 
     const payloadToken = await new SignJWT({ id: user.id, email: user.email, collection: 'users', sid })
-      .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+      .setProtectedHeader({ alg: 'HS256', authVersion: 1, typ: 'JWT' })
       .setIssuedAt(issuedAt)
       .setExpirationTime(expiration)
       .sign(secretKey)

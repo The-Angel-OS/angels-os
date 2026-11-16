@@ -124,7 +124,7 @@ export const authSystemTokenHandler: PayloadHandler = async (req) => {
       collection: 'users',
       sid,
     })
-      .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+      .setProtectedHeader({ alg: 'HS256', authVersion: 1, typ: 'JWT' })
       .setIssuedAt(issuedAt)
       .setExpirationTime(expiration)
       .sign(secretKey)
