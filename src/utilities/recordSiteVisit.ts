@@ -29,7 +29,7 @@ import { isAbVariant } from '@/utilities/abVariant'
 const IGNORED_PREFIXES = ['/api', '/admin', '/dashboard', '/next', '/_next', '/favicon']
 
 const BOT_RE =
-  /bot|crawler|spider|crawling|slurp|bingpreview|facebookexternalhit|whatsapp|telegram|preview|monitor|curl|wget|python-requests|headless|lighthouse|pingdom|uptime/i
+  /bot|crawler|spider|crawling|slurp|bingpreview|facebookexternalhit|whatsapp|telegram|preview|monitor|curl|wget|python-requests|headless|lighthouse|pingdom|uptime|gptbot|chatgpt-user|oai-searchbot|claudebot|claude-web|anthropic-ai|bytespider|ccbot|perplexitybot|ahrefsbot|semrushbot|mj12bot|dotbot|blexbot|petalbot|dataforseobot|amazonbot|meta-externalagent|applebot|twitterbot|linkedinbot|slackbot|discordbot/i
 
 export interface VisitInput {
   tenantId?: number | string | null
@@ -134,6 +134,12 @@ export async function recordSiteVisit(payload: Payload, input: VisitInput): Prom
 
     const userAgent = (input.userAgent || '').slice(0, 500)
     const { browser, os, device, isBot } = parseUserAgent(userAgent)
+
+    // Skip database INSERTs for bots/crawlers by default so crawler traffic
+    // cannot bloat site_visits or burn Postgres I/O. Set LOG_BOT_VISITS=true
+    // only if temporarily debugging search-engine indexing.
+    if (isBot && process.env.LOG_BOT_VISITS !== 'true') return
+
     const referrer = (input.referrer || '').slice(0, 500) || undefined
 
     await payload.create({

@@ -5,7 +5,7 @@
  * dependencies.
  */
 import { describe, it, expect } from 'vitest'
-import deepMerge, { isObject } from '@/utilities/deepMerge'
+import deepMerge, { isObject, scrubObjectPrototype } from '@/utilities/deepMerge'
 
 // ── isObject ─────────────────────────────────────────────────────────────────
 
@@ -108,5 +108,25 @@ describe('deepMerge', () => {
     const result = deepMerge({ keep: 'me', override: 'old' }, { override: 'new' })
     expect(result.keep).toBe('me')
     expect(result.override).toBe('new')
+  })
+
+  it('ignores __proto__, constructor, and prototype keys to prevent prototype pollution', () => {
+    const malicious = JSON.parse('{"__proto__":{"polluted":true},"constructor":{"prototype":{"bad":true}},"safe":1}')
+    const result = deepMerge({ a: 1 }, malicious)
+    expect(result).toEqual({ a: 1, safe: 1 })
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined()
+    expect(({} as Record<string, unknown>).bad).toBeUndefined()
+  })
+})
+
+describe('scrubObjectPrototype', () => {
+  it('removes enumerable properties added to Object.prototype', () => {
+    ;(Object.prototype as Record<string, unknown>).overrideAccess = [{ joinPath: 'j' }]
+    expect(Object.keys(Object.prototype)).toContain('overrideAccess')
+
+    const scrubbed = scrubObjectPrototype()
+    expect(scrubbed).toContain('overrideAccess')
+    expect(Object.keys(Object.prototype)).toEqual([])
+    expect(({} as Record<string, unknown>).overrideAccess).toBeUndefined()
   })
 })

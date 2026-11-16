@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import {
   parseUserAgent,
+  recordSiteVisit,
   referrerHostOf,
   isVisitPath,
   visitorHashOf,
@@ -70,6 +71,33 @@ describe('parseUserAgent', () => {
       device: 'bot',
     })
     expect(parseUserAgent('curl/8.0').isBot).toBe(true)
+    expect(parseUserAgent('Mozilla/5.0 (compatible; GPTBot/1.2)').isBot).toBe(true)
+    expect(parseUserAgent('Mozilla/5.0 (compatible; AhrefsBot/7.0)').isBot).toBe(true)
+  })
+})
+
+describe('recordSiteVisit — skips DB writes for bots', () => {
+  it('does not call payload.create for bot user agents', async () => {
+    const create = vi.fn().mockResolvedValue({})
+    const fakePayload = { create } as never
+    await recordSiteVisit(fakePayload, {
+      tenantId: 1,
+      path: '/about',
+      userAgent: 'Mozilla/5.0 (compatible; Googlebot/2.1)',
+    })
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('calls payload.create for human browser user agents', async () => {
+    const create = vi.fn().mockResolvedValue({})
+    const fakePayload = { create } as never
+    await recordSiteVisit(fakePayload, {
+      tenantId: 1,
+      path: '/about',
+      userAgent:
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36',
+    })
+    expect(create).toHaveBeenCalledTimes(1)
   })
 })
 

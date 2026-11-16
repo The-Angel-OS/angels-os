@@ -43,7 +43,7 @@ ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
 RUN PAYLOAD_SECRET="${PAYLOAD_SECRET:-build_time_placeholder_secret_not_used_at_runtime_00}" \
     DATABASE_URI="${DATABASE_URI:-postgres://build:build@localhost:5432/build}" \
     NODE_OPTIONS="--no-deprecation --max-old-space-size=4096" \
-    pnpm exec next build
+    pnpm exec next build && rm -rf .next/cache
 
 # ── runner ──
 FROM base AS runner

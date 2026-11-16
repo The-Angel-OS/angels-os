@@ -3,6 +3,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { routing } from './i18n/routing'
 import { detectTenantFromHostname } from './middleware/detectTenant'
 import {
+  checkAnonymousCrawlLimit,
+  isBlockedBotUserAgent,
+  isBlockedScannerPath,
+} from './middleware/botFilter'
+import { scrubObjectPrototype } from './utilities/deepMerge'
+import {
   AB_COOKIE,
   AB_COOKIE_MAX_AGE,
   AB_HEADER,
@@ -27,6 +33,63 @@ const TENANT_HEADER = 'x-tenant-id'
 const handleI18nRouting = createMiddleware(routing)
 
 export default async function middleware(request: NextRequest) {
+  // Self-heal any in-memory Object.prototype pollution immediately
+  scrubObjectPrototype()
+
+  const { pathname } = request.nextUrl
+  const ua = request.headers.get('user-agent')
+
+  // ── 1. Edge Scanner Path Block (<1ms, 0 DB queries) ───────────────────────
+  // Drop WordPress/PHP/.env/VCS exploit probes before Next.js routing or
+  // /[locale]/[...slug] page lookups ever run.
+  if (isBlockedScannerPath(pathname)) {
+    return new NextResponse('Not Found', {
+      status: 404,
+      headers: { 'Cache-Control': 'public, max-age=86400' },
+    })
+  }
+
+  // ── 2. Edge Bad-Bot & AI Scraper Block ────────────────────────────────────
+  // Allow /api/health and /api/stripe/webhooks regardless of UA; block known
+  // AI training scrapers, SEO bulk crawlers, and CLI scanners everywhere else.
+  if (
+    !pathname.startsWith('/api/health') &&
+    !pathname.startsWith('/api/stripe') &&
+    isBlockedBotUserAgent(ua)
+  ) {
+    return new NextResponse('Forbidden', {
+      status: 403,
+      headers: { 'Cache-Control': 'public, max-age=86400' },
+    })
+  }
+
+  // Block automated Server Action / Flight fuzzing from non-browser/bot clients
+  if (request.headers.has('next-action') && (!ua || /bot|crawler|spider|curl|wget|python|http/i.test(ua))) {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
+
+  // ── 3. Anonymous Page Crawl Burst Limiter ─────────────────────────────────
+  // Protect public SSR pages from disguised scrapers hammering hundreds of
+  // pages per minute from a single IP using a spoofed browser User-Agent.
+  const clientIp =
+    request.headers.get('cf-connecting-ip') ||
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip')
+  if (
+    !pathname.startsWith('/api') &&
+    !pathname.startsWith('/admin') &&
+    !pathname.startsWith('/dashboard') &&
+    !request.cookies.has('payload-token')
+  ) {
+    const crawlCheck = checkAnonymousCrawlLimit(clientIp)
+    if (!crawlCheck.allowed) {
+      return new NextResponse('Too Many Requests', {
+        status: 429,
+        headers: { 'Retry-After': String(crawlCheck.retryAfterSeconds) },
+      })
+    }
+  }
+
   const hostname = request.headers.get('host')?.split(':')[0] ?? 'localhost'
 
   // Redirect legacy default. subdomain to www.
