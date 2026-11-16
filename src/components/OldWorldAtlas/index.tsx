@@ -6,7 +6,9 @@ import rawLandmassPolygons from '@/data/world-landmass.json'
 
 const landmassPolygons = rawLandmassPolygons as number[][][]
 
-export interface AtlasPlace {
+export import { DonkeyExcavationHero } from '@/components/mlb/DonkeyExcavationHero'
+
+interface AtlasPlace {
   id: string
   name: string
   city: string | null
@@ -139,12 +141,14 @@ const MILESTONES = [
 
 export const OldWorldAtlas: React.FC<{
   initialData?: AtlasArchiveData
+  showExcavationHero?: boolean
   showAudienceMonitor?: boolean
   showGlobeAndRecon?: boolean
   title?: string
   subtitle?: string
 }> = ({
   initialData,
+  showExcavationHero = true,
   showAudienceMonitor = true,
   showGlobeAndRecon = true,
   title = 'SPY SATELLITE // OLD WORLD & TARTARIA ARCHIVE',
@@ -719,7 +723,19 @@ export const OldWorldAtlas: React.FC<{
   )
 
   return (
-    <section className="w-full bg-[#070a10] text-slate-100 rounded-2xl border border-amber-500/20 shadow-2xl overflow-hidden my-6">
+    <>
+      {showExcavationHero && !focusMode && (
+        <DonkeyExcavationHero
+          onExploreAtlas={() => {
+            const el = document.getElementById('orbital-recon-section')
+            if (el) el.scrollIntoView({ behavior: 'smooth' })
+          }}
+        />
+      )}
+      <section
+        id="orbital-recon-section"
+        className="w-full bg-[#070a10] text-slate-100 rounded-2xl border border-amber-500/20 shadow-2xl overflow-hidden my-6"
+      >
       {/* ── Top Classified Telemetry Header ── */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-amber-500/20 bg-[#0b101b] px-6 py-4">
         <div>
@@ -1398,5 +1414,6 @@ export const OldWorldAtlas: React.FC<{
         </>
       )}
     </section>
+    </>
   )
 }

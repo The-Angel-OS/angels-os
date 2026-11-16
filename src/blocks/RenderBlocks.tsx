@@ -105,6 +105,7 @@ export const RenderBlocks: React.FC<{
             return (
               <div className="container my-8" key={index}>
                 <OldWorldAtlas
+                  showExcavationHero={normalizedName === 'old-world-atlas'}
                   showAudienceMonitor={normalizedName === 'audience-monitor' || normalizedName === 'old-world-atlas'}
                   showGlobeAndRecon={normalizedName !== 'audience-monitor'}
                 />
