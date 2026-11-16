@@ -64,6 +64,7 @@ export const ArchiveBlock: React.FC<
       // at depth 1 they come back as raw IDs and every card reads "No image".
       depth: 2,
       limit,
+      sort: collection === 'posts' ? '-publishedOn' : '-createdAt',
       where: {
         and: [
           ...(tenant?.id != null ? [{ tenant: { equals: tenant.id } }] : []),

@@ -86,3 +86,7 @@ chat-archive/
 docs/demo-shots/
 docs/The-Angel-OS-Demo.pptx
 src/scripts/_local/assets/
+
+# Database backups
+backups/
+*.sql
