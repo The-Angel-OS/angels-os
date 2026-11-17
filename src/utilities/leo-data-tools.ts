@@ -78,7 +78,7 @@ import {
 } from './invitationSystem'
 import { calculateUltimateFairSplit } from '@/lib/ultimate-fair-split'
 import { logCaughtError, logError } from './logError'
-import { searchGeoArchive } from './searchGeoArchive'
+import { searchGeoArchive, type GeoArchiveSearchInput } from './searchGeoArchive'
 import { revalidateAfterMutation } from './revalidateContent'
 import { affectedPublicUrl, affectedUrlDirective } from './affectedUrl'
 import { validateToolInput, PAYLOAD_CRUD_ALLOWED_COLLECTIONS } from './toolInputSchemas'
