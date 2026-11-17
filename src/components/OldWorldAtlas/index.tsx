@@ -368,6 +368,13 @@ export const OldWorldAtlas: React.FC<{
   })
   const projectedPinsRef = useRef<Array<{ x: number; y: number; r: number; place: AtlasPlace }>>([])
 
+  // Keep cameraRef in sync with camera state for fresh reads inside touch callbacks
+  const cameraRef = useRef(camera)
+  useEffect(() => {
+    cameraRef.current = camera
+  }, [camera])
+  const pinchStartRef = useRef<{ dist: number; zoom: number }>({ dist: 0, zoom: 12 })
+
   useEffect(() => {
     if (viewMode !== 'globe' && viewMode !== 'gleason') return
     const canvas = globeCanvasRef.current
@@ -609,6 +616,118 @@ export const OldWorldAtlas: React.FC<{
 
     projectedPinsRef.current = pins
   }, [viewMode, shaderMode, camera, filteredPlaces, selectedPlace])
+
+  // ── Touch & Pointer Gestures for Mobile (Android Chrome, iOS Safari) ────────
+  useEffect(() => {
+    const canvas = globeCanvasRef.current
+    if (!canvas) return
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        // Single finger drag / rotation
+        isDraggingRef.current = true
+        const t = e.touches[0]
+        dragStartRef.current = {
+          x: t.clientX,
+          y: t.clientY,
+          lat: cameraRef.current.lat,
+          lon: cameraRef.current.lon,
+        }
+        pinchStartRef.current = { dist: 0, zoom: cameraRef.current.zoom }
+      } else if (e.touches.length === 2) {
+        // Two-finger pinch-to-zoom
+        isDraggingRef.current = false
+        const t1 = e.touches[0]
+        const t2 = e.touches[1]
+        const d = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY)
+        pinchStartRef.current = {
+          dist: Math.max(10, d),
+          zoom: cameraRef.current.zoom,
+        }
+      }
+    }
+
+    const onTouchMove = (e: TouchEvent) => {
+      // Prevent browser default behavior: viewport zoom & page scrolling on canvas
+      if (e.cancelable) {
+        e.preventDefault()
+      }
+
+      if (e.touches.length === 1 && isDraggingRef.current) {
+        const t = e.touches[0]
+        const dx = t.clientX - dragStartRef.current.x
+        const dy = t.clientY - dragStartRef.current.y
+        setCamera((prev) => ({
+          ...prev,
+          lat: Math.max(-80, Math.min(80, dragStartRef.current.lat + dy * 0.25)),
+          lon: ((dragStartRef.current.lon - dx * 0.35 + 540) % 360) - 180,
+        }))
+      } else if (e.touches.length === 2 && pinchStartRef.current.dist > 0) {
+        const t1 = e.touches[0]
+        const t2 = e.touches[1]
+        const d = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY)
+        const scale = d / pinchStartRef.current.dist
+        setCamera((prev) => ({
+          ...prev,
+          zoom: Math.max(1.5, Math.min(18, pinchStartRef.current.zoom * scale)),
+        }))
+      }
+    }
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length === 0) {
+        if (isDraggingRef.current && e.changedTouches.length === 1) {
+          const t = e.changedTouches[0]
+          const moved =
+            Math.hypot(t.clientX - dragStartRef.current.x, t.clientY - dragStartRef.current.y) > 8
+          if (!moved && globeCanvasRef.current) {
+            const rect = globeCanvasRef.current.getBoundingClientRect()
+            const mx = t.clientX - rect.left
+            const my = t.clientY - rect.top
+            const hit = projectedPinsRef.current.find(
+              (pin) => Math.hypot(pin.x - mx, pin.y - my) <= pin.r + 10,
+            )
+            if (hit) setSelectedPlace(hit.place)
+          }
+        }
+        isDraggingRef.current = false
+        pinchStartRef.current = { dist: 0, zoom: cameraRef.current.zoom }
+      } else if (e.touches.length === 1) {
+        // Transitioned from 2 fingers down to 1 finger
+        isDraggingRef.current = true
+        const t = e.touches[0]
+        dragStartRef.current = {
+          x: t.clientX,
+          y: t.clientY,
+          lat: cameraRef.current.lat,
+          lon: cameraRef.current.lon,
+        }
+        pinchStartRef.current = { dist: 0, zoom: cameraRef.current.zoom }
+      }
+    }
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      setCamera((prev) => ({
+        ...prev,
+        zoom: Math.max(1.5, Math.min(18, prev.zoom + (e.deltaY < 0 ? 0.6 : -0.6))),
+      }))
+    }
+
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false })
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false })
+    canvas.addEventListener('touchend', onTouchEnd, { passive: false })
+    canvas.addEventListener('touchcancel', onTouchEnd, { passive: false })
+    canvas.addEventListener('wheel', onWheel, { passive: false })
+
+    return () => {
+      canvas.removeEventListener('touchstart', onTouchStart)
+      canvas.removeEventListener('touchmove', onTouchMove)
+      canvas.removeEventListener('touchend', onTouchEnd)
+      canvas.removeEventListener('touchcancel', onTouchEnd)
+      canvas.removeEventListener('wheel', onWheel)
+    }
+  }, [])
 
   // ── High-Zoom Street / Satellite Recon Map (Leaflet via CDN) ────────────────
   const mapContainerRef = useRef<HTMLDivElement | null>(null)
@@ -1093,10 +1212,11 @@ export const OldWorldAtlas: React.FC<{
         {/* Left 7 Cols: Interactive Viewport */}
         <div className="lg:col-span-7 relative border-b lg:border-b-0 lg:border-r border-slate-800 bg-[#05080e] min-h-[460px]">
           {viewMode === 'recon' ? (
-            <div ref={mapContainerRef} className="h-[540px] w-full z-0" />
+            <div ref={mapContainerRef} className="h-[540px] w-full z-0 touch-none" />
           ) : (
             <canvas
               ref={globeCanvasRef}
+              style={{ touchAction: 'none' }}
               onMouseDown={(e) => {
                 isDraggingRef.current = true
                 dragStartRef.current = {
@@ -1130,14 +1250,7 @@ export const OldWorldAtlas: React.FC<{
                   if (hit) setSelectedPlace(hit.place)
                 }
               }}
-              onWheel={(e) => {
-                e.preventDefault()
-                setCamera((prev) => ({
-                  ...prev,
-                  zoom: Math.max(1.5, Math.min(18, prev.zoom + (e.deltaY < 0 ? 0.5 : -0.5))),
-                }))
-              }}
-              className="h-[540px] w-full cursor-grab active:cursor-grabbing block"
+              className="h-[540px] w-full cursor-grab active:cursor-grabbing block touch-none select-none"
             />
           )}
 
@@ -1152,6 +1265,9 @@ export const OldWorldAtlas: React.FC<{
             <div className="text-amber-400">
               MODE: {viewMode.toUpperCase()} ({shaderMode.toUpperCase()})
             </div>
+            <div className="text-[10px] text-slate-400 sm:hidden">
+              📱 Pinch to zoom · Drag to rotate
+            </div>
           </div>
 
           {/* Zoom + Switch to Street Recon Controls */}
@@ -1159,16 +1275,16 @@ export const OldWorldAtlas: React.FC<{
             <button
               type="button"
               onClick={() => setCamera((p) => ({ ...p, zoom: Math.min(18, p.zoom + 1) }))}
-              className="rounded border border-slate-700 bg-slate-900/90 px-2.5 py-1 text-xs font-mono text-white hover:border-amber-400"
+              className="rounded border border-slate-700 bg-slate-900/90 px-3 py-1.5 text-xs font-mono text-white hover:border-amber-400 active:scale-95 touch-manipulation select-none"
             >
               + ZOOM IN
             </button>
             <button
               type="button"
               onClick={() => setCamera((p) => ({ ...p, zoom: Math.max(1.5, p.zoom - 1) }))}
-              className="rounded border border-slate-700 bg-slate-900/90 px-2.5 py-1 text-xs font-mono text-white hover:border-amber-400"
+              className="rounded border border-slate-700 bg-slate-900/90 px-3 py-1.5 text-xs font-mono text-white hover:border-amber-400 active:scale-95 touch-manipulation select-none"
             >
-              - ZOOM OUT
+              − ZOOM OUT
             </button>
             {viewMode !== 'recon' && (
               <button
