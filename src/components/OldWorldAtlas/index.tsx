@@ -186,11 +186,11 @@ export const OldWorldAtlas: React.FC<{
     setImgError(false)
   }, [selectedPlace?.id])
 
-  // Camera state (shared between Globe & Recon Map) - default to US Capitol
+  // Camera state (shared between Globe & Recon Map) - default to panoramic least zoom showing US and transatlantic pins
   const [camera, setCamera] = useState<{ lat: number; lon: number; zoom: number }>({
-    lat: 38.8897,
-    lon: -77.0089,
-    zoom: 12,
+    lat: 28,
+    lon: -50,
+    zoom: 3.2,
   })
 
   // Fetch initial archive if not passed as prop
@@ -203,26 +203,16 @@ export const OldWorldAtlas: React.FC<{
         if (json.places?.length) {
           const defaultPlace = json.places.find((p) => p.id === 'Q54109') || json.places[0]
           setSelectedPlace(defaultPlace)
-          const lat = parseFloat(defaultPlace.latitude)
-          const lon = parseFloat(defaultPlace.longitude)
-          if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
-            setCamera({ lat, lon, zoom: 12 })
-          }
         }
       })
       .catch(() => {})
   }, [data])
 
-  // Select US Capitol by default once loaded
+  // Select US Capitol by default once loaded (card preview only, preserve least zoom)
   useEffect(() => {
     if (data?.places?.length && !selectedPlace) {
       const defaultPlace = data.places.find((p) => p.id === 'Q54109') || data.places[0]
       setSelectedPlace(defaultPlace)
-      const lat = parseFloat(defaultPlace.latitude)
-      const lon = parseFloat(defaultPlace.longitude)
-      if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
-        setCamera({ lat, lon, zoom: 12 })
-      }
     }
   }, [data, selectedPlace])
 

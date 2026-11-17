@@ -78,6 +78,7 @@ import {
 } from './invitationSystem'
 import { calculateUltimateFairSplit } from '@/lib/ultimate-fair-split'
 import { logCaughtError, logError } from './logError'
+import { searchGeoArchive } from './searchGeoArchive'
 import { revalidateAfterMutation } from './revalidateContent'
 import { affectedPublicUrl, affectedUrlDirective } from './affectedUrl'
 import { validateToolInput, PAYLOAD_CRUD_ALLOWED_COLLECTIONS } from './toolInputSchemas'
@@ -240,6 +241,33 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
         },
       },
       required: [],
+    },
+  },
+  {
+    name: 'search_geo_archive',
+    description:
+      'Search the geo-coded investigation archive (episodes, architectural anomaly landmarks, world reset research, star forts, geopolymer stonework, and anomalous locations) for the current endeavor or cross-federation research (e.g. My Lunch Break, Jon Levi, UFO/anomalous phenomena). Returns matching episodes, timestamped architectural claims, coordinates, and direct video/post links. Use whenever users ask about episodes, statues, buildings, World Fairs, star forts, or historical research.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Search query (e.g. "Veiled Virgin", "Tampa Post Office", "geopolymer liquid marble", "World\'s Fair Chicago", "star fort", "subterranean windows")',
+        },
+        category: {
+          type: 'string',
+          description: 'Optional category filter: "episodes", "places", "star_forts", "cathedrals", "train_stations", "all"',
+        },
+        tenantSlug: {
+          type: 'string',
+          description: 'Optional tenant slug override (defaults to current tenant, e.g. "mlb", "jonlevi")',
+        },
+        limit: {
+          type: 'number',
+          description: 'Max results (default 5, max 10)',
+        },
+      },
+      required: ['query'],
     },
   },
   {
@@ -4466,6 +4494,8 @@ async function executeToolSwitch(
         return await queryProducts(payload, toolInput, tenantId)
       case 'query_posts':
         return await queryPosts(payload, toolInput, tenantId)
+      case 'search_geo_archive':
+        return await searchGeoArchive(payload, toolInput, tenantId)
       case 'query_site_content':
         return await querySiteContent(payload, toolInput, tenantId)
       case 'query_bookings':

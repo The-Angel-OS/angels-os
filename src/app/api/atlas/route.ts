@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import mlbArchive from '@/data/mlb-archive.json'
+import curatedLayersData from '@/data/curated-atlas-layers.json'
 
 export const dynamic = 'force-dynamic'
 
@@ -345,6 +346,14 @@ async function fetchGlobalLayer(layerKey: string): Promise<ScannedPlace[]> {
   if (globalLayerCache.has(layerKey)) {
     return globalLayerCache.get(layerKey)!
   }
+
+  // Check verified curated ground-truth layers first (accurate, non-hallucinated)
+  const curated = (curatedLayersData as Record<string, ScannedPlace[]>)[layerKey]
+  if (curated && curated.length > 0) {
+    globalLayerCache.set(layerKey, curated)
+    return curated
+  }
+
   const spec = GLOBAL_LAYER_SPARQL[layerKey]
   if (!spec) return []
 
