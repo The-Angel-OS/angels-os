@@ -57,7 +57,7 @@ export function injectEpisodesUnderNav(
   episodes: PostLite[],
   opts: { max?: number } = {},
 ): NavItem[] {
-  const max = opts.max ?? 200
+  const max = opts.max ?? 1000
   const items = Array.isArray(navItems) ? navItems : []
 
   const episodeChildren = (Array.isArray(episodes) ? episodes : [])

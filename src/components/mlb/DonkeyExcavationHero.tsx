@@ -474,18 +474,18 @@ export const DonkeyExcavationHero: React.FC<{
   return (
     <section className="relative overflow-hidden rounded-2xl border border-slate-800 bg-[#060a0f] text-white shadow-2xl mb-8">
       {/* ── Top Header Bar: Neon Title & Subtitle ── */}
-      <div className="relative z-10 px-6 pt-6 pb-2 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-900 bg-slate-950/70 backdrop-blur-md">
+      <div className="relative z-10 px-4 sm:px-6 pt-3 pb-2 flex flex-col md:flex-row md:items-end justify-between gap-3 border-b border-slate-900 bg-slate-950/70 backdrop-blur-md">
         <div>
           {/* Channel Tag */}
-          <div className="flex items-center gap-2 mb-1.5">
+          <div className="flex items-center gap-2 mb-1">
             <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
-            <span className="text-[11px] font-mono uppercase tracking-widest text-emerald-400 font-semibold">
+            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-widest text-emerald-400 font-semibold">
               MY LUNCH BREAK · WORLDWIDE COMMUNITY ARCHIVE
             </span>
           </div>
 
           {/* Authentic Neon Sign with Flickering 'U' */}
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-wider flex flex-wrap items-baseline gap-x-3 select-none">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-wider flex flex-wrap items-baseline gap-x-2.5 select-none">
             {titleWords.map((group, wi) => (
               <span key={wi} className="inline-flex">
                 {group.letters.map((char, li) => {
@@ -513,23 +513,23 @@ export const DonkeyExcavationHero: React.FC<{
             ))}
           </h1>
 
-          <p className="mt-1 text-sm font-medium text-slate-300 tracking-wide">
+          <p className="mt-0.5 text-xs sm:text-sm font-medium text-slate-300 tracking-wide">
             Your community, all in one place.
           </p>
         </div>
 
         {/* Quick Action Badges */}
-        <div className="flex flex-wrap items-center gap-2 pb-1">
+        <div className="flex flex-wrap items-center gap-2 pb-0.5">
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-1.5 rounded-lg border border-amber-500/50 bg-amber-500/10 px-3.5 py-1.5 text-xs font-mono font-bold text-amber-300 hover:bg-amber-500/20 hover:border-amber-400 transition-all shadow-lg"
+            className="flex items-center gap-1.5 rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-1 text-xs font-mono font-bold text-amber-300 hover:bg-amber-500/20 hover:border-amber-400 transition-all shadow-lg"
           >
             <span>⛏</span> VIEW EXCAVATION ARCHIVE
           </button>
           <Link
             href="/shop"
-            className="flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-950/40 px-3 py-1.5 text-xs font-mono font-semibold text-cyan-300 hover:bg-cyan-900/50 transition-colors"
+            className="flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-950/40 px-3 py-1 text-xs font-mono font-semibold text-cyan-300 hover:bg-cyan-900/50 transition-colors"
           >
             <span>👕</span> DONKEY&apos;S INC. MERCH
           </Link>
@@ -537,7 +537,7 @@ export const DonkeyExcavationHero: React.FC<{
             <button
               type="button"
               onClick={onExploreAtlas}
-              className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-xs font-mono text-slate-300 hover:text-white hover:border-slate-500 transition-colors"
+              className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-1 text-xs font-mono text-slate-300 hover:text-white hover:border-slate-500 transition-colors"
             >
               <span>🛰</span> 3D ATLAS ↓
             </button>
@@ -546,12 +546,12 @@ export const DonkeyExcavationHero: React.FC<{
       </div>
 
       {/* ── Main Canvas Viewport: Donkey's Inc. + Subterranean Mud-Flood Radar ── */}
-      <div className="relative w-full aspect-[16/7] min-h-[300px] max-h-[520px] bg-[#060a0f]">
+      <div className="relative w-full aspect-[16/5.5] min-h-[200px] max-h-[340px] bg-[#060a0f]">
         <canvas
           ref={canvasRef}
           width={1440}
           height={720}
-          className="h-full w-full object-cover select-none"
+          className="h-full w-full object-contain select-none"
         />
 
         {/* Floating Narrative Overlay */}
@@ -588,17 +588,17 @@ export const DonkeyExcavationHero: React.FC<{
       </div>
 
       {/* ── Bottom Interactive Control Bar: Ground-Penetrating Radar Slider ── */}
-      <div className="border-t border-slate-800 bg-[#090d16] px-6 py-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+      <div className="border-t border-slate-800 bg-[#090d16] px-4 sm:px-6 py-2.5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         {/* Scrubber Label */}
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-2 text-emerald-400 font-mono text-xs">
+        <div className="flex items-center gap-2.5">
+          <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-2 py-1 text-emerald-400 font-mono text-[11px]">
             📡 GPR RADAR
           </div>
           <div>
-            <div className="text-xs font-mono uppercase tracking-wider text-slate-400">
+            <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
               GROUND-PENETRATING EXCAVATION SLIDER
             </div>
-            <div className="text-sm font-bold font-mono text-amber-300">
+            <div className="text-xs font-bold font-mono text-amber-300">
               {depthFt === 0
                 ? 'SURFACE LEVEL · OFFICIAL HORSE & BUGGY NARRATIVE (0 FT)'
                 : `SUBTERRANEAN DEPTH: -${depthFt} FT · MUD-FLOOD STRATA EXPOSED`}

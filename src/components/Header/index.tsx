@@ -150,12 +150,12 @@ export async function Header({ tenant }: Props) {
         }))
 
       // Latest posts → Posts dropdown, each with its meta image (or YouTube thumbnail)
-      // as a thumbnail. Fetch up to 200 so episode-heavy portals (MLB) can scroll
-      // their full archive inside the Posts dropdown.
+      // as a thumbnail. Fetch up to 1000 so episode-heavy portals (MLB) can display
+      // their full archive inside the Episodes dropdown without truncating recent episodes.
       const posts = await payload.find({
         collection: 'posts',
         where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'published' } }] },
-        limit: 200,
+        limit: 1000,
         depth: 1, // resolve meta.image → media
         sort: '-publishedOn',
         overrideAccess: true,
@@ -269,7 +269,7 @@ export async function Header({ tenant }: Props) {
         navItems.push({ id: 'shop', link: { type: 'custom', label: 'Shop', url: '/shop' } })
       }
 
-      navItems = injectEpisodesUnderNav(navItems, episodeList, { max: 200 })
+      navItems = injectEpisodesUnderNav(navItems, episodeList, { max: 1000 })
       navItems = injectPostsUnderNav(navItems, postList, { max: 50 })
       navItems = injectProductsUnderNav(navItems, productList)
       navItems = injectEventsUnderNav(navItems, eventList)
