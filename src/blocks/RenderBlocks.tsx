@@ -26,7 +26,7 @@ import { VideoBlockComponent } from '@/blocks/Video/Component'
 import { ShowcaseBlock } from '@/blocks/Showcase/Component'
 import { ProductPanelBlock } from '@/blocks/ProductPanel/Component'
 import { OldWorldAtlas } from '@/components/OldWorldAtlas'
-import { UAPRadarAtlas } from '@/components/UAPRadarAtlas'
+import { UAPGlobeAtlas } from '@/components/UAPGlobeAtlas'
 import { toKebabCase } from '@/utilities/toKebabCase'
 import React, { Fragment } from 'react'
 
@@ -120,7 +120,7 @@ export const RenderBlocks: React.FC<{
           ) {
             return (
               <div className="container my-8" key={index}>
-                <UAPRadarAtlas />
+                <UAPGlobeAtlas />
               </div>
             )
           }

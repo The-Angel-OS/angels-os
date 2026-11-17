@@ -1,5 +1,3 @@
-import fetch from 'node-fetch'
-
 const CRON_SECRET = '47ff6a5a8b02f942d2359cd3fccdb8798b37208e01a5633ee88e916c6cbe26ae'
 const BASE_URL = 'https://www.spacesangels.com'
 

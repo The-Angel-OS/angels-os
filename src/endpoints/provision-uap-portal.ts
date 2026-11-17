@@ -261,8 +261,13 @@ export const provisionUapPortalHandler: PayloadHandler = async (req) => {
       log,
     })
   } catch (error) {
-    const err = error as Error
+    const err = error as any
     console.error('[provision-uap-portal] failed:', err)
-    return Response.json({ ok: false, error: err.message, stack: err.stack }, { status: 500 })
+    return Response.json({
+      ok: false,
+      error: err.message,
+      data: err.data || err.errors || null,
+      stack: err.stack,
+    }, { status: 500 })
   }
 }
