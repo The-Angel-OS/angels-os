@@ -7,6 +7,7 @@ import rawLandmassPolygons from '@/data/world-landmass.json'
 const landmassPolygons = rawLandmassPolygons as number[][][]
 
 import { DonkeyExcavationHero } from '@/components/mlb/DonkeyExcavationHero'
+import { AudienceScoreboard } from '@/components/mlb/AudienceScoreboard'
 
 interface AtlasPlace {
   id: string
@@ -884,99 +885,8 @@ export const OldWorldAtlas: React.FC<{
       </div>
 
       {/* ── 1. Audience Monitor & 11-Platform Social Matrix ── */}
-      {showAudienceMonitor && !focusMode && platforms.length > 0 && (
-        <div className="border-b border-slate-800/80 bg-[#090d16] px-6 py-6">
-          <div className="flex flex-wrap items-end justify-between gap-6">
-            <div>
-              <div className="text-xs font-mono uppercase tracking-widest text-cyan-400">
-                MY LUNCH BREAK AUDIENCE MONITOR · 11 NETWORKS
-              </div>
-              <div className="mt-1 flex items-baseline gap-4">
-                <span className="font-mono text-4xl md:text-5xl font-extrabold tracking-tight text-amber-400">
-                  {totalAudience.toLocaleString()}
-                </span>
-                <span className="text-xs font-mono text-emerald-400">
-                  +27.2M YOUTUBE VIEWS · LIVE TELEMETRY
-                </span>
-              </div>
-            </div>
-
-            <div className="flex-1 min-w-[260px] max-w-md">
-              <div className="flex items-center justify-between text-xs font-mono text-slate-300 mb-1.5">
-                <span>
-                  {milestoneRemaining.toLocaleString()} TO GO · {milestonePct.toFixed(2)}%
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowMilestones((s) => !s)}
-                  className="text-amber-400 hover:underline"
-                >
-                  Target: {(selectedMilestone / 1_000_000).toFixed(1)}M ▾
-                </button>
-              </div>
-              <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-800">
-                <div
-                  className="h-full bg-gradient-to-r from-amber-500 to-cyan-400 transition-all duration-500"
-                  style={{ width: `${milestonePct}%` }}
-                />
-              </div>
-              {showMilestones && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {MILESTONES.map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => {
-                        setSelectedMilestone(m)
-                        setShowMilestones(false)
-                      }}
-                      className={`rounded px-2 py-0.5 text-[11px] font-mono border ${
-                        selectedMilestone === m
-                          ? 'border-amber-400 bg-amber-500/20 text-amber-300'
-                          : 'border-slate-700 bg-slate-900 text-slate-400'
-                      }`}
-                    >
-                      {m / 1_000_000}M
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* 11-Platform Matrix */}
-          <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
-            {platforms.map((plat) => (
-              <a
-                key={plat.id}
-                href={plat.url || '#'}
-                target={plat.url ? '_blank' : undefined}
-                rel="noreferrer"
-                className="group rounded-lg border border-slate-800 bg-[#0d1320] p-3 hover:border-amber-500/40 transition-colors"
-              >
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-slate-200">{plat.name}</span>
-                  <span
-                    className="font-mono text-[10px] px-1.5 py-0.5 rounded"
-                    style={{ backgroundColor: `${plat.color}22`, color: plat.color }}
-                  >
-                    {plat.status === 'current' ? 'LIVE' : 'SYNC'}
-                  </span>
-                </div>
-                <div className="mt-1.5 font-mono text-lg font-bold text-white">
-                  {Number(plat.count || 0).toLocaleString()}
-                </div>
-                <div className="mt-0.5 text-[11px] font-mono text-slate-400 truncate">
-                  {plat.gain28 != null && plat.gain28 > 0 ? (
-                    <span className="text-emerald-400">+{plat.gain28.toLocaleString()} (28d)</span>
-                  ) : (
-                    <span>{plat.handle || plat.unit}</span>
-                  )}
-                </div>
-              </a>
-            ))}
-          </div>
-        </div>
+      {showAudienceMonitor && !focusMode && (
+        <AudienceScoreboard initialPlatforms={platforms} />
       )}
 
       {/* ── 2. Spy-Satellite Mode Switcher & Live City / Carnegie / Post Office Scanner ── */}
