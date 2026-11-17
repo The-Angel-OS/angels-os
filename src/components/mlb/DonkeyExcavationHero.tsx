@@ -70,57 +70,57 @@ export const DonkeyExcavationHero: React.FC<{
     let animId = 0
     let running = true
 
-    // Internal virtual resolution: 360 x 180 (scaled by 4x for high-DPI crispness)
-    const VW = 360
+    // Internal virtual resolution: 720 x 180 (scaled by 2x on 1440x360 canvas)
+    const VW = 720
     const VH = 180
 
     const render = (timeMs: number) => {
       if (!running) return
       const t = timeMs / 1000
 
-      ctx.setTransform(4, 0, 0, 4, 0, 0)
+      ctx.setTransform(2, 0, 0, 2, 0, 0)
       ctx.clearRect(0, 0, VW, VH)
 
       // ── 1. Sky & Horizon ──
       ctx.fillStyle = '#060a0f'
       ctx.fillRect(0, 0, VW, VH)
 
-      // Ambient night horizon glow behind dome
-      const horizonGrad = ctx.createRadialGradient(224, 90, 10, 224, 90, 120)
+      // Ambient night horizon glow behind dome (centered at x = 565)
+      const horizonGrad = ctx.createRadialGradient(565, 85, 10, 565, 85, 140)
       horizonGrad.addColorStop(0, 'rgba(40, 70, 60, 0.25)')
       horizonGrad.addColorStop(1, 'rgba(6, 10, 15, 0)')
       ctx.fillStyle = horizonGrad
-      ctx.fillRect(100, 20, 240, 110)
+      ctx.fillRect(400, 10, 320, 150)
 
-      // ── 2. Street Level Line (y = 126) ──
-      const groundY = 126
+      // ── 2. Street Level Line (y = 135) ──
+      const groundY = 135
       ctx.strokeStyle = '#475569'
       ctx.lineWidth = 0.8
       ctx.beginPath()
-      ctx.moveTo(0, groundY)
+      ctx.moveTo(330, groundY)
       ctx.lineTo(VW, groundY)
       ctx.stroke()
 
       // Cobblestone / dirt texture specs
       ctx.fillStyle = '#1e293b'
-      for (let i = 0; i < VW; i += 8) {
+      for (let i = 330; i < VW; i += 8) {
         ctx.fillRect(i + ((i * 13) % 5), groundY + 1, 3, 1)
       }
 
-      // ── 3. Waving Flag: "DONKEY'S INC." (x: 10, y: 69 to 92) ──
+      // ── 3. Waving Flag: "DONKEY'S INC." (x: 345, y: 76 to 100) ──
       const flagWave = (n: number) => Math.sin(t * 3.2 - n * 5) * 1.5 + Math.sin(t * 1.8 - n * 3) * 0.8
 
       // Flagpole
       ctx.beginPath()
-      ctx.moveTo(9, groundY)
-      ctx.lineTo(9, 64)
+      ctx.moveTo(345, groundY)
+      ctx.lineTo(345, 72)
       ctx.strokeStyle = '#78716c'
       ctx.lineWidth = 1.3
       ctx.stroke()
 
       // Gold finial on top of flagpole
       ctx.beginPath()
-      ctx.arc(9, 63.5, 1.2, 0, Math.PI * 2)
+      ctx.arc(345, 71.5, 1.3, 0, Math.PI * 2)
       ctx.fillStyle = '#f59e0b'
       ctx.fill()
 
@@ -128,20 +128,20 @@ export const DonkeyExcavationHero: React.FC<{
       ctx.beginPath()
       for (let i = 0; i <= 20; i++) {
         const u = i / 20
-        const x = 10 + u * 50
-        const y = 67 + flagWave(u)
+        const x = 346 + u * 52
+        const y = 75 + flagWave(u)
         if (i === 0) ctx.moveTo(x, y)
         else ctx.lineTo(x, y)
       }
       for (let i = 20; i >= 0; i--) {
         const u = i / 20
-        const x = 10 + u * 50
-        const y = 88 + flagWave(u)
+        const x = 346 + u * 52
+        const y = 96 + flagWave(u)
         ctx.lineTo(x, y)
       }
       ctx.closePath()
 
-      const flagGrad = ctx.createLinearGradient(10, 67, 60, 88)
+      const flagGrad = ctx.createLinearGradient(346, 75, 400, 96)
       flagGrad.addColorStop(0, '#1d4ed8')
       flagGrad.addColorStop(1, '#0f172a')
       ctx.fillStyle = flagGrad
@@ -149,26 +149,26 @@ export const DonkeyExcavationHero: React.FC<{
 
       // Text on flag: "DONKEY'S INC."
       ctx.save()
-      ctx.font = 'bold 6.5px Georgia, serif'
+      ctx.font = 'bold 6.8px Georgia, serif'
       ctx.fillStyle = '#ffffff'
       ctx.shadowColor = '#020617'
       ctx.shadowBlur = 1
-      ctx.fillText("DONKEY'S", 14, 76 + flagWave(0.3))
-      ctx.font = 'bold 5.8px Georgia, serif'
-      ctx.fillText('INC.', 22, 84 + flagWave(0.5))
+      ctx.fillText("DONKEY'S", 350, 84 + flagWave(0.3))
+      ctx.font = 'bold 6px Georgia, serif'
+      ctx.fillText('INC.', 358, 92 + flagWave(0.5))
       ctx.restore()
 
-      // ── 4. The Neoclassical Capitol / Cathedral Dome (x: 130 to 314, y: 126 up to 24) ──
-      // Central dome facade outline
+      // ── 4. The Neoclassical Capitol / Cathedral Dome (shifted by +340px) ──
+      const X_BASE = 340
       const capitolOutline: [number, number][] = [
-        [130, 126], [130, 93], [140, 93], [140, 86], [148, 81],
-        [175, 81], [184, 86], [198, 86], [198, 71], [194, 71],
-        [194, 62], [197, 62], [197, 47], [202, 35], [211, 27],
-        [218, 24], [218, 15], [221, 15], [222, 9], [224, 15],
-        [227, 15], [227, 24], [235, 27], [244, 35], [249, 47],
-        [249, 62], [252, 62], [252, 71], [247, 71], [247, 86],
-        [261, 86], [270, 81], [297, 81], [305, 86], [305, 93],
-        [314, 93], [314, 126],
+        [X_BASE + 130, 135], [X_BASE + 130, 102], [X_BASE + 140, 102], [X_BASE + 140, 95], [X_BASE + 148, 90],
+        [X_BASE + 175, 90], [X_BASE + 184, 95], [X_BASE + 198, 95], [X_BASE + 198, 80], [X_BASE + 194, 80],
+        [X_BASE + 194, 71], [X_BASE + 197, 71], [X_BASE + 197, 56], [X_BASE + 202, 44], [X_BASE + 211, 36],
+        [X_BASE + 218, 33], [X_BASE + 218, 24], [X_BASE + 221, 24], [X_BASE + 222, 18], [X_BASE + 224, 24],
+        [X_BASE + 227, 24], [X_BASE + 227, 33], [X_BASE + 235, 36], [X_BASE + 244, 44], [X_BASE + 249, 56],
+        [X_BASE + 249, 71], [X_BASE + 252, 71], [X_BASE + 252, 80], [X_BASE + 247, 80], [X_BASE + 247, 95],
+        [X_BASE + 261, 95], [X_BASE + 270, 90], [X_BASE + 297, 90], [X_BASE + 305, 95], [X_BASE + 305, 102],
+        [X_BASE + 314, 102], [X_BASE + 314, 135],
       ]
 
       ctx.beginPath()
@@ -179,7 +179,7 @@ export const DonkeyExcavationHero: React.FC<{
       ctx.closePath()
 
       // Stone building fill gradient (marble / limestone)
-      const bldgGrad = ctx.createLinearGradient(130, 20, 314, 126)
+      const bldgGrad = ctx.createLinearGradient(X_BASE + 130, 25, X_BASE + 314, 135)
       bldgGrad.addColorStop(0, '#e2e8f0')
       bldgGrad.addColorStop(0.5, '#cbd5e1')
       bldgGrad.addColorStop(1, '#94a3b8')
@@ -190,8 +190,8 @@ export const DonkeyExcavationHero: React.FC<{
       ctx.stroke()
 
       // Neoclassical Dome detail (hemisphere with ribs)
-      const domeCx = 222.5
-      const domeCy = 55
+      const domeCx = X_BASE + 222.5
+      const domeCy = 64
       const domeR = 21
 
       ctx.beginPath()
@@ -213,19 +213,19 @@ export const DonkeyExcavationHero: React.FC<{
       }
 
       // Colonnade (Corinthian pillars on facade)
-      for (let colX = 145; colX <= 300; colX += 7.5) {
-        if ((colX > 192 && colX < 210) || (colX > 235 && colX < 252)) continue
+      for (let colX = X_BASE + 145; colX <= X_BASE + 300; colX += 7.5) {
+        if ((colX > X_BASE + 192 && colX < X_BASE + 210) || (colX > X_BASE + 235 && colX < X_BASE + 252)) continue
         ctx.fillStyle = '#f8fafc'
-        ctx.fillRect(colX, 90, 1.8, 36)
+        ctx.fillRect(colX, 99, 1.8, 36)
         ctx.fillStyle = '#0f172a'
-        ctx.fillRect(colX + 2.2, 98, 3.8, 22) // shadow / recessed window
+        ctx.fillRect(colX + 2.2, 107, 3.8, 22) // shadow / recessed window
       }
 
       // Grand Entrance Portico & Triangular Pediment
       ctx.beginPath()
-      ctx.moveTo(205, 86)
-      ctx.lineTo(222.5, 75)
-      ctx.lineTo(240, 86)
+      ctx.moveTo(X_BASE + 205, 95)
+      ctx.lineTo(domeCx, 84)
+      ctx.lineTo(X_BASE + 240, 95)
       ctx.closePath()
       ctx.fillStyle = '#f1f5f9'
       ctx.fill()
@@ -235,40 +235,39 @@ export const DonkeyExcavationHero: React.FC<{
 
       // Main Entrance Arch
       ctx.beginPath()
-      ctx.arc(222.5, 114, 4.5, Math.PI, 0)
-      ctx.lineTo(227, 126)
-      ctx.lineTo(218, 126)
+      ctx.arc(domeCx, 123, 4.5, Math.PI, 0)
+      ctx.lineTo(domeCx + 4.5, 135)
+      ctx.lineTo(domeCx - 4.5, 135)
       ctx.closePath()
       ctx.fillStyle = '#090d16'
       ctx.fill()
 
       // ── 5. Rickety Wooden Ladder Leaning on the 300ft Dome (Satire) ──
-      // Ladder extends from ground (x: 216, y: 126) up to the cupola (x: 221, y: 28)
       ctx.strokeStyle = '#b45309'
       ctx.lineWidth = 0.6
       ctx.beginPath()
-      ctx.moveTo(216, 126)
-      ctx.lineTo(221, 28)
-      ctx.moveTo(217.5, 126)
-      ctx.lineTo(222.5, 28)
+      ctx.moveTo(domeCx - 6.5, 135)
+      ctx.lineTo(domeCx - 1.5, 37)
+      ctx.moveTo(domeCx - 5, 135)
+      ctx.lineTo(domeCx, 37)
       ctx.stroke()
 
       // Rungs
-      for (let rungY = 32; rungY < 125; rungY += 4) {
-        const u = (rungY - 28) / (126 - 28)
-        const lx1 = 221 + (216 - 221) * u
-        const lx2 = 222.5 + (217.5 - 222.5) * u
+      for (let rungY = 41; rungY < 134; rungY += 4) {
+        const u = (rungY - 37) / (135 - 37)
+        const lx1 = domeCx - 1.5 + (-5) * (1 - u)
+        const lx2 = domeCx + (-5) * (1 - u)
         ctx.beginPath()
         ctx.moveTo(lx1, rungY)
-        ctx.lineTo(lx2, rungY)
+        ctx.lineTo(lx2 + 1.5, rungY)
         ctx.strokeStyle = '#d97706'
         ctx.lineWidth = 0.4
         ctx.stroke()
       }
 
-      // ── 6. The Procedural Donkey (x: 44, y: 124) ──
+      // ── 6. The Procedural Donkey (x: 400, y: 133) ──
       ctx.save()
-      ctx.translate(44, 124)
+      ctx.translate(400, 133)
       ctx.scale(0.85, 0.85)
 
       // Ground shadow
@@ -344,6 +343,14 @@ export const DonkeyExcavationHero: React.FC<{
       ctx.fillRect(-16 + tailWag, -0.5, 1.4, 1.2) // tail brush
 
       ctx.restore()
+
+      // Tiny mason worker figure standing at ladder base
+      ctx.fillStyle = '#94a3b8'
+      ctx.fillRect(domeCx - 8.5, 129, 1.5, 5) // body
+      ctx.beginPath()
+      ctx.arc(domeCx - 7.7, 127.8, 1, 0, Math.PI * 2)
+      ctx.fillStyle = '#fde68a'
+      ctx.fill() // hard hat
 
       // ── 7. Ground-Penetrating Radar Subterranean Mud-Flood Layer (y > 126) ──
       // Height available below ground: 180 - 126 = 54 virtual pixels (representing up to -50 FT)
@@ -472,225 +479,99 @@ export const DonkeyExcavationHero: React.FC<{
   }, [depthFt, isRadarSweeping])
 
   return (
-    <section className="relative overflow-hidden rounded-2xl border border-slate-800 bg-[#060a0f] text-white shadow-2xl mb-8">
-      {/* ── Top Header Bar: Neon Title & Subtitle ── */}
-      <div className="relative z-10 px-4 sm:px-6 pt-3 pb-2 flex flex-col md:flex-row md:items-end justify-between gap-3 border-b border-slate-900 bg-slate-950/70 backdrop-blur-md">
-        <div>
-          {/* Channel Tag */}
-          <div className="flex items-center gap-2 mb-1">
-            <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
-            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-widest text-emerald-400 font-semibold">
-              MY LUNCH BREAK · WORLDWIDE COMMUNITY ARCHIVE
+    <section className="relative overflow-hidden rounded-2xl border border-slate-800 bg-[#060a0f] text-white shadow-2xl mb-8 aspect-[16/4.5] min-h-[210px] max-h-[290px] select-none">
+      {/* ── Main Canvas: Panoramic Scene with Donkey, Flag & Capitol with Ladder ── */}
+      <canvas
+        ref={canvasRef}
+        width={1440}
+        height={360}
+        className="absolute inset-0 h-full w-full object-cover select-none pointer-events-none"
+      />
+
+      {/* ── Left Side: Authentic Neon Sign & Community Tagline ── */}
+      <div className="absolute inset-y-0 left-0 z-10 flex flex-col justify-center pl-5 sm:pl-8 md:pl-12 max-w-[65%] sm:max-w-none pointer-events-none select-none">
+        {/* Row 1: MY LUNCH BREAK */}
+        <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-wider flex items-baseline gap-x-2 sm:gap-x-3">
+          <span
+            className="text-[#e0ffd2] drop-shadow-[0_0_8px_rgba(71,255,24,0.75)] drop-shadow-[0_0_20px_rgba(66,229,26,0.4)]"
+            style={{
+              textShadow: '0 0 2px #ffffff, 0 0 8px #47ff18, 0 0 22px rgba(66,229,26,0.6)',
+              WebkitTextStroke: '0.5px #9dff70',
+            }}
+          >
+            MY
+          </span>
+          <span className="inline-flex">
+            <span
+              className="text-[#e0ffd2] drop-shadow-[0_0_8px_rgba(71,255,24,0.75)]"
+              style={{
+                textShadow: '0 0 2px #ffffff, 0 0 8px #47ff18, 0 0 22px rgba(66,229,26,0.6)',
+                WebkitTextStroke: '0.5px #9dff70',
+              }}
+            >
+              L
             </span>
-          </div>
-
-          {/* Authentic Neon Sign with Flickering 'U' */}
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-wider flex flex-wrap items-baseline gap-x-2.5 select-none">
-            {titleWords.map((group, wi) => (
-              <span key={wi} className="inline-flex">
-                {group.letters.map((char, li) => {
-                  const isFlickerU = group.word === 'LUNCH' && char === 'U'
-                  return (
-                    <span
-                      key={li}
-                      className={
-                        isFlickerU
-                          ? 'text-emerald-900/60 transition-colors duration-200 hover:text-emerald-300'
-                          : 'text-[#e0ffd2] drop-shadow-[0_0_8px_rgba(71,255,24,0.75)] drop-shadow-[0_0_20px_rgba(66,229,26,0.4)]'
-                      }
-                      style={{
-                        textShadow: isFlickerU
-                          ? '0 0 2px rgba(16,185,129,0.3)'
-                          : '0 0 2px #ffffff, 0 0 8px #47ff18, 0 0 22px rgba(66,229,26,0.6)',
-                        WebkitTextStroke: isFlickerU ? '0.5px #064e3b' : '0.5px #9dff70',
-                      }}
-                    >
-                      {char}
-                    </span>
-                  )
-                })}
-              </span>
-            ))}
-          </h1>
-
-          <p className="mt-0.5 text-xs sm:text-sm font-medium text-slate-300 tracking-wide">
-            Your community, all in one place.
-          </p>
-        </div>
-
-        {/* Quick Action Badges */}
-        <div className="flex flex-wrap items-center gap-2 pb-0.5">
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-1.5 rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-1 text-xs font-mono font-bold text-amber-300 hover:bg-amber-500/20 hover:border-amber-400 transition-all shadow-lg"
-          >
-            <span>⛏</span> VIEW EXCAVATION ARCHIVE
-          </button>
-          <Link
-            href="/shop"
-            className="flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-950/40 px-3 py-1 text-xs font-mono font-semibold text-cyan-300 hover:bg-cyan-900/50 transition-colors"
-          >
-            <span>👕</span> DONKEY&apos;S INC. MERCH
-          </Link>
-          {onExploreAtlas && (
-            <button
-              type="button"
-              onClick={onExploreAtlas}
-              className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-1 text-xs font-mono text-slate-300 hover:text-white hover:border-slate-500 transition-colors"
+            {/* The signature unlit 'U' tube */}
+            <span
+              className="text-emerald-950/60 transition-colors duration-200"
+              style={{
+                textShadow: '0 0 2px rgba(16,185,129,0.2)',
+                WebkitTextStroke: '0.6px #064e3b',
+              }}
             >
-              <span>🛰</span> 3D ATLAS ↓
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* ── Main Canvas Viewport: Donkey's Inc. + Subterranean Mud-Flood Radar ── */}
-      <div className="relative w-full aspect-[16/5.5] min-h-[200px] max-h-[340px] bg-[#060a0f]">
-        <canvas
-          ref={canvasRef}
-          width={1440}
-          height={720}
-          className="h-full w-full object-contain select-none"
-        />
-
-        {/* Floating Narrative Overlay */}
-        <div className="absolute top-3 right-3 max-w-[280px] sm:max-w-xs rounded-lg border border-slate-800 bg-slate-950/85 backdrop-blur-md p-3 text-xs font-mono shadow-xl hidden sm:block">
-          <div className="flex items-center justify-between text-slate-400 pb-1 border-b border-slate-800 mb-1.5">
-            <span className="text-amber-400 font-bold">PROJECT SITE // 1880</span>
-            <span className="text-[10px] text-emerald-400">{depthFt === 0 ? 'SURFACE STORY' : `DEPTH: -${depthFt} FT`}</span>
-          </div>
-          <p className="text-[11px] leading-relaxed text-slate-300">
-            {depthFt === 0
-              ? 'Official narrative claims 12 masons with wooden carts and donkeys erected this 300-ft stone dome in 18 months.'
-              : depthFt < 25
-              ? 'Strata 1 reveals buried 12-ft arched windows descending directly into solid clay and silt.'
-              : 'Strata 2 & 3 expose pre-existing antique brick arcades and ancient energetic grid conduits beneath the street!'}
-          </p>
-        </div>
-
-        {/* Hotspot Pills on Subterranean Strata when Scrubber is Active */}
-        {depthFt > 10 && (
-          <div className="absolute bottom-16 left-6 right-6 flex flex-wrap gap-2 pointer-events-none">
-            {SUBTERRANEAN_HOTSPOTS.filter((h) => depthFt >= h.depthFt - 8).map((h) => (
-              <button
-                key={h.id}
-                type="button"
-                onClick={() => setActiveHotspot(h)}
-                className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-amber-400/60 bg-slate-950/90 px-3 py-1 text-[11px] font-mono text-amber-300 shadow-md hover:bg-amber-950/80 transition-all"
-              >
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping" />
-                {h.title} (-{h.depthFt} FT)
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ── Bottom Interactive Control Bar: Ground-Penetrating Radar Slider ── */}
-      <div className="border-t border-slate-800 bg-[#090d16] px-4 sm:px-6 py-2.5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-        {/* Scrubber Label */}
-        <div className="flex items-center gap-2.5">
-          <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-2 py-1 text-emerald-400 font-mono text-[11px]">
-            📡 GPR RADAR
-          </div>
-          <div>
-            <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
-              GROUND-PENETRATING EXCAVATION SLIDER
-            </div>
-            <div className="text-xs font-bold font-mono text-amber-300">
-              {depthFt === 0
-                ? 'SURFACE LEVEL · OFFICIAL HORSE & BUGGY NARRATIVE (0 FT)'
-                : `SUBTERRANEAN DEPTH: -${depthFt} FT · MUD-FLOOD STRATA EXPOSED`}
-            </div>
-          </div>
-        </div>
-
-        {/* Interactive Depth Slider */}
-        <div className="flex-1 max-w-md flex items-center gap-3">
-          <span className="text-[11px] font-mono text-slate-400">SURFACE (0&apos;)</span>
-          <input
-            type="range"
-            min={0}
-            max={45}
-            step={1}
-            value={depthFt}
-            onChange={(e) => setDepthFt(Number(e.target.value))}
-            className="w-full accent-amber-400 cursor-pointer h-2 bg-slate-800 rounded-lg"
-          />
-          <span className="text-[11px] font-mono text-amber-400">-45&apos; BEDROCK</span>
-        </div>
-
-        {/* Preset Depth Buttons */}
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => setDepthFt(0)}
-            className={`rounded px-2.5 py-1 text-xs font-mono transition-colors ${
-              depthFt === 0
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-            }`}
-          >
-            Surface
-          </button>
-          <button
-            type="button"
-            onClick={() => setDepthFt(18)}
-            className={`rounded px-2.5 py-1 text-xs font-mono transition-colors ${
-              depthFt === 18
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-            }`}
-          >
-            -18 FT
-          </button>
-          <button
-            type="button"
-            onClick={() => setDepthFt(45)}
-            className={`rounded px-2.5 py-1 text-xs font-mono transition-colors ${
-              depthFt === 45
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-            }`}
-          >
-            -45 FT
-          </button>
-        </div>
-      </div>
-
-      {/* ── Active Hotspot Evidence Drawer ── */}
-      {activeHotspot && (
-        <div className="border-t border-amber-500/30 bg-amber-950/20 px-6 py-3 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="text-xs font-mono text-amber-400 font-bold flex items-center gap-2">
-              <span>📍 {activeHotspot.title} ({activeHotspot.subtitle})</span>
-            </div>
-            <p className="text-xs text-slate-300 mt-0.5 max-w-2xl">{activeHotspot.description}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {activeHotspot.episodeRef && (
-              <a
-                href={`https://www.youtube.com/watch?v=${activeHotspot.episodeRef.youtubeId}`}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded bg-amber-500 px-3 py-1 text-xs font-mono font-bold text-slate-950 hover:bg-amber-400 transition-colors"
-              >
-                Watch EP {activeHotspot.episodeRef.number} Dossier ↗
-              </a>
-            )}
-            <button
-              type="button"
-              onClick={() => setActiveHotspot(null)}
-              className="text-slate-400 hover:text-white text-xs font-mono px-2"
+              U
+            </span>
+            <span
+              className="text-[#e0ffd2] drop-shadow-[0_0_8px_rgba(71,255,24,0.75)]"
+              style={{
+                textShadow: '0 0 2px #ffffff, 0 0 8px #47ff18, 0 0 22px rgba(66,229,26,0.6)',
+                WebkitTextStroke: '0.5px #9dff70',
+              }}
             >
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
+              NCH
+            </span>
+          </span>
+          <span
+            className="text-[#e0ffd2] drop-shadow-[0_0_8px_rgba(71,255,24,0.75)] drop-shadow-[0_0_20px_rgba(66,229,26,0.4)]"
+            style={{
+              textShadow: '0 0 2px #ffffff, 0 0 8px #47ff18, 0 0 22px rgba(66,229,26,0.6)',
+              WebkitTextStroke: '0.5px #9dff70',
+            }}
+          >
+            BREAK
+          </span>
+        </h1>
 
-      {/* ── Excavation Archive Modal (`[ ⛏ VIEW EXCAVATION ARCHIVE ]`) ── */}
+        {/* Row 2: LIVE */}
+        <div
+          className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-wider text-[#e0ffd2] mt-0.5 sm:mt-1 drop-shadow-[0_0_8px_rgba(71,255,24,0.75)]"
+          style={{
+            textShadow: '0 0 2px #ffffff, 0 0 8px #47ff18, 0 0 22px rgba(66,229,26,0.6)',
+            WebkitTextStroke: '0.5px #9dff70',
+          }}
+        >
+          LIVE
+        </div>
+
+        {/* Row 3: Tagline */}
+        <p className="mt-1 sm:mt-2.5 text-xs sm:text-sm md:text-base font-semibold text-slate-100 tracking-wide drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">
+          Your community, all in one place.
+        </p>
+      </div>
+
+      {/* ── Bottom Right: Authentic [ ↖ VIEW EXCAVATION ] Button ── */}
+      <div className="absolute bottom-2.5 right-2.5 sm:bottom-4 sm:right-6 z-20">
+        <button
+          type="button"
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-1.5 rounded border border-[#c29b38]/80 bg-[#0c1017]/90 px-3 sm:px-4 py-1.5 text-[11px] sm:text-xs font-mono font-bold text-[#e6c875] hover:bg-[#151c28] hover:border-[#e6c875] hover:text-[#fff0ad] transition-all shadow-2xl backdrop-blur-sm cursor-pointer"
+        >
+          <span className="text-sm font-black">↖</span>
+          <span className="tracking-wider">VIEW EXCAVATION</span>
+        </button>
+      </div>
+
+      {/* ── Excavation Archive Modal (`[ ↖ VIEW EXCAVATION ]`) ── */}
       {isModalOpen && (
         <div
           role="dialog"
@@ -718,10 +599,77 @@ export const DonkeyExcavationHero: React.FC<{
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1 text-sm font-mono text-slate-300 hover:text-white"
+                className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1 text-sm font-mono text-slate-300 hover:text-white cursor-pointer"
               >
                 ✕ CLOSE
               </button>
+            </div>
+
+            {/* Modal GPR Radar Depth Controller */}
+            <div className="rounded-xl border border-slate-800 bg-[#060a0f] p-4 mb-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="rounded bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[11px] font-mono text-emerald-400">
+                    📡 GPR RADAR TELEMETRY
+                  </span>
+                  <span className="text-xs font-mono font-bold text-amber-300">
+                    {depthFt === 0
+                      ? 'SURFACE STORY (0 FT)'
+                      : `DEPTH: -${depthFt} FT · MUD-FLOOD STRATA EXPOSED`}
+                  </span>
+                </div>
+                {/* Preset Depth Buttons */}
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setDepthFt(0)}
+                    className={`rounded px-2.5 py-1 text-xs font-mono transition-colors cursor-pointer ${
+                      depthFt === 0
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                        : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                    }`}
+                  >
+                    Surface (0&apos;)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDepthFt(18)}
+                    className={`rounded px-2.5 py-1 text-xs font-mono transition-colors cursor-pointer ${
+                      depthFt === 18
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                        : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                    }`}
+                  >
+                    -18 FT
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDepthFt(45)}
+                    className={`rounded px-2.5 py-1 text-xs font-mono transition-colors cursor-pointer ${
+                      depthFt === 45
+                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                        : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                    }`}
+                  >
+                    -45 FT
+                  </button>
+                </div>
+              </div>
+
+              {/* Slider */}
+              <div className="flex items-center gap-3">
+                <span className="text-[11px] font-mono text-slate-400">SURFACE</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={45}
+                  step={1}
+                  value={depthFt}
+                  onChange={(e) => setDepthFt(Number(e.target.value))}
+                  className="w-full accent-amber-400 cursor-pointer h-2 bg-slate-800 rounded-lg"
+                />
+                <span className="text-[11px] font-mono text-amber-400">-45&apos; BEDROCK</span>
+              </div>
             </div>
 
             {/* Evidence Grid */}
