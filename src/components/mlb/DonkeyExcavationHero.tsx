@@ -70,8 +70,8 @@ export const DonkeyExcavationHero: React.FC<{
     let animId = 0
     let running = true
 
-    // Internal virtual resolution: 720 x 180 (scaled by 2x on 1440x360 canvas)
-    const VW = 720
+    // Internal virtual resolution: 480 x 180 (scaled by 2x on 960x360 canvas)
+    const VW = 480
     const VH = 180
 
     const render = (timeMs: number) => {
@@ -85,42 +85,43 @@ export const DonkeyExcavationHero: React.FC<{
       ctx.fillStyle = '#060a0f'
       ctx.fillRect(0, 0, VW, VH)
 
-      // Ambient night horizon glow behind dome (centered at x = 565)
-      const horizonGrad = ctx.createRadialGradient(565, 85, 10, 565, 85, 140)
-      horizonGrad.addColorStop(0, 'rgba(40, 70, 60, 0.25)')
+      // Ambient night horizon glow behind dome (centered at domeCx = 317.5)
+      const domeCxGlow = 317.5
+      const horizonGrad = ctx.createRadialGradient(domeCxGlow, 85, 10, domeCxGlow, 85, 130)
+      horizonGrad.addColorStop(0, 'rgba(40, 70, 60, 0.28)')
       horizonGrad.addColorStop(1, 'rgba(6, 10, 15, 0)')
       ctx.fillStyle = horizonGrad
-      ctx.fillRect(400, 10, 320, 150)
+      ctx.fillRect(160, 10, 300, 150)
 
       // ── 2. Street Level Line (y = 135) ──
       const groundY = 135
       ctx.strokeStyle = '#475569'
       ctx.lineWidth = 0.8
       ctx.beginPath()
-      ctx.moveTo(330, groundY)
+      ctx.moveTo(0, groundY)
       ctx.lineTo(VW, groundY)
       ctx.stroke()
 
       // Cobblestone / dirt texture specs
       ctx.fillStyle = '#1e293b'
-      for (let i = 330; i < VW; i += 8) {
+      for (let i = 0; i < VW; i += 8) {
         ctx.fillRect(i + ((i * 13) % 5), groundY + 1, 3, 1)
       }
 
-      // ── 3. Waving Flag: "DONKEY'S INC." (x: 345, y: 76 to 100) ──
+      // ── 3. Waving Flag: "DONKEY'S INC." (x: 18, y: 70 to 94) ──
       const flagWave = (n: number) => Math.sin(t * 3.2 - n * 5) * 1.5 + Math.sin(t * 1.8 - n * 3) * 0.8
 
       // Flagpole
       ctx.beginPath()
-      ctx.moveTo(345, groundY)
-      ctx.lineTo(345, 72)
+      ctx.moveTo(18, groundY)
+      ctx.lineTo(18, 68)
       ctx.strokeStyle = '#78716c'
       ctx.lineWidth = 1.3
       ctx.stroke()
 
       // Gold finial on top of flagpole
       ctx.beginPath()
-      ctx.arc(345, 71.5, 1.3, 0, Math.PI * 2)
+      ctx.arc(18, 67.5, 1.3, 0, Math.PI * 2)
       ctx.fillStyle = '#f59e0b'
       ctx.fill()
 
@@ -128,20 +129,20 @@ export const DonkeyExcavationHero: React.FC<{
       ctx.beginPath()
       for (let i = 0; i <= 20; i++) {
         const u = i / 20
-        const x = 346 + u * 52
-        const y = 75 + flagWave(u)
+        const x = 19 + u * 50
+        const y = 71 + flagWave(u)
         if (i === 0) ctx.moveTo(x, y)
         else ctx.lineTo(x, y)
       }
       for (let i = 20; i >= 0; i--) {
         const u = i / 20
-        const x = 346 + u * 52
-        const y = 96 + flagWave(u)
+        const x = 19 + u * 50
+        const y = 92 + flagWave(u)
         ctx.lineTo(x, y)
       }
       ctx.closePath()
 
-      const flagGrad = ctx.createLinearGradient(346, 75, 400, 96)
+      const flagGrad = ctx.createLinearGradient(19, 71, 69, 92)
       flagGrad.addColorStop(0, '#1d4ed8')
       flagGrad.addColorStop(1, '#0f172a')
       ctx.fillStyle = flagGrad
@@ -149,17 +150,17 @@ export const DonkeyExcavationHero: React.FC<{
 
       // Text on flag: "DONKEY'S INC."
       ctx.save()
-      ctx.font = 'bold 6.8px Georgia, serif'
+      ctx.font = 'bold 6.5px Georgia, serif'
       ctx.fillStyle = '#ffffff'
       ctx.shadowColor = '#020617'
       ctx.shadowBlur = 1
-      ctx.fillText("DONKEY'S", 350, 84 + flagWave(0.3))
-      ctx.font = 'bold 6px Georgia, serif'
-      ctx.fillText('INC.', 358, 92 + flagWave(0.5))
+      ctx.fillText("DONKEY'S", 23, 80 + flagWave(0.3))
+      ctx.font = 'bold 5.8px Georgia, serif'
+      ctx.fillText('INC.', 31, 88 + flagWave(0.5))
       ctx.restore()
 
-      // ── 4. The Neoclassical Capitol / Cathedral Dome (shifted by +340px) ──
-      const X_BASE = 340
+      // ── 4. The Neoclassical Capitol / Cathedral Dome (X_BASE = 95) ──
+      const X_BASE = 95
       const capitolOutline: [number, number][] = [
         [X_BASE + 130, 135], [X_BASE + 130, 102], [X_BASE + 140, 102], [X_BASE + 140, 95], [X_BASE + 148, 90],
         [X_BASE + 175, 90], [X_BASE + 184, 95], [X_BASE + 198, 95], [X_BASE + 198, 80], [X_BASE + 194, 80],
@@ -265,9 +266,9 @@ export const DonkeyExcavationHero: React.FC<{
         ctx.stroke()
       }
 
-      // ── 6. The Procedural Donkey (x: 400, y: 133) ──
+      // ── 6. The Procedural Donkey (x: 58, y: 133) ──
       ctx.save()
-      ctx.translate(400, 133)
+      ctx.translate(58, 133)
       ctx.scale(0.85, 0.85)
 
       // Ground shadow
@@ -479,29 +480,20 @@ export const DonkeyExcavationHero: React.FC<{
   }, [depthFt, isRadarSweeping])
 
   return (
-    <section className="relative overflow-hidden rounded-2xl border border-slate-800 bg-[#060a0f] text-white shadow-2xl mb-8 aspect-[16/4.5] min-h-[210px] max-h-[290px] select-none">
-      {/* ── Main Canvas: Panoramic Scene with Donkey, Flag & Capitol with Ladder ── */}
-      <canvas
-        ref={canvasRef}
-        width={1440}
-        height={360}
-        className="absolute inset-0 h-full w-full object-cover select-none pointer-events-none"
-      />
+    <section className="relative overflow-hidden rounded-2xl border border-slate-800 bg-[#060a0f] text-white shadow-2xl mb-8 w-full max-w-full select-none">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-center p-4 sm:p-5 md:p-6 w-full max-w-full">
+        {/* ── Column 1: Neon Title & Community Tagline (Top on Mobile, Left 5 cols on Desktop) ── */}
+        <div className="md:col-span-5 flex flex-col justify-center select-none w-full min-w-0">
+          {/* Channel Tag */}
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
+            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-widest text-emerald-400 font-semibold truncate">
+              MY LUNCH BREAK · COMMUNITY ARCHIVE
+            </span>
+          </div>
 
-      {/* ── Left Side: Authentic Neon Sign & Community Tagline ── */}
-      <div className="absolute inset-y-0 left-0 z-10 flex flex-col justify-center pl-5 sm:pl-8 md:pl-12 max-w-[65%] sm:max-w-none pointer-events-none select-none">
-        {/* Row 1: MY LUNCH BREAK */}
-        <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-wider flex items-baseline gap-x-2 sm:gap-x-3">
-          <span
-            className="text-[#e0ffd2] drop-shadow-[0_0_8px_rgba(71,255,24,0.75)] drop-shadow-[0_0_20px_rgba(66,229,26,0.4)]"
-            style={{
-              textShadow: '0 0 2px #ffffff, 0 0 8px #47ff18, 0 0 22px rgba(66,229,26,0.6)',
-              WebkitTextStroke: '0.5px #9dff70',
-            }}
-          >
-            MY
-          </span>
-          <span className="inline-flex">
+          {/* Row 1: MY LUNCH BREAK */}
+          <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-4xl font-black tracking-wider flex flex-wrap items-baseline gap-x-2 sm:gap-x-2.5">
             <span
               className="text-[#e0ffd2] drop-shadow-[0_0_8px_rgba(71,255,24,0.75)]"
               style={{
@@ -509,17 +501,37 @@ export const DonkeyExcavationHero: React.FC<{
                 WebkitTextStroke: '0.5px #9dff70',
               }}
             >
-              L
+              MY
             </span>
-            {/* The signature unlit 'U' tube */}
-            <span
-              className="text-emerald-950/60 transition-colors duration-200"
-              style={{
-                textShadow: '0 0 2px rgba(16,185,129,0.2)',
-                WebkitTextStroke: '0.6px #064e3b',
-              }}
-            >
-              U
+            <span className="inline-flex">
+              <span
+                className="text-[#e0ffd2] drop-shadow-[0_0_8px_rgba(71,255,24,0.75)]"
+                style={{
+                  textShadow: '0 0 2px #ffffff, 0 0 8px #47ff18, 0 0 22px rgba(66,229,26,0.6)',
+                  WebkitTextStroke: '0.5px #9dff70',
+                }}
+              >
+                L
+              </span>
+              {/* Signature unlit 'U' tube */}
+              <span
+                className="text-emerald-950/60 transition-colors duration-200"
+                style={{
+                  textShadow: '0 0 2px rgba(16,185,129,0.2)',
+                  WebkitTextStroke: '0.6px #064e3b',
+                }}
+              >
+                U
+              </span>
+              <span
+                className="text-[#e0ffd2] drop-shadow-[0_0_8px_rgba(71,255,24,0.75)]"
+                style={{
+                  textShadow: '0 0 2px #ffffff, 0 0 8px #47ff18, 0 0 22px rgba(66,229,26,0.6)',
+                  WebkitTextStroke: '0.5px #9dff70',
+                }}
+              >
+                NCH
+              </span>
             </span>
             <span
               className="text-[#e0ffd2] drop-shadow-[0_0_8px_rgba(71,255,24,0.75)]"
@@ -528,47 +540,48 @@ export const DonkeyExcavationHero: React.FC<{
                 WebkitTextStroke: '0.5px #9dff70',
               }}
             >
-              NCH
+              BREAK
             </span>
-          </span>
-          <span
-            className="text-[#e0ffd2] drop-shadow-[0_0_8px_rgba(71,255,24,0.75)] drop-shadow-[0_0_20px_rgba(66,229,26,0.4)]"
+          </h1>
+
+          {/* Row 2: LIVE */}
+          <div
+            className="text-2xl sm:text-3xl md:text-3xl lg:text-4xl font-black tracking-wider text-[#e0ffd2] mt-0.5 drop-shadow-[0_0_8px_rgba(71,255,24,0.75)]"
             style={{
               textShadow: '0 0 2px #ffffff, 0 0 8px #47ff18, 0 0 22px rgba(66,229,26,0.6)',
               WebkitTextStroke: '0.5px #9dff70',
             }}
           >
-            BREAK
-          </span>
-        </h1>
+            LIVE
+          </div>
 
-        {/* Row 2: LIVE */}
-        <div
-          className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-wider text-[#e0ffd2] mt-0.5 sm:mt-1 drop-shadow-[0_0_8px_rgba(71,255,24,0.75)]"
-          style={{
-            textShadow: '0 0 2px #ffffff, 0 0 8px #47ff18, 0 0 22px rgba(66,229,26,0.6)',
-            WebkitTextStroke: '0.5px #9dff70',
-          }}
-        >
-          LIVE
+          {/* Row 3: Tagline */}
+          <p className="mt-2 text-xs sm:text-sm font-medium text-slate-300 tracking-wide">
+            Your community, all in one place.
+          </p>
         </div>
 
-        {/* Row 3: Tagline */}
-        <p className="mt-1 sm:mt-2.5 text-xs sm:text-sm md:text-base font-semibold text-slate-100 tracking-wide drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">
-          Your community, all in one place.
-        </p>
-      </div>
+        {/* ── Column 2: Animation Viewport (Under text on Mobile, Right 7 cols on Desktop) ── */}
+        <div className="md:col-span-7 relative w-full aspect-[16/6] min-h-[140px] sm:min-h-[160px] md:min-h-[180px] rounded-xl overflow-hidden bg-[#060a0f] border border-slate-800/80 shadow-inner">
+          <canvas
+            ref={canvasRef}
+            width={960}
+            height={360}
+            className="h-full w-full object-cover select-none pointer-events-none block"
+          />
 
-      {/* ── Bottom Right: Authentic [ ↖ VIEW EXCAVATION ] Button ── */}
-      <div className="absolute bottom-2.5 right-2.5 sm:bottom-4 sm:right-6 z-20">
-        <button
-          type="button"
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-1.5 rounded border border-[#c29b38]/80 bg-[#0c1017]/90 px-3 sm:px-4 py-1.5 text-[11px] sm:text-xs font-mono font-bold text-[#e6c875] hover:bg-[#151c28] hover:border-[#e6c875] hover:text-[#fff0ad] transition-all shadow-2xl backdrop-blur-sm cursor-pointer"
-        >
-          <span className="text-sm font-black">↖</span>
-          <span className="tracking-wider">VIEW EXCAVATION</span>
-        </button>
+          {/* Bottom Right: Authentic [ ↖ VIEW EXCAVATION ] Button inside animation container */}
+          <div className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 z-10">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-1.5 rounded border border-[#c29b38]/80 bg-[#0c1017]/90 px-2.5 sm:px-3.5 py-1 text-[10px] sm:text-xs font-mono font-bold text-[#e6c875] hover:bg-[#151c28] hover:border-[#e6c875] hover:text-[#fff0ad] transition-all shadow-xl backdrop-blur-sm cursor-pointer"
+            >
+              <span className="text-xs sm:text-sm font-black">↖</span>
+              <span className="tracking-wider">VIEW EXCAVATION</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* ── Excavation Archive Modal (`[ ↖ VIEW EXCAVATION ]`) ── */}
