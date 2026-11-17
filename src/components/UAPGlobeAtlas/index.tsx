@@ -47,18 +47,17 @@ export const UAPGlobeAtlas: React.FC = () => {
       status: 'current',
     }))
 
-    const categories = Array.from(new Set(places.map((p) => p.category)))
-
     return {
+      asOf: new Date().toISOString(),
       places,
       episodes: [],
       appearances: [],
-      categories,
       fires: [],
-      stats: {
-        totalPlaces: places.length,
-        totalEpisodes: 0,
-        totalAppearances: 0,
+      dashboard: {
+        platforms: [],
+        views: [],
+        latestVideo: null,
+        latestPost: null,
       },
     }
   }, [])
