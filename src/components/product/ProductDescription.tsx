@@ -133,14 +133,6 @@ export function ProductDescription({ product }: { product: Product }) {
           >
             Order Direct on Spreadshop →
           </a>
-          <a
-            href="https://spacesangels.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center rounded-lg border border-slate-700 bg-slate-900/80 px-4 py-3.5 text-xs font-medium text-slate-300 hover:border-slate-500 hover:text-white transition"
-          >
-            ⚡ Open Your Free Shop
-          </a>
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-3">
