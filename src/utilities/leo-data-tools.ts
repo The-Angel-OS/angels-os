@@ -4495,7 +4495,7 @@ async function executeToolSwitch(
       case 'query_posts':
         return await queryPosts(payload, toolInput, tenantId)
       case 'search_geo_archive':
-        return await searchGeoArchive(payload, toolInput, tenantId)
+        return await searchGeoArchive(payload, toolInput as unknown as GeoArchiveSearchInput, tenantId)
       case 'query_site_content':
         return await querySiteContent(payload, toolInput, tenantId)
       case 'query_bookings':

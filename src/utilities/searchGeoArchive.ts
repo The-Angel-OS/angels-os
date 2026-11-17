@@ -14,7 +14,7 @@ import curatedLayersData from '@/data/curated-atlas-layers.json'
 import uapArchiveData from '@/data/uap-archive.json'
 
 export interface GeoArchiveSearchInput {
-  query: string
+  query?: string
   category?: 'episodes' | 'places' | 'star_forts' | 'train_stations' | 'carnegie' | 'uap' | 'all'
   tenantSlug?: string
   limit?: number
