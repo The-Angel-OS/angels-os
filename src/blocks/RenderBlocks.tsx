@@ -26,6 +26,7 @@ import { VideoBlockComponent } from '@/blocks/Video/Component'
 import { ShowcaseBlock } from '@/blocks/Showcase/Component'
 import { ProductPanelBlock } from '@/blocks/ProductPanel/Component'
 import { OldWorldAtlas } from '@/components/OldWorldAtlas'
+import { UAPRadarAtlas } from '@/components/UAPRadarAtlas'
 import { toKebabCase } from '@/utilities/toKebabCase'
 import React, { Fragment } from 'react'
 
@@ -109,6 +110,17 @@ export const RenderBlocks: React.FC<{
                   showAudienceMonitor={normalizedName === 'audience-monitor' || normalizedName === 'old-world-atlas'}
                   showGlobeAndRecon={normalizedName !== 'audience-monitor'}
                 />
+              </div>
+            )
+          }
+
+          if (
+            blockType === 'content' &&
+            (normalizedName === 'uap-radar-atlas' || normalizedName === 'uap-archive')
+          ) {
+            return (
+              <div className="container my-8" key={index}>
+                <UAPRadarAtlas />
               </div>
             )
           }

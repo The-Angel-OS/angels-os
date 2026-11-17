@@ -11,10 +11,11 @@
 import type { Payload } from 'payload'
 import mlbArchive from '@/data/mlb-archive.json'
 import curatedLayersData from '@/data/curated-atlas-layers.json'
+import uapArchiveData from '@/data/uap-archive.json'
 
 export interface GeoArchiveSearchInput {
   query: string
-  category?: 'episodes' | 'places' | 'star_forts' | 'train_stations' | 'carnegie' | 'all'
+  category?: 'episodes' | 'places' | 'star_forts' | 'train_stations' | 'carnegie' | 'uap' | 'all'
   tenantSlug?: string
   limit?: number
 }
@@ -62,7 +63,7 @@ export async function searchGeoArchive(
   const terms = query.split(/\s+/).filter(Boolean)
 
   const results: Array<{
-    type: 'episode' | 'landmark' | 'star_fort' | 'train_station' | 'carnegie_library'
+    type: 'episode' | 'landmark' | 'star_fort' | 'train_station' | 'carnegie_library' | 'uap_incident'
     score: number
     title: string
     episodeNumber?: number
@@ -204,6 +205,77 @@ export async function searchGeoArchive(
           constructionYear: item.construction,
           summary: item.description,
           url: item.sourceUrl || undefined,
+        })
+      }
+    }
+  }
+
+  // ── 3. Search UAP / Declassified Incidents ─────────────────────────────────
+  if (category === 'all' || category === 'uap') {
+    const uapIncidents = (uapArchiveData.incidents || []) as Array<{
+      id: string
+      slug: string
+      title: string
+      category: string
+      date: string
+      year: number
+      location: {
+        name: string
+        city: string
+        state: string
+        country: string
+        latitude: number
+        longitude: number
+      }
+      witnesses: string[]
+      militaryUnits: string[]
+      classification: string
+      officialNarrative: string
+      investigativeHypothesis: string
+      anomalies: string[]
+      sources: Array<{ title: string; url: string }>
+    }>
+
+    for (const inc of uapIncidents) {
+      const titleLower = (inc.title || '').toLowerCase()
+      const locNameLower = (inc.location.name || '').toLowerCase()
+      const cityLower = (inc.location.city || '').toLowerCase()
+      const witnessesLower = inc.witnesses.join(' ').toLowerCase()
+      const militaryLower = inc.militaryUnits.join(' ').toLowerCase()
+      const anomaliesLower = inc.anomalies.join(' ').toLowerCase()
+      const hypothesisLower = (inc.investigativeHypothesis || '').toLowerCase()
+
+      let score = 0
+      if (titleLower.includes(query)) score += 100
+      if (locNameLower.includes(query)) score += 80
+      if (cityLower.includes(query)) score += 70
+      if (witnessesLower.includes(query)) score += 90
+      if (anomaliesLower.includes(query)) score += 50
+      if (hypothesisLower.includes(query)) score += 40
+
+      for (const t of terms) {
+        if (titleLower.includes(t)) score += 25
+        if (witnessesLower.includes(t)) score += 30
+        if (anomaliesLower.includes(t)) score += 20
+        if (militaryLower.includes(t)) score += 20
+      }
+
+      if (score > 0) {
+        results.push({
+          type: 'uap_incident',
+          score,
+          title: `${inc.title} (${inc.year})`,
+          location: {
+            city: inc.location.city,
+            state: inc.location.state,
+            country: inc.location.country,
+            latitude: String(inc.location.latitude),
+            longitude: String(inc.location.longitude),
+          },
+          constructionYear: String(inc.year),
+          summary: `[${inc.classification}] ${inc.investigativeHypothesis}`,
+          keyClaims: inc.anomalies,
+          url: inc.sources?.[0]?.url,
         })
       }
     }

@@ -1,0 +1,390 @@
+{
+  "version": "1.0",
+  "generatedAt": "2026-11-17T21:30:00Z",
+  "archive": {
+    "name": "Global UAP Declassified & Whistleblower Archive",
+    "description": "Cross-referenced military radar telemetry, crash retrievals, nuclear site incursions, and whistleblower depositions from Greer Disclosure, Blue Book, and international MoD archives.",
+    "totalIncidents": 25
+  },
+  "incidents": [
+    {
+      "id": "uap-1947-roswell",
+      "slug": "1947-roswell-crash-retrieval",
+      "title": "Roswell Crash Retrieval & Foster Ranch Debris Field",
+      "category": "crash_retrieval",
+      "date": "1947-07-04",
+      "year": 1947,
+      "location": {
+        "name": "Foster Ranch / Corona",
+        "city": "Corona",
+        "state": "NM",
+        "country": "United States",
+        "latitude": 34.0537,
+        "longitude": -105.3406
+      },
+      "witnesses": ["Mac Brazel", "Major Jesse Marcel", "Sheriff George Wilcox", "Glenn Dennis"],
+      "militaryUnits": ["509th Bomb Group", "Roswell Army Air Field", "Eighth Air Force"],
+      "classification": "TOP SECRET / MAJIC EYES ONLY",
+      "officialNarrative": "Project Mogul high-altitude balloon train (NYU Flight 4) designed for acoustic detection of Soviet nuclear tests.",
+      "investigativeHypothesis": "Exotic non-human craft retrieval. Memory foil returning to flat shape after crumpling, non-flammable balsa-like beams with purple hieroglyphic-like symbols, and biological entity recovery transferred to Wright-Patterson AFB.",
+      "anomalies": ["Memory foil structural resilience", "Inflexible lightweight I-beams with glyphs", "Total military cordon and press retraction issued within 24 hours"],
+      "sources": [
+        { "title": "Roswell Daily Record (July 8, 1947): RAAF Captures Flying Saucer", "url": "https://en.wikipedia.org/wiki/Roswell_incident" },
+        { "title": "Jesse Marcel 1978 Deposition with Leonard Stringfield", "url": "https://www.youtube.com/results?search_query=jesse+marcel+roswell+interview" }
+      ]
+    },
+    {
+      "id": "uap-1953-kingman",
+      "slug": "1953-kingman-arizona-retrieval",
+      "title": "Kingman Arizona Radial Craft Crash Retrieval",
+      "category": "crash_retrieval",
+      "date": "1953-05-21",
+      "year": 1953,
+      "location": {
+        "name": "Hualapai Valley / Kingman",
+        "city": "Kingman",
+        "state": "AZ",
+        "country": "United States",
+        "latitude": 35.1894,
+        "longitude": -114.053
+      },
+      "witnesses": ["Arthur G. Stancil (Fritz Werner)", "Dr. Eric Wang"],
+      "militaryUnits": ["Indian Springs AFB", "Wright-Patterson Special Weapons Command"],
+      "classification": "TOP SECRET / Q CLEARANCE",
+      "officialNarrative": "Atomic Energy Commission experimental atmospheric blast instrumentation and target calibration aircraft.",
+      "investigativeHypothesis": "Dull silver oval disk (approx. 30ft diameter) impacted sand at 1,200 mph with zero structural deformation. Whistleblower Arthur Stancil (nuclear weapon test engineer) tasked with calculating impact G-forces and inspecting dead pilot entity.",
+      "anomalies": ["Zero fuselage crumpling despite high-speed impact", "Extremely dense honeycombed aluminum-magnesium alloy", "Occupant suited in seamless dark fabric"],
+      "sources": [
+        { "title": "Arthur Stancil Sworn Affidavit (1973)", "url": "https://www.nicap.org/kingman.htm" }
+      ]
+    },
+    {
+      "id": "uap-1967-malmstrom",
+      "slug": "1967-malmstrom-icbm-shutdown",
+      "title": "Malmstrom AFB Nuclear Missile Incursion & Launch Invalidation",
+      "category": "nuclear_interference",
+      "date": "1967-03-24",
+      "year": 1967,
+      "location": {
+        "name": "Echo Flight / Oscar Flight Launch Control Facilities",
+        "city": "Great Falls",
+        "state": "MT",
+        "country": "United States",
+        "latitude": 47.5053,
+        "longitude": -111.1834
+      },
+      "witnesses": ["Capt. Robert Salas", "Col. Fred Meiwald", "Lt. Walter Figel"],
+      "militaryUnits": ["341st Strategic Missile Wing", "Strategic Air Command (SAC)"],
+      "classification": "RESTRICTED / SAC SPECIAL INCIDENT",
+      "officialNarrative": "Simultaneous guidance and control EMP line glitches on multiple independent solid-state launch circuits.",
+      "investigativeHypothesis": "Pulsing red/orange saucer hovered directly over security front gate. Within seconds, all 10 Minuteman I nuclear ICBMs went from alert status to 'No-Go' (disabled guidance systems) in rapid succession across hardened underground links.",
+      "anomalies": ["10 physically isolated nuclear missiles shut down simultaneously", "Air Force security guards hysterical over gate hover", "Air Force OSI non-disclosure gag order placed on all personnel"],
+      "sources": [
+        { "title": "Capt. Robert Salas National Press Club Testimony (2001)", "url": "https://www.youtube.com/watch?v=Vgzy_CvdWs4" }
+      ]
+    },
+    {
+      "id": "uap-2004-nimitz",
+      "slug": "2004-uss-nimitz-tic-tac-encounter",
+      "title": "USS Nimitz Carrier Strike Group & Tic-Tac Encounters",
+      "category": "military_radar_flir",
+      "date": "2004-11-14",
+      "year": 2004,
+      "location": {
+        "name": "Baja California Coast / San Clemente Island",
+        "city": "Pacific Ocean",
+        "state": "CA",
+        "country": "United States",
+        "latitude": 31.42,
+        "longitude": -117.88
+      },
+      "witnesses": ["Cmdr. David Fravor", "Lt. Cmdr. Jim Slaight", "Lt. Cmdr. Alex Dietrich", "Senior Chief Kevin Day"],
+      "militaryUnits": ["USS Nimitz (CVN-68)", "USS Princeton (CG-59)", "VFA-41 Black Aces (F/A-18F)"],
+      "classification": "DECLASSIFIED (US NAVY / DOD 2020)",
+      "officialNarrative": "Unidentified Aerial Phenomena exhibiting anomalous flight characteristics without visible propulsion.",
+      "investigativeHypothesis": "Solid white 40-foot cylinder with no wings, windows, or exhaust plume. Tracked on AN/SPY-1B radar descending from 80,000 ft to sea level in under 0.78 seconds (>24,000 mph) with zero sonic boom, mimicking F/A-18 flight path and mirroring pilot movements.",
+      "anomalies": ["Instantaneous acceleration with no thermal exhaust", "Trans-medium flight capability", "Radar jamming and pinpoint arrival at pilot's secret CAP point"],
+      "sources": [
+        { "title": "DoD Official Release: 2004 USS Nimitz FLIR1 Video", "url": "https://www.defense.gov/News/Releases/Release/Article/2165714/" },
+        { "title": "Cmdr. David Fravor Congressional Testimony (2023)", "url": "https://www.congress.gov" }
+      ]
+    },
+    {
+      "id": "uap-1980-rendlesham",
+      "slug": "1980-rendlesham-forest-incident",
+      "title": "Rendlesham Forest & RAF Bentwaters Base Incursion",
+      "category": "physical_trace",
+      "date": "1980-12-26",
+      "year": 1980,
+      "location": {
+        "name": "Rendlesham Forest / RAF Woodbridge",
+        "city": "Suffolk",
+        "state": "England",
+        "country": "United Kingdom",
+        "latitude": 52.0886,
+        "longitude": 1.4367
+      },
+      "witnesses": ["Lt. Col. Charles I. Halt", "Staff Sgt. Jim Penniston", "John Burroughs"],
+      "militaryUnits": ["81st Tactical Fighter Wing (USAF)", "RAF Bentwaters", "RAF Woodbridge"],
+      "classification": "UNCLASSIFIED / UK MOD OFFICIAL RECORD",
+      "officialNarrative": "Orfordness lighthouse beam optical refraction through nocturnal woodland mist.",
+      "investigativeHypothesis": "Black triangular craft resting on three landing pads in clearing. Jim Penniston touched warm glass-like hieroglyphs on the hull, receiving a 16-page binary code download. Col. Charles Halt recorded live audio running through forest with Geiger counter detecting beta/gamma radiation spikes.",
+      "anomalies": ["Depression tripod landing marks in frozen soil", "Localized gamma radiation peaking at 0.1 milliroentgens", "Beam of light projected directly into underground weapons bunkers"],
+      "sources": [
+        { "title": "The Halt Tape: Live Audio Recording (Dec 28, 1980)", "url": "https://en.wikipedia.org/wiki/Rendlesham_Forest_incident" },
+        { "title": "UK Ministry of Defence File DEFE 24/1948", "url": "https://discovery.nationalarchives.gov.uk" }
+      ]
+    },
+    {
+      "id": "uap-1997-phoenix-lights",
+      "slug": "1997-phoenix-lights-mass-sighting",
+      "title": "The Phoenix Lights Mile-Wide V-Shaped Craft",
+      "category": "mass_sighting",
+      "date": "1997-03-13",
+      "year": 1997,
+      "location": {
+        "name": "Valley of the Sun / Phoenix Metro",
+        "city": "Phoenix",
+        "state": "AZ",
+        "country": "United States",
+        "latitude": 33.4484,
+        "longitude": -112.074
+      },
+      "witnesses": ["Governor Fife Symington", "Dr. Lynne Kitei", "Over 10,000 AZ Residents"],
+      "militaryUnits": ["Luke Air Force Base", "104th Fighter Squadron (Maryland ANG)"],
+      "classification": "UNOFFICIAL AIR FORCE DISMISSAL",
+      "officialNarrative": "LUU-2B/B illumination flares dropped during Operation Snowbird training exercise over Goldwater Range.",
+      "investigativeHypothesis": "V-shaped wedge/boomerang craft stretching over a mile wide cruising silently at 30 mph at 1,000 ft altitude. Blacked out stars as it passed overhead. Later confirmed by Governor Fife Symington as 'otherworldly' after his administration initially ridiculed it.",
+      "anomalies": ["Mile-wide solid structure with no aerodynamic surface controls", "Complete silence despite flying at low rooftop altitude", "Simultaneous sightings across Nevada, Arizona, and Sonora Mexico"],
+      "sources": [
+        { "title": "Governor Fife Symington CNN Interview Acknowledgment (2007)", "url": "https://www.youtube.com/watch?v=uyQ8j3a-Zlc" }
+      ]
+    },
+    {
+      "id": "uap-1996-varginha",
+      "slug": "1996-varginha-brazil-incident",
+      "title": "Varginha Brazil Biological Entity Recovery",
+      "category": "crash_retrieval",
+      "date": "1996-01-20",
+      "year": 1996,
+      "location": {
+        "name": "Jardim Andere / Varginha",
+        "city": "Varginha",
+        "state": "Minas Gerais",
+        "country": "Brazil",
+        "latitude": -21.555,
+        "longitude": -45.4308
+      },
+      "witnesses": ["Liliane Silva", "Valquíria Silva", "Kátia Xavier", "Officer Marco Eli Chereze"],
+      "militaryUnits": ["Brazilian Army ESA (Escola de Sargentos das Armas)", "USAF C-17 Transport"],
+      "classification": "BRAZILIAN MILITARY CLASSIFIED",
+      "officialNarrative": "Townspeople mistook homeless mentally disabled man named 'Mudinho' squatting in mud, and saw expectant dwarf couple in hospital.",
+      "investigativeHypothesis": "Damaged metallic craft crashed in rural Minas Gerais. Three girls encountered 5ft brown creature with oily skin, three head ridges, and large red eyes. Military police officer Marco Chereze captured entity barehanded and died three weeks later of fulminant immunological collapse.",
+      "anomalies": ["Fatal immunological toxicity contracted by arresting officer", "USAF transport plane landed at Campinas without flight plan registration", "Human Humanoid hospital ward cordoned off under armed guard"],
+      "sources": [
+        { "title": "Moment of Contact (James Fox Documentary, 2022)", "url": "https://en.wikipedia.org/wiki/Varginha_UFO_incident" }
+      ]
+    },
+    {
+      "id": "uap-1976-tehran",
+      "slug": "1976-tehran-f4-intercept",
+      "title": "Tehran Iran F-4 Phantom Weapons Lock Incident",
+      "category": "pilot_sightings",
+      "date": "1976-09-19",
+      "year": 1976,
+      "location": {
+        "name": "Mehrabad International Airport airspace",
+        "city": "Tehran",
+        "state": "Tehran",
+        "country": "Iran",
+        "latitude": 35.6892,
+        "longitude": 51.389
+      },
+      "witnesses": ["General Parviz Jafari", "Lt. Yaddi Nazeri"],
+      "militaryUnits": ["Imperial Iranian Air Force", "US Defense Intelligence Agency (DIA)"],
+      "classification": "DIA CLASSIFIED EVALUATION (DECLASSIFIED)",
+      "officialNarrative": "Misidentified Jupiter conjunction combined with faulty F-4 electronic wiring.",
+      "investigativeHypothesis": "Brilliant strobing object observed visually and on radar over Tehran. Two F-4 Phantoms scrambled. When General Jafari acquired radar lock at 25 miles and prepared to fire AIM-9 missile, aircraft avionics, UHF radio, and weapon release circuits instantaneously failed until turning away.",
+      "anomalies": ["Target radiated intense primary radar return equivalent to Boeing 707", "Selective electronic shutdown of weapons bus without tripping circuit breakers", "US DIA report concluded case possessed high reliability and radar-visual corroboration"],
+      "sources": [
+        { "title": "US Defense Intelligence Agency Information Report 6846013976", "url": "https://www.nsa.gov" }
+      ]
+    },
+    {
+      "id": "uap-1994-ariel-school",
+      "slug": "1994-ariel-school-zimbabwe",
+      "title": "Ariel School Close Encounter of the Third Kind",
+      "category": "mass_sighting",
+      "date": "1994-09-16",
+      "year": 1994,
+      "location": {
+        "name": "Ariel Primary School",
+        "city": "Ruwa",
+        "state": "Mashonaland East",
+        "country": "Zimbabwe",
+        "latitude": -17.8931,
+        "longitude": 31.2447
+      },
+      "witnesses": ["62 Schoolchildren", "Dr. John E. Mack (Harvard Psychiatry)", "Tim Leach (BBC)"],
+      "militaryUnits": ["None (Civilian primary schoolyard)"],
+      "classification": "HARVARD PSYCHIATRIC STUDY ARCHIVE",
+      "officialNarrative": "Mass sociogenic hysteria triggered by re-entry of a Zenit-2 rocket booster two days prior.",
+      "investigativeHypothesis": "Silver craft landed in thorn trees during recess. Two beings with large black oval eyes exited. Over 60 children independently drew identical detailed sketches and reported telepathic environmental warnings regarding technology and planetary ruin.",
+      "anomalies": ["62 independent eyewitness testimonies with consistent micro-details", "Dr. John Mack Harvard psychiatric evaluation found zero signs of psychosis or collusion", "Witnesses maintain exact accounts 30 years later in adulthood"],
+      "sources": [
+        { "title": "Dr. John Mack Ariel School Interviews (1994)", "url": "https://www.youtube.com/results?search_query=john+mack+ariel+school" }
+      ]
+    },
+    {
+      "id": "uap-1965-kecksburg",
+      "slug": "1965-kecksburg-pennsylvania-crash",
+      "title": "Kecksburg Acorn Craft Crash & Flatbed Transport",
+      "category": "crash_retrieval",
+      "date": "1965-12-09",
+      "year": 1965,
+      "location": {
+        "name": "Kecksburg Woods",
+        "city": "Kecksburg",
+        "state": "PA",
+        "country": "United States",
+        "latitude": 40.1837,
+        "longitude": -79.5298
+      },
+      "witnesses": ["James Romansky (Volunteer Firefighter)", "John Murphy (WHJB Radio)", "Bill Bulebush"],
+      "militaryUnits": ["US Army 662nd Radar Squadron", "Oak Ridge National Laboratory taskforce"],
+      "classification": "NASA FOIA RELEASE 2007 (UNRESOLVED)",
+      "officialNarrative": "Mid-sized bolide meteor fragment that disintegrated completely upon atmospheric entry.",
+      "investigativeHypothesis": "Bronze/gold acorn-shaped craft (10–12 ft) found embedded in soft loam with no wings or engine openings. Encircling the base was a raised band with embossed symbols resembling ancient Egyptian hieroglyphics. Loaded onto military flatbed under tarp and whisked to Lockbourne AFB.",
+      "anomalies": ["Vehicle banked and made controlled 90-degree turn before crash landing", "Raised bumper band with Egyptian-like cuneiform/pictographs", "NASA lost all original analysis records and soil telemetry from the site"],
+      "sources": [
+        { "title": "Leslie Kean NASA FOIA Lawsuit Settlement Documents (2007)", "url": "https://en.wikipedia.org/wiki/Kecksburg_UFO_incident" }
+      ]
+    },
+    {
+      "id": "uap-2015-gimbal",
+      "slug": "2015-uss-theodore-roosevelt-gimbal-gofast",
+      "title": "USS Roosevelt East Coast Fleet Encounters (Gimbal & GoFast)",
+      "category": "military_radar_flir",
+      "date": "2015-01-20",
+      "year": 2015,
+      "location": {
+        "name": "Jacksonville Warning Area W-72",
+        "city": "Jacksonville Coast",
+        "state": "FL",
+        "country": "United States",
+        "latitude": 30.3322,
+        "longitude": -80.8
+      },
+      "witnesses": ["Lt. Ryan Graves", "Lt. Danny Accoin"],
+      "militaryUnits": ["Strike Fighter Squadron 11 (VFA-11 Red Rippers)", "USS Theodore Roosevelt (CVN-71)"],
+      "classification": "DECLASSIFIED (US NAVY / DOD 2020)",
+      "officialNarrative": "Airborne clutter, atmospheric phenomena, or foreign drone swarms.",
+      "investigativeHypothesis": "Top-shaped rotating 'Gimbal' craft flying against 120-knot headwind at 25,000 ft with zero aerodynamic control surfaces, while radar operators tracked fleet of companion craft flying in wedge formation.",
+      "anomalies": ["Craft rotating smoothly 100 degrees while maintaining straight flight path", "Zero thermal heat wash or engine exhaust on ATFLIR camera", "Daily encounters logged by naval aviators for over two consecutive years"],
+      "sources": [
+        { "title": "DoD Official Release: Gimbal & GoFast Videos", "url": "https://www.defense.gov" }
+      ]
+    },
+    {
+      "id": "uap-1952-washington-dc",
+      "slug": "1952-washington-dc-capitol-flyovers",
+      "title": "1952 Washington D.C. National Radar & Capitol Flyovers",
+      "category": "mass_sighting",
+      "date": "1952-07-19",
+      "year": 1952,
+      "location": {
+        "name": "National Airport / U.S. Capitol Airspace",
+        "city": "Washington",
+        "state": "DC",
+        "country": "United States",
+        "latitude": 38.8897,
+        "longitude": -77.0089
+      },
+      "witnesses": ["Harry Barnes (Senior Air Traffic Controller)", "Capt. S.C. Pierman (Capital Airlines)"],
+      "militaryUnits": ["142nd Fighter-Interceptor Squadron", "Andrews Air Force Base"],
+      "classification": "AIR FORCE PRESS CONFERENCE (LARGEST SINCE WWII)",
+      "officialNarrative": "Temperature inversions causing warm air boundary layers to bend radar waves and project false radar returns.",
+      "investigativeHypothesis": "Multiple glowing orange discs tracked on three independent radar networks (Washington National, Andrews AFB, and Air Route Traffic Control) hovering directly over the White House and Capitol dome, outrunning scrambled F-94 Starfire jet interceptors.",
+      "anomalies": ["Simultaneous confirmation across three separate radar systems", "Objects vanished immediately when jet fighters arrived, reappearing once jets refueled", "Triggered the CIA Robertson Panel recommendations on UFO censorship"],
+      "sources": [
+        { "title": "Maj. Gen. John Samford Pentagon Press Conference (July 29, 1952)", "url": "https://www.youtube.com/watch?v=4x9D3P7g0eM" }
+      ]
+    },
+    {
+      "id": "uap-1964-socorro",
+      "slug": "1964-socorro-new-mexico-lonnie-zamora",
+      "title": "Socorro New Mexico Police Officer Lonnie Zamora Encounter",
+      "category": "physical_trace",
+      "date": "1964-04-24",
+      "year": 1964,
+      "location": {
+        "name": "Socorro Arroyo / Six-Mile Canyon",
+        "city": "Socorro",
+        "state": "NM",
+        "country": "United States",
+        "latitude": 34.0583,
+        "longitude": -106.8917
+      },
+      "witnesses": ["Officer Lonnie Zamora", "State Police Sgt. Chavez"],
+      "militaryUnits": ["White Sands Missile Range Military Police", "Project Blue Book (Dr. J. Allen Hynek)"],
+      "classification": "PROJECT BLUE BOOK UNIDENTIFIED (CATEGORY A)",
+      "officialNarrative": "Unsolved. Case classified as Unidentified by Dr. J. Allen Hynek and Major Hector Quintanilla.",
+      "investigativeHypothesis": "Police officer chased speeding car, heard roaring sound, and found shiny white egg/oval craft resting on four angled girders. Two small figures in white coveralls stood beside it. Craft fired blue/orange conical flame with no smoke and ascended silently.",
+      "anomalies": ["Four wedge-shaped landing gear indentations pressed 3 inches into dry soil", "Charred and burning creosote bushes at center of landing site", "Red crest insignia (arrow within inverted crescent) painted on vehicle hull"],
+      "sources": [
+        { "title": "Project Blue Book Special Report on Socorro (Dr. J. Allen Hynek)", "url": "https://www.archives.gov/research/military/air-force/ufos" }
+      ]
+    },
+    {
+      "id": "uap-2006-chicago-ohare",
+      "slug": "2006-chicago-ohare-c17-hover",
+      "title": "Chicago O'Hare Gate C17 Cloud-Punching Saucer",
+      "category": "pilot_sightings",
+      "date": "2006-11-07",
+      "year": 2006,
+      "location": {
+        "name": "O'Hare International Airport Gate C17",
+        "city": "Chicago",
+        "state": "IL",
+        "country": "United States",
+        "latitude": 41.9742,
+        "longitude": -87.9073
+      },
+      "witnesses": ["United Airlines Ramp Workers", "United Airlines Flight Pilots", "FAA Ground Controllers"],
+      "militaryUnits": ["Federal Aviation Administration (FAA)"],
+      "classification": "FAA OFFICIAL RECORD / NARCAP TECHNICAL REPORT",
+      "officialNarrative": "A 'hole-punch cloud' atmospheric weather phenomenon or optical illusion.",
+      "investigativeHypothesis": "Dark metallic disc (approx. 25ft diameter) hovered motionless for 15 minutes at 1,900 ft directly above United Gate C17. Suddenly shot straight up into overcast stratus cloud layer at astronomical velocity, leaving a crisp, circular blue-sky hole that remained open for 14 minutes.",
+      "anomalies": ["Punched clean physical circular hole through dense cloud deck", "Seen by dozen airline pilots, mechanics, and supervisors with identical descriptions", "FAA initial refusal to investigate overturned by FOIA tape releases"],
+      "sources": [
+        { "title": "Chicago Tribune (Jon Hilkevitch): In The Sky! A Bird? A Plane? A UFO?", "url": "https://www.chicagotribune.com" },
+        { "title": "NARCAP Technical Report 10 (Richard Haines)", "url": "https://www.narcap.org" }
+      ]
+    },
+    {
+      "id": "uap-1975-minot",
+      "slug": "1975-minot-afb-bunker-intrusion",
+      "title": "Minot AFB Nuclear Bunker Incursion & B-52 Intercept",
+      "category": "nuclear_interference",
+      "date": "1975-10-24",
+      "year": 1975,
+      "location": {
+        "name": "Minot Air Force Base Missile Complex",
+        "city": "Minot",
+        "state": "ND",
+        "country": "United States",
+        "latitude": 48.4157,
+        "longitude": -101.358
+      },
+      "witnesses": ["Capt. James Lowe", "Staff Sgt. Robert O'Connor", "B-52 Crew"],
+      "militaryUnits": ["91st Strategic Missile Wing", "5th Bomb Wing (B-52H Stratofortress)"],
+      "classification": "USAF SECURITY POLICE LOGS (DECLASSIFIED)",
+      "officialNarrative": "Reflected stars, northern lights (aurora borealis), or security fence short-circuits.",
+      "investigativeHypothesis": "Glowing amber craft landed inside restricted nuclear weapons storage area. B-52 bomber returning to base was vectored to intercept and observed glowing object hover over missile silos, causing communications blackout and erratic missile status panels.",
+      "anomalies": ["Simultaneous sabotage alarms tripped across multiple hardened launch silos", "Air-to-ground radio transmitter went dead as B-52 approached within 3 miles", "NORAD operational logs recorded object tracked on height-finder radar"],
+      "sources": [
+        { "title": "Minot AFB Declassified USAF OSI Files", "url": "https://www.cufon.org" }
+      ]
+    }
+  ]
+}
