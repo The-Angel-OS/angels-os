@@ -2,7 +2,131 @@
 
 import React, { useEffect, useRef, useState, useMemo } from 'react'
 import populationsData from '@/data/mlb-populations.json'
-import './audience-scoreboard.css'
+
+const SCOREBOARD_STYLES = `
+@keyframes audience-current-circuit {
+  0% { stroke-dashoffset: 0; }
+  19% { stroke-dashoffset: -18.9px; }
+  19.6% { stroke-dashoffset: -19.35px; }
+  47% { stroke-dashoffset: -47.05px; }
+  47.5% { stroke-dashoffset: -47.35px; }
+  76% { stroke-dashoffset: -76.1px; }
+  76.7% { stroke-dashoffset: -76.6px; }
+  100% { stroke-dashoffset: -100px; }
+}
+
+@keyframes audience-current-flicker {
+  0%, 100% { opacity: 0.24; }
+  9% { opacity: 0.13; }
+  9.7% { opacity: 0.34; }
+  11% { opacity: 0.19; }
+  28% { opacity: 0.1; }
+  31% { opacity: 0.23; }
+  56% { opacity: 0.16; }
+  56.8% { opacity: 0.38; }
+  58% { opacity: 0.12; }
+  73% { opacity: 0.2; }
+  91% { opacity: 0.15; }
+}
+
+@keyframes audience-current-spark {
+  0%, 17%, 18.2%, 46%, 46.9%, 79%, 80.4%, 100% { opacity: 0; }
+  17.3% { opacity: 0.33; }
+  17.7% { opacity: 0.05; }
+  46.3% { opacity: 0.24; }
+  79.3% { opacity: 0.36; }
+  79.8% { opacity: 0.05; }
+}
+
+@keyframes audience-current {
+  0% { stroke-dashoffset: 1000px; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes neon-glow-pulse {
+  0%, 100% {
+    text-shadow: 0 0 10px rgba(182, 255, 0, 0.7), 0 0 25px rgba(182, 255, 0, 0.4), 0 0 50px rgba(182, 255, 0, 0.2);
+  }
+  50% {
+    text-shadow: 0 0 15px rgba(182, 255, 0, 0.9), 0 0 35px rgba(182, 255, 0, 0.6), 0 0 70px rgba(182, 255, 0, 0.3);
+  }
+}
+
+.audience-border-current {
+  pointer-events: none;
+  z-index: 2;
+  border-radius: inherit;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.audience-border-current rect {
+  fill: none;
+  stroke: #b6ff00;
+  stroke-linecap: butt;
+  width: calc(100% - 2px);
+  height: calc(100% - 2px);
+  animation: 25s linear infinite audience-current-circuit;
+}
+
+.audience-border-current .border-current-glow {
+  stroke-width: 1.4px;
+  stroke-dasharray: 0.6 99.4;
+  opacity: 0.07;
+  filter: blur(1px);
+}
+
+.audience-border-current .border-current-core {
+  stroke: #f1ffd6;
+  stroke-width: 0.55px;
+  stroke-dasharray: 0.11 0.05 0.08 0.03 0.17 0.05 0.09 99.42;
+  opacity: 0.24;
+  filter: url(#audience-wire-filament);
+  animation: 25s linear infinite audience-current-circuit, 4.73s step-end infinite audience-current-flicker;
+}
+
+.audience-border-current .border-current-spark {
+  stroke: #f4ffe1;
+  stroke-width: 1.5px;
+  stroke-dasharray: 0.015 0.07 0.02 0.12 0.025 99.75;
+  filter: url(#audience-wire-discharge);
+  opacity: 0;
+  animation: 25s linear infinite audience-current-circuit, 11.3s linear infinite audience-current-spark;
+}
+
+.charge-arc {
+  stroke: #b6ff00;
+  stroke-width: 1.2px;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 34 966;
+  animation: 3.08s linear infinite audience-current;
+}
+
+.charge-arc-b {
+  stroke: #58e0dd;
+  stroke-dasharray: 26 974;
+  animation-duration: 4.08s;
+  animation-delay: -2.1s;
+}
+
+.charge-arc-c {
+  stroke-width: 0.8px;
+  stroke: #f1ffc9;
+  stroke-dasharray: 16 984;
+  opacity: 0.45;
+  animation-duration: 6.7s;
+  animation-delay: -4s;
+}
+
+.odometer-neon {
+  animation: neon-glow-pulse 4s ease-in-out infinite;
+}
+`
 
 export interface PlatformItem {
   id: string
@@ -188,6 +312,7 @@ export const AudienceScoreboard: React.FC<{
 
   return (
     <section className="hero follower-power-host audience-scoreboard relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-[#060a0f] p-6 text-white shadow-2xl my-6 w-full max-w-full">
+      <style dangerouslySetInnerHTML={{ __html: SCOREBOARD_STYLES }} />
       {/* ── Electrical Current Animated SVG Wire Border ── */}
       <svg className="audience-border-current" aria-hidden="true" focusable="false">
         <defs>
