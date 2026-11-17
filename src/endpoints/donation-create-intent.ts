@@ -21,6 +21,7 @@ import type { PayloadHandler } from 'payload'
 import Stripe from 'stripe'
 import { logError } from '@/utilities/logError'
 import { resolveDonationRecipient, DONATION_JUSTICE_FUND_PERCENT } from '@/utilities/donationRouting'
+import { checkApiRateLimit, extractRateLimitKey } from '@/utilities/apiRateLimiter'
 
 let _stripe: Stripe | null = null
 function getStripe(): Stripe {
@@ -35,12 +36,25 @@ function getStripe(): Stripe {
   return _stripe
 }
 
-/** Minimum donation: $1.00 (100 cents) */
-const MIN_DONATION_CENTS = 100
+/** Minimum donation: $5.00 (500 cents) — raised from $1.00 to block automated card-testing scripts */
+const MIN_DONATION_CENTS = 500
 /** Maximum donation: $10,000.00 (1,000,000 cents) */
 const MAX_DONATION_CENTS = 1_000_000
 
 export const donationCreateIntentHandler: PayloadHandler = async (req) => {
+  // ── Rate Limiting (Stripe anti-abuse & card-spinning mitigation) ──
+  const rateLimitKey = extractRateLimitKey(req)
+  const rateLimit = checkApiRateLimit(rateLimitKey, 'stripe')
+  if (!rateLimit.allowed) {
+    return Response.json(
+      { error: 'Too many donation attempts. Please wait a moment before trying again.' },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(rateLimit.retryAfterSeconds) },
+      },
+    )
+  }
+
   // ── Parse body ────────────────────────────────────────────────
   let body: Record<string, unknown>
   try {
