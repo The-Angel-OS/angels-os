@@ -196,6 +196,7 @@ import { ensureMembershipBlockTablesHandler } from '@/endpoints/ensure-membershi
 import { ensureMerlinBlockTablesHandler } from '@/endpoints/ensure-merlin-block-tables'
 import { ensureGalleryBlockTablesHandler } from '@/endpoints/ensure-gallery-block-tables'
 import { ensureGlobeAtlasBlockTablesHandler } from '@/endpoints/ensure-globe-atlas-block-tables'
+import { ingestUapSightingHandler } from '@/endpoints/ingest-uap-sighting'
 import { ensureLockedDocsRelsHandler } from '@/endpoints/ensure-locked-docs-rels'
 import { membershipPlansHandler } from '@/endpoints/membership-plans'
 import { membershipReadinessHandler } from '@/endpoints/membership-readiness'
@@ -1536,6 +1537,16 @@ export default buildConfig({
       path: '/provision-ops/uap-portal',
       method: 'post',
       handler: provisionUapPortalHandler,
+    },
+    {
+      path: '/provision-ops/ingest-uap-sighting',
+      method: 'get',
+      handler: ingestUapSightingHandler,
+    },
+    {
+      path: '/provision-ops/ingest-uap-sighting',
+      method: 'post',
+      handler: ingestUapSightingHandler,
     },
     {
       path: '/booking-ops/checkout',

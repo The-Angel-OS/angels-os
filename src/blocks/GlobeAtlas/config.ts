@@ -36,6 +36,36 @@ export const GlobeAtlas: Block = {
       },
     },
     {
+      name: 'searchPlaceholder',
+      type: 'text',
+      admin: {
+        description: 'Optional custom search input placeholder.',
+      },
+    },
+    {
+      name: 'primaryLayerLabel',
+      type: 'text',
+      admin: {
+        description: 'Optional custom label for the primary dataset toggle button.',
+      },
+    },
+    {
+      name: 'showCityScanner',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        description: 'Display the live city and historic register scanner toolbar.',
+      },
+    },
+    {
+      name: 'allowFullscreen',
+      type: 'checkbox',
+      defaultValue: true,
+      admin: {
+        description: 'Allow viewers to expand the 3D globe to full screen real estate.',
+      },
+    },
+    {
       name: 'showAudienceMonitor',
       type: 'checkbox',
       defaultValue: false,

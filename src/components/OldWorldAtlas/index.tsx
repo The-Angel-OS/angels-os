@@ -116,7 +116,31 @@ const CATEGORY_COLORS: Record<string, string> = {
   Other: '#94a3b8',
 }
 
-const QUICK_SECTORS = [
+const UAP_CATEGORY_COLORS: Record<string, string> = {
+  'CRASH RETRIEVAL': '#ef4444',
+  'NUCLEAR SILO INCURSION': '#eab308',
+  'RADAR & FLIR TELEMETRY': '#06b6d4',
+  'AVIATOR / PILOT LOCK': '#3b82f6',
+  'MASS SIGHTING': '#a855f7',
+  'PHYSICAL / SOIL TRACE': '#10b981',
+  'UNDERGROUND / BLACK SITE': '#f97316',
+  Other: '#94a3b8',
+}
+
+export interface AtlasQuickSector {
+  label: string
+  lat: number
+  lon: number
+  zoom: number
+  city: string
+}
+
+export interface AtlasGlobalLayer {
+  key: string
+  label: string
+}
+
+const QUICK_SECTORS: AtlasQuickSector[] = [
   { label: '📍 Clearwater, FL (1933 Post Office)', lat: 27.9656, lon: -82.7959, zoom: 14, city: 'Clearwater, FL' },
   { label: '📍 Tampa, FL (1891 Plant Palace)', lat: 27.9467, lon: -82.4639, zoom: 14, city: 'Tampa, FL' },
   { label: '📍 Mumbai, India (Victoria Terminus)', lat: 18.9401, lon: 72.8355, zoom: 14, city: 'Mumbai, India' },
@@ -127,7 +151,20 @@ const QUICK_SECTORS = [
   { label: '📍 London, UK', lat: 51.5074, lon: -0.1278, zoom: 13, city: 'London' },
 ]
 
-const GLOBAL_LAYERS = [
+const UAP_QUICK_SECTORS: AtlasQuickSector[] = [
+  { label: '🛸 Roswell / Corona, NM (1947)', lat: 34.0537, lon: -105.3406, zoom: 11, city: 'Corona, NM' },
+  { label: '🛸 USS Nimitz / Pacific (2004)', lat: 31.42, lon: -117.88, zoom: 9, city: 'Pacific Ocean (San Diego)' },
+  { label: '☢️ Malmstrom AFB, MT (1967)', lat: 47.505, lon: -111.183, zoom: 12, city: 'Great Falls, MT' },
+  { label: '🌲 Rendlesham Forest, UK (1980)', lat: 52.09, lon: 1.43, zoom: 12, city: 'Suffolk, UK' },
+  { label: '🛸 Varginha, Brazil (1996)', lat: -21.551, lon: -45.43, zoom: 12, city: 'Varginha, Brazil' },
+  { label: '⚡ Tehran F-4 Intercept (1976)', lat: 35.6892, lon: 51.389, zoom: 11, city: 'Tehran, Iran' },
+  { label: '🏫 Ariel School, Zimbabwe (1994)', lat: -17.805, lon: 31.332, zoom: 12, city: 'Ruwa, Zimbabwe' },
+  { label: '🛸 Kecksburg Acorn, PA (1965)', lat: 40.1833, lon: -79.4628, zoom: 12, city: 'Kecksburg, PA' },
+  { label: '🛸 Phoenix Lights, AZ (1997)', lat: 33.4484, lon: -112.074, zoom: 10, city: 'Phoenix, AZ' },
+  { label: '☢️ Minot AFB, ND (1975)', lat: 48.4156, lon: -101.358, zoom: 12, city: 'Minot, ND' },
+]
+
+const GLOBAL_LAYERS: AtlasGlobalLayer[] = [
   { key: 'train_stations', label: '🚂 Old World Grand Train Stations' },
   { key: 'cathedrals', label: '⛪ World Cathedrals & Basilicas' },
   { key: 'carnegie', label: '📚 Carnegie Libraries Worldwide' },
@@ -136,37 +173,118 @@ const GLOBAL_LAYERS = [
   { key: 'asylums', label: '🏥 Kirkbride Asylums' },
 ]
 
+const UAP_GLOBAL_LAYERS: AtlasGlobalLayer[] = [
+  { key: 'crash_retrievals', label: '💥 Crash Retrievals & Debris' },
+  { key: 'nuclear_silos', label: '☢️ Nuclear Silo Incursions' },
+  { key: 'military_radar', label: '📡 Military Radar & FLIR' },
+  { key: 'pilot_locks', label: '✈️ Aviator Locks (Navy/USAF)' },
+  { key: 'mass_sightings', label: '👁 Mass Eyewitness Clusters' },
+  { key: 'underground_facilities', label: '⛰ Subterranean Facilities & Black Sites' },
+]
+
 const MILESTONES = [
   1_500_000, 2_000_000, 2_500_000, 5_000_000, 10_000_000, 25_000_000, 50_000_000, 100_000_000,
 ]
 
-export const OldWorldAtlas: React.FC<{
+export interface OldWorldAtlasProps {
   initialData?: AtlasArchiveData
   showExcavationHero?: boolean
   showAudienceMonitor?: boolean
   showGlobeAndRecon?: boolean
   title?: string
   subtitle?: string
-  mode?: 'old_world' | 'uap' | 'jon_levi'
+  missionBrief?: string
+  mode?: 'old_world' | 'uap' | 'jon_levi' | 'custom'
   searchPlaceholder?: string
-}> = ({
+  primaryLayerLabel?: string
+  categoryColors?: Record<string, string>
+  quickSectors?: AtlasQuickSector[]
+  globalLayers?: AtlasGlobalLayer[]
+  showCityScanner?: boolean
+  allowFullscreen?: boolean
+  blogArchiveLink?: {
+    href: string
+    label: string
+  }
+}
+
+export const OldWorldAtlas: React.FC<OldWorldAtlasProps> = ({
   initialData,
   showExcavationHero = true,
   showAudienceMonitor = true,
   showGlobeAndRecon = true,
-  title = 'SPY SATELLITE // OLD WORLD & TARTARIA ARCHIVE',
-  subtitle = 'Orbital Reconnaissance, Historic Architecture City Scanner & Satan’s Little Season Investigation Index',
+  title,
+  subtitle,
+  missionBrief,
   mode = 'old_world',
   searchPlaceholder,
+  primaryLayerLabel,
+  categoryColors,
+  quickSectors,
+  globalLayers,
+  showCityScanner,
+  allowFullscreen = true,
+  blogArchiveLink,
 }) => {
+  const activeTitle =
+    title ||
+    (mode === 'uap'
+      ? 'ORBITAL RECON // GLOBAL UAP DECLASSIFIED ATLAS'
+      : 'SPY SATELLITE // OLD WORLD & TARTARIA ARCHIVE')
+
+  const activeSubtitle =
+    subtitle ||
+    (mode === 'uap'
+      ? 'Interactive 3D Spy-Satellite Globe, Declassified Radar Intercepts, Crash Retrievals & Whistleblower Dossiers'
+      : 'Orbital Reconnaissance, Historic Architecture City Scanner & Satan’s Little Season Investigation Index')
+
+  const activeMissionBrief =
+    missionBrief ||
+    (mode === 'uap'
+      ? 'ORBITAL RECON // DECLASSIFIED DISCLOSURE & TELEMETRY ARCHIVE'
+      : "ORBITAL RECON // SATAN'S LITTLE SEASON & OLD WORLD ARCHIVE")
+
+  const effectiveShowCityScanner =
+    showCityScanner !== undefined ? showCityScanner : mode === 'old_world'
+
+  const activeCategoryColors = useMemo(() => {
+    if (categoryColors) return categoryColors
+    return mode === 'uap' ? UAP_CATEGORY_COLORS : CATEGORY_COLORS
+  }, [categoryColors, mode])
+
+  const activeQuickSectors = useMemo(() => {
+    if (quickSectors && quickSectors.length > 0) return quickSectors
+    return mode === 'uap' ? UAP_QUICK_SECTORS : QUICK_SECTORS
+  }, [quickSectors, mode])
+
+  const activeLayersList = useMemo(() => {
+    if (globalLayers && globalLayers.length > 0) return globalLayers
+    return mode === 'uap' ? UAP_GLOBAL_LAYERS : GLOBAL_LAYERS
+  }, [globalLayers, mode])
+
   const [data, setData] = useState<AtlasArchiveData | null>(initialData ?? null)
   const [scannedPlaces, setScannedPlaces] = useState<AtlasPlace[]>([])
   const [activeGlobalLayers, setActiveGlobalLayers] = useState<Record<string, boolean>>({})
   const [showMlbLayer, setShowMlbLayer] = useState(true)
   const [isScanning, setIsScanning] = useState(false)
   const [scanStatus, setScanStatus] = useState<string | null>(null)
-  const [scanCityInput, setScanCityInput] = useState('Tampa, FL')
+  const [scanCityInput, setScanCityInput] = useState(mode === 'uap' ? 'Roswell, NM' : 'Tampa, FL')
   const [scanFilter, setScanFilter] = useState('all')
+
+  // Fullscreen / Maximize states
+  const [isMaximized, setIsMaximized] = useState(false)
+  const [collapseDossierInMax, setCollapseDossierInMax] = useState(false)
+
+  // Listen to Escape key to exit maximized mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isMaximized) {
+        setIsMaximized(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isMaximized])
 
   // View & HUD states
   const [viewMode, setViewMode] = useState<'globe' | 'recon' | 'gleason'>('globe')
@@ -437,7 +555,7 @@ export const OldWorldAtlas: React.FC<{
         const py = cy + Math.sin(angle) * dist
 
         const isSelected = selectedPlace?.id === p.id
-        const color = CATEGORY_COLORS[p.category] || '#f59e0b'
+        const color = activeCategoryColors[p.category] || '#f59e0b'
         ctx.beginPath()
         ctx.arc(px, py, isSelected ? 7 : 4, 0, Math.PI * 2)
         ctx.fillStyle = isSelected ? '#ffffff' : color
@@ -572,7 +690,7 @@ export const OldWorldAtlas: React.FC<{
         if (!pt) continue
 
         const isSelected = selectedPlace?.id === p.id
-        const color = p.isLiveScan ? '#22c55e' : CATEGORY_COLORS[p.category] || '#f59e0b'
+        const color = p.isLiveScan ? '#22c55e' : activeCategoryColors[p.category] || '#f59e0b'
 
         ctx.beginPath()
         ctx.arc(pt.x, pt.y, isSelected ? 7 : 4.2, 0, Math.PI * 2)
@@ -790,7 +908,7 @@ export const OldWorldAtlas: React.FC<{
           const lat = parseFloat(p.latitude)
           const lon = parseFloat(p.longitude)
           if (Number.isNaN(lat) || Number.isNaN(lon)) continue
-          const color = p.isLiveScan ? '#22c55e' : CATEGORY_COLORS[p.category] || '#f59e0b'
+          const color = p.isLiveScan ? '#22c55e' : activeCategoryColors[p.category] || '#f59e0b'
           const isSelected = selectedPlace?.id === p.id
           const marker = L.circleMarker([lat, lon], {
             radius: isSelected ? 10 : 6,
@@ -848,35 +966,80 @@ export const OldWorldAtlas: React.FC<{
       )}
       <section
         id="orbital-recon-section"
-        className="w-full bg-[#070a10] text-slate-100 rounded-2xl border border-amber-500/20 shadow-2xl overflow-hidden my-6"
+        className={
+          isMaximized
+            ? 'fixed inset-0 z-[9999] w-screen h-screen bg-[#05080e] text-slate-100 overflow-hidden flex flex-col m-0 rounded-none border-0'
+            : 'w-full bg-[#070a10] text-slate-100 rounded-2xl border border-amber-500/20 shadow-2xl overflow-hidden my-6'
+        }
       >
-      {/* ── Top Classified Telemetry Header ── */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-amber-500/20 bg-[#0b101b] px-6 py-4">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-amber-400">
-            <span className="inline-block h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
-            <span>ORBITAL RECON // SATAN&apos;S LITTLE SEASON &amp; OLD WORLD ARCHIVE</span>
+        {/* ── Top Classified Telemetry Header ── */}
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-amber-500/20 bg-[#0b101b] px-6 py-3">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-amber-400">
+              <span className="inline-block h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
+              <span>{activeMissionBrief}</span>
+            </div>
+            <h2 className="mt-1 text-xl md:text-2xl font-bold tracking-tight text-white">{activeTitle}</h2>
+            {!focusMode && !isMaximized && <p className="text-xs md:text-sm text-slate-400">{activeSubtitle}</p>}
           </div>
-          <h2 className="mt-1 text-xl md:text-2xl font-bold tracking-tight text-white">{title}</h2>
-          {!focusMode && <p className="text-xs md:text-sm text-slate-400">{subtitle}</p>}
-        </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setFocusMode((v) => !v)}
-            className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-mono text-slate-200 hover:border-amber-400/60"
-          >
-            {focusMode ? 'Exit Focus ⛶' : 'Focus View ⛶'}
-          </button>
-          <Link
-            href="/posts"
-            className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-mono text-amber-300 hover:bg-amber-500/20"
-          >
-            🎬 Episode Blog Archive ({data?.episodes?.length ?? 179})
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            {allowFullscreen && (
+              <button
+                type="button"
+                onClick={() => setIsMaximized((v) => !v)}
+                className={`rounded-md border px-3 py-1.5 text-xs font-mono font-bold transition-all ${
+                  isMaximized
+                    ? 'border-red-500/80 bg-red-500/20 text-red-300 hover:bg-red-500/30'
+                    : 'border-cyan-500/80 bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 shadow-lg shadow-cyan-950/50'
+                }`}
+                title={isMaximized ? 'Exit Fullscreen (Esc)' : 'Expand to Full Screen Viewport'}
+              >
+                {isMaximized ? '✕ EXIT FULLSCREEN (ESC)' : '⛶ EXPAND FULLSCREEN'}
+              </button>
+            )}
+            {isMaximized && (
+              <button
+                type="button"
+                onClick={() => setCollapseDossierInMax((v) => !v)}
+                className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-mono text-slate-200 hover:border-cyan-400/60"
+              >
+                {collapseDossierInMax ? '📋 SHOW DOSSIER' : '📋 HIDE DOSSIER (100% GLOBE)'}
+              </button>
+            )}
+            {!isMaximized && (
+              <button
+                type="button"
+                onClick={() => setFocusMode((v) => !v)}
+                className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-mono text-slate-200 hover:border-amber-400/60"
+              >
+                {focusMode ? 'Exit Focus ⛶' : 'Focus View ⛶'}
+              </button>
+            )}
+            {blogArchiveLink ? (
+              <Link
+                href={blogArchiveLink.href}
+                className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-mono text-amber-300 hover:bg-amber-500/20"
+              >
+                {blogArchiveLink.label}
+              </Link>
+            ) : mode === 'uap' ? (
+              <Link
+                href="/posts"
+                className="rounded-md border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-xs font-mono text-cyan-300 hover:bg-cyan-500/20"
+              >
+                📑 Declassified Dossiers ({allPlaces.length})
+              </Link>
+            ) : (
+              <Link
+                href="/posts"
+                className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-mono text-amber-300 hover:bg-amber-500/20"
+              >
+                🎬 Episode Blog Archive ({data?.episodes?.length ?? 179})
+              </Link>
+            )}
+          </div>
         </div>
-      </div>
 
       {/* ── 1. Audience Monitor & 11-Platform Social Matrix ── */}
       {showAudienceMonitor && !focusMode && (
@@ -948,50 +1111,52 @@ export const OldWorldAtlas: React.FC<{
         </div>
 
         {/* Live Global City & Historic Register Scanner */}
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-cyan-500/30 bg-[#071220] p-3">
-          <span className="text-xs font-mono font-semibold text-cyan-300">
-            🔎 LIVE CITY / HISTORIC REGISTER SCANNER:
-          </span>
-          <input
-            type="text"
-            value={scanCityInput}
-            onChange={(e) => setScanCityInput(e.target.value)}
-            placeholder="Enter city (e.g. Tampa, FL · Clearwater, FL · Chicago · Prague)"
-            className="flex-1 min-w-[200px] rounded border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs text-white placeholder:text-slate-500"
-          />
-          <select
-            value={scanFilter}
-            onChange={(e) => setScanFilter(e.target.value)}
-            className="rounded border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-xs font-mono text-slate-200"
-          >
-            <option value="all">All Pre-1940 &amp; Historic Landmarks</option>
-            <option value="carnegie">Carnegie Libraries &amp; Archives</option>
-            <option value="post_office">Historic Post Offices &amp; Custom Houses</option>
-            <option value="government">Capitols, Courthouses &amp; City Halls</option>
-            <option value="religious">Cathedrals, Basilicas &amp; Temples</option>
-            <option value="palace_castle">Palaces, Castles, Hotels &amp; Forts</option>
-            <option value="asylum_hospital">Asylums &amp; Historic Hospitals</option>
-          </select>
-          <button
-            type="button"
-            disabled={isScanning}
-            onClick={() => runSectorScan({ city: scanCityInput })}
-            className="rounded bg-cyan-500 px-3 py-1.5 text-xs font-mono font-bold text-slate-950 hover:bg-cyan-400 disabled:opacity-50"
-          >
-            {isScanning ? 'SCANNING ORBIT...' : '🛰 SCAN CITY'}
-          </button>
-          <button
-            type="button"
-            disabled={isScanning}
-            onClick={() => runSectorScan({ lat: camera.lat, lon: camera.lon, radiusKm: 25 })}
-            className="rounded border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-xs font-mono text-cyan-300 hover:bg-cyan-500/20 disabled:opacity-50"
-          >
-            ◎ Scan Current Coords
-          </button>
-          {scanStatus && (
-            <span className="w-full text-[11px] font-mono text-emerald-400 mt-1">{scanStatus}</span>
-          )}
-        </div>
+        {effectiveShowCityScanner && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-cyan-500/30 bg-[#071220] p-3">
+            <span className="text-xs font-mono font-semibold text-cyan-300">
+              🔎 LIVE CITY / HISTORIC REGISTER SCANNER:
+            </span>
+            <input
+              type="text"
+              value={scanCityInput}
+              onChange={(e) => setScanCityInput(e.target.value)}
+              placeholder="Enter city (e.g. Tampa, FL · Clearwater, FL · Chicago · Prague)"
+              className="flex-1 min-w-[200px] rounded border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs text-white placeholder:text-slate-500"
+            />
+            <select
+              value={scanFilter}
+              onChange={(e) => setScanFilter(e.target.value)}
+              className="rounded border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-xs font-mono text-slate-200"
+            >
+              <option value="all">All Pre-1940 &amp; Historic Landmarks</option>
+              <option value="carnegie">Carnegie Libraries &amp; Archives</option>
+              <option value="post_office">Historic Post Offices &amp; Custom Houses</option>
+              <option value="government">Capitols, Courthouses &amp; City Halls</option>
+              <option value="religious">Cathedrals, Basilicas &amp; Temples</option>
+              <option value="palace_castle">Palaces, Castles, Hotels &amp; Forts</option>
+              <option value="asylum_hospital">Asylums &amp; Historic Hospitals</option>
+            </select>
+            <button
+              type="button"
+              disabled={isScanning}
+              onClick={() => runSectorScan({ city: scanCityInput })}
+              className="rounded bg-cyan-500 px-3 py-1.5 text-xs font-mono font-bold text-slate-950 hover:bg-cyan-400 disabled:opacity-50"
+            >
+              {isScanning ? 'SCANNING ORBIT...' : '🛰 SCAN CITY'}
+            </button>
+            <button
+              type="button"
+              disabled={isScanning}
+              onClick={() => runSectorScan({ lat: camera.lat, lon: camera.lon, radiusKm: 25 })}
+              className="rounded border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-xs font-mono text-cyan-300 hover:bg-cyan-500/20 disabled:opacity-50"
+            >
+              ◎ Scan Current Coords
+            </button>
+            {scanStatus && (
+              <span className="w-full text-[11px] font-mono text-emerald-400 mt-1">{scanStatus}</span>
+            )}
+          </div>
+        )}
 
         {/* Global Architectural Layers Bar */}
         <div className="flex flex-wrap items-center gap-1.5">
@@ -1005,9 +1170,9 @@ export const OldWorldAtlas: React.FC<{
                 : 'border-slate-800 bg-slate-900 text-slate-400'
             }`}
           >
-            {mode === 'uap' ? '🛸 Declassified Incidents Layer' : '🎬 MLB Episodes Layer'} ({data?.places?.length ?? (mode === 'uap' ? 15 : 256)})
+            {primaryLayerLabel || (mode === 'uap' ? '🛸 Declassified Incidents Layer' : '🎬 MLB Episodes Layer')} ({data?.places?.length ?? (mode === 'uap' ? 15 : 256)})
           </button>
-          {GLOBAL_LAYERS.map((layer) => {
+          {activeLayersList.map((layer) => {
             const active = Boolean(activeGlobalLayers[layer.key])
             return (
               <button
@@ -1029,9 +1194,19 @@ export const OldWorldAtlas: React.FC<{
         {/* Quick Sector Jump Buttons */}
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-[11px] font-mono text-slate-400 mr-1">QUICK JUMP:</span>
-          {QUICK_SECTORS.map((sec) => (
+          {activeQuickSectors.map((sec) => (
             <button
               key={sec.label}
+              type="button"
+              onClick={() => {
+                setCamera({ lat: sec.lat, lon: sec.lon, zoom: sec.zoom })
+                setScanCityInput(sec.city)
+              }}
+              className="rounded border border-slate-800 bg-slate-900/90 px-2.5 py-1 text-[11px] font-mono text-slate-300 hover:border-amber-400/50 hover:text-amber-300"
+            >
+              {sec.label}
+            </button>
+          ))}
               type="button"
               onClick={() => {
                 setCamera({ lat: sec.lat, lon: sec.lon, zoom: sec.zoom })
@@ -1086,7 +1261,7 @@ export const OldWorldAtlas: React.FC<{
             className="rounded border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs font-mono text-slate-200"
           >
             <option value="ALL">All Categories ({allPlaces.length})</option>
-            {Object.keys(CATEGORY_COLORS).map((cat) => (
+            {Object.keys(activeCategoryColors).map((cat) => (
               <option key={cat} value={cat}>
                 {cat}
               </option>
@@ -1131,11 +1306,30 @@ export const OldWorldAtlas: React.FC<{
       </div>
 
       {/* ── 3. Main Split Viewport: Orbital Globe / Recon Map (Left) + Classified Dossier (Right) ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[560px]">
-        {/* Left 7 Cols: Interactive Viewport */}
-        <div className="lg:col-span-7 relative border-b lg:border-b-0 lg:border-r border-slate-800 bg-[#05080e] min-h-[460px]">
+      <div
+        className={
+          isMaximized
+            ? 'flex-1 grid grid-cols-1 lg:grid-cols-12 min-h-0 overflow-hidden'
+            : 'grid grid-cols-1 lg:grid-cols-12 min-h-[560px]'
+        }
+      >
+        {/* Left Cols: Interactive Viewport */}
+        <div
+          className={`${
+            isMaximized
+              ? collapseDossierInMax
+                ? 'lg:col-span-12'
+                : 'lg:col-span-7 xl:col-span-8'
+              : 'lg:col-span-7'
+          } relative border-b lg:border-b-0 lg:border-r border-slate-800 bg-[#05080e] ${
+            isMaximized ? 'h-full flex-1' : 'min-h-[460px]'
+          }`}
+        >
           {viewMode === 'recon' ? (
-            <div ref={mapContainerRef} className="h-[540px] w-full z-0 touch-none" />
+            <div
+              ref={mapContainerRef}
+              className={`${isMaximized ? 'h-full' : 'h-[540px]'} w-full z-0 touch-none`}
+            />
           ) : (
             <canvas
               ref={globeCanvasRef}
@@ -1173,7 +1367,9 @@ export const OldWorldAtlas: React.FC<{
                   if (hit) setSelectedPlace(hit.place)
                 }
               }}
-              className="h-[540px] w-full cursor-grab active:cursor-grabbing block touch-none select-none"
+              className={`${
+                isMaximized ? 'h-full' : 'h-[540px]'
+              } w-full cursor-grab active:cursor-grabbing block touch-none select-none`}
             />
           )}
 
@@ -1193,8 +1389,18 @@ export const OldWorldAtlas: React.FC<{
             </div>
           </div>
 
-          {/* Zoom + Switch to Street Recon Controls */}
+          {/* Zoom + Switch to Street Recon + Maximize Controls */}
           <div className="absolute bottom-3 right-3 flex items-center gap-1.5 z-10">
+            {allowFullscreen && (
+              <button
+                type="button"
+                onClick={() => setIsMaximized((v) => !v)}
+                className="rounded border border-cyan-500/60 bg-slate-900/90 px-2.5 py-1.5 text-xs font-mono text-cyan-300 hover:border-cyan-400 active:scale-95 touch-manipulation select-none"
+                title={isMaximized ? 'Exit Fullscreen' : 'Maximize Fullscreen'}
+              >
+                {isMaximized ? '✕ MINIMIZE' : '⛶ FULLSCREEN'}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setCamera((p) => ({ ...p, zoom: Math.min(18, p.zoom + 1) }))}
@@ -1221,8 +1427,13 @@ export const OldWorldAtlas: React.FC<{
           </div>
         </div>
 
-        {/* Right 5 Cols: Selected Building Dossier + Script Evidence */}
-        <div className="lg:col-span-5 flex flex-col justify-between bg-[#0a0f1a] p-5 overflow-y-auto max-h-[540px]">
+        {/* Right Cols: Selected Building Dossier + Evidence */}
+        {(!isMaximized || !collapseDossierInMax) && (
+          <div
+            className={`${
+              isMaximized ? 'lg:col-span-5 xl:col-span-4 max-h-full' : 'lg:col-span-5 max-h-[540px]'
+            } flex flex-col justify-between bg-[#0a0f1a] p-5 overflow-y-auto`}
+          >
           {selectedPlace ? (
             <div className="space-y-4">
               <div className="flex items-start justify-between gap-2">
@@ -1230,8 +1441,8 @@ export const OldWorldAtlas: React.FC<{
                   <span
                     className="inline-block rounded px-2 py-0.5 text-[10px] font-mono uppercase font-semibold"
                     style={{
-                      backgroundColor: `${CATEGORY_COLORS[selectedPlace.category] || '#f59e0b'}22`,
-                      color: CATEGORY_COLORS[selectedPlace.category] || '#f59e0b',
+                      backgroundColor: `${activeCategoryColors[selectedPlace.category] || '#f59e0b'}22`,
+                      color: activeCategoryColors[selectedPlace.category] || '#f59e0b',
                     }}
                   >
                     {selectedPlace.category} · {selectedPlace.existence.toUpperCase()}
@@ -1290,7 +1501,7 @@ export const OldWorldAtlas: React.FC<{
                   onClick={() => flyToPlace(selectedPlace, true)}
                   className="rounded bg-cyan-500/20 border border-cyan-400/50 px-2.5 py-1 text-xs font-mono text-cyan-300 hover:bg-cyan-500/30"
                 >
-                  🛰 Zoom Satellite Roof View
+                  {mode === 'uap' ? '🛰 Zoom Satellite Site View' : '🛰 Zoom Satellite Roof View'}
                 </button>
                 <a
                   href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${selectedPlace.latitude},${selectedPlace.longitude}`}
@@ -1307,17 +1518,39 @@ export const OldWorldAtlas: React.FC<{
                     rel="noreferrer"
                     className="rounded border border-slate-700 bg-slate-900 px-2.5 py-1 text-xs font-mono text-slate-300 hover:border-slate-500"
                   >
-                    📜 Official Narrative Source ↗
+                    {mode === 'uap' ? '📑 Primary Source Archive ↗' : '📜 Official Narrative Source ↗'}
                   </a>
                 )}
               </div>
 
-              {/* Episode Appearances & Cleaned Script Evidence */}
+              {/* Episode Appearances & Cleaned Script Evidence OR Declassified Primary Evidence */}
               <div className="border-t border-slate-800 pt-3">
                 <div className="text-xs font-mono uppercase tracking-wider text-amber-400 mb-2">
-                  🎬 FEATURED IN MLB EPISODES ({selectedAppearances.length})
+                  {mode === 'uap'
+                    ? '📑 DECLASSIFIED TELEMETRY & MEDIA SOURCES'
+                    : `🎬 FEATURED IN MLB EPISODES (${selectedAppearances.length})`}
                 </div>
-                {selectedAppearances.length === 0 ? (
+                {mode === 'uap' ? (
+                  <div className="rounded-lg border border-slate-800 bg-[#070b12] p-3 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="text-cyan-300 font-bold">MILITARY TELEMETRY &amp; WITNESS DEPOSITIONS</span>
+                      <span className="text-[10px] text-amber-400 uppercase font-mono">{selectedPlace.existence}</span>
+                    </div>
+                    <p className="text-xs text-slate-300 leading-relaxed font-mono">
+                      Logged under official DoD declassifications, military radar logs, and whistleblower testimony. Direct primary links preserved to the original media without third-party hosting.
+                    </p>
+                    {selectedPlace.sourceUrl && (
+                      <a
+                        href={selectedPlace.sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-mono text-cyan-400 hover:underline pt-1"
+                      >
+                        <span>🔗 Access Original Declassified Dossier / Media Link ↗</span>
+                      </a>
+                    )}
+                  </div>
+                ) : selectedAppearances.length === 0 ? (
                   <p className="text-xs text-slate-500 font-mono">
                     Regional Old World / Historic Register Landmark — ready for field investigation.
                   </p>
@@ -1368,7 +1601,9 @@ export const OldWorldAtlas: React.FC<{
             </div>
           ) : (
             <div className="flex h-full items-center justify-center text-xs font-mono text-slate-500">
-              Select any pin on the globe or list below to inspect its Old World dossier.
+              {mode === 'uap'
+                ? 'Select any incident pin on the globe or list below to inspect its declassified dossier.'
+                : 'Select any pin on the globe or list below to inspect its Old World dossier.'}
             </div>
           )}
         </div>
@@ -1378,7 +1613,9 @@ export const OldWorldAtlas: React.FC<{
       <div className="border-t border-slate-800 bg-[#080c14] px-6 py-5">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs font-mono uppercase tracking-widest text-amber-400">
-            VERIFIED OLD WORLD STRUCTURES IN CURRENT FILTER ({filteredPlaces.length})
+            {mode === 'uap'
+              ? `DECLASSIFIED INCIDENT DOSSIERS IN CURRENT FILTER (${filteredPlaces.length})`
+              : `VERIFIED OLD WORLD STRUCTURES IN CURRENT FILTER (${filteredPlaces.length})`}
           </h3>
           <span className="text-[11px] font-mono text-slate-400">
             Click any card to lock satellite camera
@@ -1401,7 +1638,7 @@ export const OldWorldAtlas: React.FC<{
                 }`}
               >
                 <div className="flex items-center justify-between gap-1 text-[10px] font-mono">
-                  <span style={{ color: CATEGORY_COLORS[place.category] || '#f59e0b' }}>
+                  <span style={{ color: activeCategoryColors[place.category] || '#f59e0b' }}>
                     {place.category}
                   </span>
                   {appCount > 0 ? (

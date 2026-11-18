@@ -69,9 +69,13 @@ export const UAPGlobeAtlas: React.FC = () => {
         showExcavationHero={false}
         showAudienceMonitor={false}
         showGlobeAndRecon={true}
+        showCityScanner={false}
+        allowFullscreen={true}
         mode="uap"
         title="ORBITAL RECON // GLOBAL UAP DECLASSIFIED ATLAS"
         subtitle="Interactive 3D Spy-Satellite Globe, Declassified Radar Intercepts, Crash Retrievals & Whistleblower Dossiers"
+        missionBrief="ORBITAL RECON // DECLASSIFIED DISCLOSURE & TELEMETRY ARCHIVE"
+        searchPlaceholder="Search declassified incidents, crash sites, radar locks, witnesses..."
       />
     </div>
   )
