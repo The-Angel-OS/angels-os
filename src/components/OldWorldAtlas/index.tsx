@@ -147,6 +147,8 @@ export const OldWorldAtlas: React.FC<{
   showGlobeAndRecon?: boolean
   title?: string
   subtitle?: string
+  mode?: 'old_world' | 'uap' | 'jon_levi'
+  searchPlaceholder?: string
 }> = ({
   initialData,
   showExcavationHero = true,
@@ -154,6 +156,8 @@ export const OldWorldAtlas: React.FC<{
   showGlobeAndRecon = true,
   title = 'SPY SATELLITE // OLD WORLD & TARTARIA ARCHIVE',
   subtitle = 'Orbital Reconnaissance, Historic Architecture City Scanner & Satan’s Little Season Investigation Index',
+  mode = 'old_world',
+  searchPlaceholder,
 }) => {
   const [data, setData] = useState<AtlasArchiveData | null>(initialData ?? null)
   const [scannedPlaces, setScannedPlaces] = useState<AtlasPlace[]>([])
@@ -1001,7 +1005,7 @@ export const OldWorldAtlas: React.FC<{
                 : 'border-slate-800 bg-slate-900 text-slate-400'
             }`}
           >
-            🎬 MLB Episodes Layer ({data?.places?.length ?? 256})
+            {mode === 'uap' ? '🛸 Declassified Incidents Layer' : '🎬 MLB Episodes Layer'} ({data?.places?.length ?? (mode === 'uap' ? 15 : 256)})
           </button>
           {GLOBAL_LAYERS.map((layer) => {
             const active = Boolean(activeGlobalLayers[layer.key])
@@ -1068,7 +1072,12 @@ export const OldWorldAtlas: React.FC<{
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={`Search ${allPlaces.length} verified structures, cities, countries...`}
+            placeholder={
+              searchPlaceholder ||
+              (mode === 'uap'
+                ? `Search ${allPlaces.length} declassified incidents, crash sites, radar locks, witnesses...`
+                : `Search ${allPlaces.length} verified structures, cities, countries...`)
+            }
             className="rounded border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs text-white"
           />
           <select
@@ -1083,18 +1092,32 @@ export const OldWorldAtlas: React.FC<{
               </option>
             ))}
           </select>
-          <select
-            value={selectedEpisodeId}
-            onChange={(e) => setSelectedEpisodeId(e.target.value)}
-            className="rounded border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs font-mono text-slate-200"
-          >
-            <option value="ALL">All MLB Episodes ({data?.episodes?.length ?? 0})</option>
-            {(data?.episodes ?? []).map((ep) => (
-              <option key={ep.id} value={ep.id}>
-                EP {ep.number} — {ep.title}
-              </option>
-            ))}
-          </select>
+          {mode === 'uap' ? (
+            <select
+              value={selectedEpisodeId}
+              onChange={(e) => setSelectedEpisodeId(e.target.value)}
+              className="rounded border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs font-mono text-slate-200"
+            >
+              <option value="ALL">All Classification Levels</option>
+              <option value="TOP SECRET / MAJIC">Top Secret / MAJIC</option>
+              <option value="SECRET / NOFORN">Secret / NOFORN</option>
+              <option value="DECLASSIFIED (DOD)">Declassified (DoD / Navy)</option>
+              <option value="CONFIDENTIAL">Confidential / Witness Record</option>
+            </select>
+          ) : (
+            <select
+              value={selectedEpisodeId}
+              onChange={(e) => setSelectedEpisodeId(e.target.value)}
+              className="rounded border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs font-mono text-slate-200"
+            >
+              <option value="ALL">All MLB Episodes ({data?.episodes?.length ?? 0})</option>
+              {(data?.episodes ?? []).map((ep) => (
+                <option key={ep.id} value={ep.id}>
+                  EP {ep.number} — {ep.title}
+                </option>
+              ))}
+            </select>
+          )}
           <select
             value={selectedExistence}
             onChange={(e) => setSelectedExistence(e.target.value)}
@@ -1192,7 +1215,7 @@ export const OldWorldAtlas: React.FC<{
                 onClick={() => setViewMode('recon')}
                 className="rounded bg-amber-500 px-3 py-1 text-xs font-mono font-bold text-slate-950 hover:bg-amber-400"
               >
-                🔍 HIGH-ZOOM SATELLITE ROOF RECON
+                {mode === 'uap' ? '🔍 HIGH-ZOOM SATELLITE SITE RECON' : '🔍 HIGH-ZOOM SATELLITE ROOF RECON'}
               </button>
             )}
           </div>

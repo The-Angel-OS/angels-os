@@ -195,6 +195,7 @@ import { myMembershipsHandler, membershipPortalHandler } from '@/endpoints/membe
 import { ensureMembershipBlockTablesHandler } from '@/endpoints/ensure-membership-block-tables'
 import { ensureMerlinBlockTablesHandler } from '@/endpoints/ensure-merlin-block-tables'
 import { ensureGalleryBlockTablesHandler } from '@/endpoints/ensure-gallery-block-tables'
+import { ensureGlobeAtlasBlockTablesHandler } from '@/endpoints/ensure-globe-atlas-block-tables'
 import { ensureLockedDocsRelsHandler } from '@/endpoints/ensure-locked-docs-rels'
 import { membershipPlansHandler } from '@/endpoints/membership-plans'
 import { membershipReadinessHandler } from '@/endpoints/membership-readiness'
@@ -1467,6 +1468,17 @@ export default buildConfig({
       path: '/provision-ops/ensure-gallery-block-tables',
       method: 'get',
       handler: ensureGalleryBlockTablesHandler,
+    },
+    // Net-new GlobeAtlas block tables (live + versioned) for Pages layout
+    {
+      path: '/provision-ops/ensure-globe-atlas-block-tables',
+      method: 'get',
+      handler: ensureGlobeAtlasBlockTablesHandler,
+    },
+    {
+      path: '/provision-ops/ensure-globe-atlas-block-tables',
+      method: 'post',
+      handler: ensureGlobeAtlasBlockTablesHandler,
     },
     // Self-heal payload_locked_documents_rels drift (missing <collection>_id columns
     // break every admin save). Re-runnable after any new collection ships.
