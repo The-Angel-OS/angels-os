@@ -347,6 +347,27 @@ export const OldWorldAtlas: React.FC<OldWorldAtlasProps> = ({
 
   const toggleGlobalLayer = useCallback(
     async (layerKey: string) => {
+      if (mode === 'uap') {
+        const categoryMap: Record<string, string> = {
+          crash_retrievals: 'CRASH RETRIEVAL',
+          nuclear_silos: 'NUCLEAR SILO INCURSION',
+          military_radar: 'RADAR & FLIR TELEMETRY',
+          pilot_locks: 'AVIATOR / PILOT LOCK',
+          mass_sightings: 'MASS SIGHTING',
+          underground_facilities: 'UNDERGROUND / BLACK SITE',
+        }
+        const targetCat = categoryMap[layerKey]
+        if (targetCat) {
+          const isCurrentlyActive = Boolean(activeGlobalLayers[layerKey])
+          setActiveGlobalLayers((prev) => ({
+            ...prev,
+            [layerKey]: !isCurrentlyActive,
+          }))
+          setSelectedCategory((curr) => (curr === targetCat ? 'ALL' : targetCat))
+          return
+        }
+      }
+
       const currentlyOn = Boolean(activeGlobalLayers[layerKey])
       if (currentlyOn) {
         setActiveGlobalLayers((prev) => ({ ...prev, [layerKey]: false }))
@@ -1201,16 +1222,14 @@ export const OldWorldAtlas: React.FC<OldWorldAtlasProps> = ({
               onClick={() => {
                 setCamera({ lat: sec.lat, lon: sec.lon, zoom: sec.zoom })
                 setScanCityInput(sec.city)
-              }}
-              className="rounded border border-slate-800 bg-slate-900/90 px-2.5 py-1 text-[11px] font-mono text-slate-300 hover:border-amber-400/50 hover:text-amber-300"
-            >
-              {sec.label}
-            </button>
-          ))}
-              type="button"
-              onClick={() => {
-                setCamera({ lat: sec.lat, lon: sec.lon, zoom: sec.zoom })
-                setScanCityInput(sec.city)
+                if (mode === 'uap') {
+                  const queryCity = sec.city.split(',')[0].trim().toLowerCase()
+                  const match = allPlaces.find((p) =>
+                    p.name.toLowerCase().includes(queryCity) ||
+                    (p.city && p.city.toLowerCase().includes(queryCity))
+                  )
+                  if (match) setSelectedPlace(match)
+                }
               }}
               className="rounded border border-slate-800 bg-slate-900/90 px-2.5 py-1 text-[11px] font-mono text-slate-300 hover:border-amber-400/50 hover:text-amber-300"
             >
@@ -1293,15 +1312,29 @@ export const OldWorldAtlas: React.FC<OldWorldAtlasProps> = ({
               ))}
             </select>
           )}
-          <select
-            value={selectedExistence}
-            onChange={(e) => setSelectedExistence(e.target.value)}
-            className="rounded border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs font-mono text-slate-200"
-          >
-            <option value="ALL">Standing &amp; Lost / Demolished</option>
-            <option value="standing">Standing Structures Only</option>
-            <option value="lost">Demolished, Submerged &amp; Unknown</option>
-          </select>
+          {mode === 'uap' ? (
+            <select
+              value={selectedExistence}
+              onChange={(e) => setSelectedExistence(e.target.value)}
+              className="rounded border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs font-mono text-slate-200"
+            >
+              <option value="ALL">All Telemetry &amp; Evidence Types</option>
+              <option value="radar">Multi-Sensor / FLIR Telemetry</option>
+              <option value="retrieval">Debris / Physical Craft Retrieved</option>
+              <option value="nuclear">Nuclear Facility Disruption</option>
+              <option value="witness">Military / Aviator Eyewitness</option>
+            </select>
+          ) : (
+            <select
+              value={selectedExistence}
+              onChange={(e) => setSelectedExistence(e.target.value)}
+              className="rounded border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs font-mono text-slate-200"
+            >
+              <option value="ALL">Standing &amp; Lost / Demolished</option>
+              <option value="standing">Standing Structures Only</option>
+              <option value="lost">Demolished, Submerged &amp; Unknown</option>
+            </select>
+          )}
         </div>
       </div>
 
@@ -1452,7 +1485,11 @@ export const OldWorldAtlas: React.FC<OldWorldAtlasProps> = ({
                     {[selectedPlace.city, selectedPlace.state, selectedPlace.country]
                       .filter(Boolean)
                       .join(', ')}{' '}
-                    {selectedPlace.construction ? `· Claimed: ${selectedPlace.construction}` : ''}
+                    {selectedPlace.construction
+                      ? mode === 'uap'
+                        ? `· Incident Date: ${selectedPlace.construction}`
+                        : `· Claimed: ${selectedPlace.construction}`
+                      : ''}
                   </p>
                 </div>
               </div>
