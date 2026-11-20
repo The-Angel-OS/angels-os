@@ -13,6 +13,7 @@ export type PostCardData = Pick<
   'slug' | 'title' | 'categories' | 'meta' | 'publishedOn' | 'sourceUrl' | 'sourceType'
 > & {
   id?: number | string
+  access?: string | null
   hero?: { media?: number | Post['hero']['media'] }
 }
 
@@ -24,7 +25,7 @@ export const PostCard: React.FC<{
    *  card, and every one of them linked to /posts/<slug> — a 404. */
   basePath?: string
 }> = ({ className, post, showCategories = true, basePath = '/posts' }) => {
-  const { slug, title, categories, meta, publishedOn, hero, sourceUrl, sourceType } = post
+  const { slug, title, categories, meta, publishedOn, hero, sourceUrl, sourceType, access } = post
   const metaImage = typeof meta?.image === 'object' ? meta.image : null
   const heroMedia = typeof hero?.media === 'object' ? hero.media : null
   const thumbnail = metaImage || heroMedia
@@ -64,6 +65,11 @@ export const PostCard: React.FC<{
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
               No image
             </div>
+          )}
+          {access && access !== 'public' && (
+            <span className="absolute right-2.5 top-2.5 inline-flex items-center gap-1 rounded-full border border-amber-400/50 bg-slate-950/85 px-2.5 py-0.5 text-[11px] font-semibold text-amber-300 shadow-sm backdrop-blur-sm">
+              {access === 'authenticated' ? '🔒 Sign In' : '🔒 Members Only'}
+            </span>
           )}
         </div>
       </Link>

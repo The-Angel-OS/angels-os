@@ -22,7 +22,9 @@ export const isEpisodesItem = (item: NavItem): boolean => {
   const label = typeof link?.label === 'string' ? link.label.toLowerCase() : ''
   return (
     url === '/episodes' ||
+    url === '/shows' ||
     label === 'episodes' ||
+    label === 'shows' ||
     label === 'video log' ||
     label === 'investigations'
   )
@@ -32,7 +34,14 @@ export const isPostsItem = (item: NavItem): boolean => {
   const link = item?.link
   const url = link?.url?.toLowerCase()
   const label = typeof link?.label === 'string' ? link.label.toLowerCase() : ''
-  if (url === '/episodes' || label === 'episodes' || label === 'video log' || label === 'investigations') {
+  if (
+    url === '/episodes' ||
+    url === '/shows' ||
+    label === 'episodes' ||
+    label === 'shows' ||
+    label === 'video log' ||
+    label === 'investigations'
+  ) {
     return false
   }
   return (
@@ -55,9 +64,10 @@ const postToChild = (p: PostLite, basePath: string = '/posts'): NavItem => ({
 export function injectEpisodesUnderNav(
   navItems: NavItem[],
   episodes: PostLite[],
-  opts: { max?: number } = {},
+  opts: { max?: number; skipIfHasChildren?: boolean } = {},
 ): NavItem[] {
   const max = opts.max ?? 1000
+  const skipIfHasChildren = opts.skipIfHasChildren ?? false
   const items = Array.isArray(navItems) ? navItems : []
 
   const episodeChildren = (Array.isArray(episodes) ? episodes : [])
@@ -72,6 +82,7 @@ export function injectEpisodesUnderNav(
     if (injected || !isEpisodesItem(item)) return item
     injected = true
     const existing = Array.isArray(item.children) ? item.children : []
+    if (skipIfHasChildren && existing.length > 0) return item
     const existingUrls = new Set(existing.map((c: NavItem) => c?.link?.url))
     const merged = [...existing, ...episodeChildren.filter((c) => !existingUrls.has(c.link.url))]
     return { ...item, children: merged }
@@ -86,9 +97,10 @@ export function injectEpisodesUnderNav(
 export function injectPostsUnderNav(
   navItems: NavItem[],
   posts: PostLite[],
-  opts: { max?: number } = {},
+  opts: { max?: number; skipIfHasChildren?: boolean } = {},
 ): NavItem[] {
   const max = opts.max ?? 5
+  const skipIfHasChildren = opts.skipIfHasChildren ?? false
   const items = Array.isArray(navItems) ? navItems : []
 
   const postChildren = (Array.isArray(posts) ? posts : [])
@@ -103,6 +115,7 @@ export function injectPostsUnderNav(
     if (injected || !isPostsItem(item)) return item
     injected = true
     const existing = Array.isArray(item.children) ? item.children : []
+    if (skipIfHasChildren && existing.length > 0) return item
     const existingUrls = new Set(existing.map((c: NavItem) => c?.link?.url))
     const merged = [...existing, ...postChildren.filter((c) => !existingUrls.has(c.link.url))]
     return { ...item, children: merged }

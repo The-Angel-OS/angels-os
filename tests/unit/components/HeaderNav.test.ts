@@ -58,6 +58,15 @@ describe('composeNavItems', () => {
     expect(urls(out).filter((u) => u === '/events')).toHaveLength(1)
   })
 
+  it('does not inject duplicate /episodes when the owner already configured /shows', () => {
+    const out = composeNavItems({
+      navItems: [stored('/'), stored('/shows', 'Shows')],
+      hasEpisodes: true,
+    })
+    expect(urls(out)).toContain('/shows')
+    expect(urls(out)).not.toContain('/episodes')
+  })
+
   // --- giving --------------------------------------------------------------
 
   it('offers Giving only to an organization that takes donations', () => {

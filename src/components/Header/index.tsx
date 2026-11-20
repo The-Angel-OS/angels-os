@@ -7,7 +7,7 @@ import { headers } from 'next/headers'
 import { getTenantCachedDoc } from '@/utilities/getTenantCachedDoc'
 import { injectPagesUnderHome, ALWAYS_PROMOTED_PAGE_SLUGS, type PageLite } from '@/utilities/pagesNav'
 import { resolveViewerStanding, isPageViewable } from '@/utilities/pageAccess'
-import { injectPostsUnderNav, injectEpisodesUnderNav, isEpisodesItem, type PostLite } from '@/utilities/postsNav'
+import { injectPostsUnderNav, injectEpisodesUnderNav, isEpisodesItem, isPostsItem, type PostLite } from '@/utilities/postsNav'
 import { computeEmbedUrl } from '@/utilities/computeEmbedUrl'
 import { injectProductsUnderNav, isShopItem, type ProductLite, DEFAULT_SHOP_DROPDOWN_COUNT } from '@/utilities/productsNav'
 import { injectEventsUnderNav, type EventLite, DEFAULT_EVENTS_DROPDOWN_COUNT } from '@/utilities/eventsNav'
@@ -149,17 +149,44 @@ export async function Header({ tenant }: Props) {
           parent: p.parent as PageLite['parent'],
         }))
 
-      // Latest posts → Posts dropdown, each with its meta image (or YouTube thumbnail)
-      // as a thumbnail. Fetch up to 1000 so episode-heavy portals (MLB) can display
-      // their full archive inside the Episodes dropdown without truncating recent episodes.
-      const posts = await payload.find({
-        collection: 'posts',
-        where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'published' } }] },
-        limit: 1000,
-        depth: 1, // resolve meta.image → media
-        sort: '-publishedOn',
-        overrideAccess: true,
-      })
+      // Fast counts + capped preview queries (max 8) rather than fetching 1000 posts on every render.
+      const videoPostWhere = {
+        or: [
+          { sourceType: { in: ['youtube', 'vimeo'] } },
+          { sourceUrl: { like: 'youtube.com' } },
+          { sourceUrl: { like: 'youtu.be' } },
+        ],
+      }
+      const [totalPostsRes, videoPostsCountRes] = await Promise.all([
+        payload.count({
+          collection: 'posts',
+          where: { and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'published' } }] },
+          overrideAccess: true,
+        }),
+        payload.count({
+          collection: 'posts',
+          where: {
+            and: [
+              { tenant: { equals: tenantId } },
+              { _status: { equals: 'published' } },
+              videoPostWhere,
+            ],
+          },
+          overrideAccess: true,
+        }),
+      ])
+
+      hasEpisodes = videoPostsCountRes.totalDocs > 0
+      hasPosts = totalPostsRes.totalDocs > videoPostsCountRes.totalDocs
+
+      const storedNavItems = (header as { navItems?: Array<{ children?: unknown[] }> }).navItems || []
+      const episodesNavHasChildren = storedNavItems.some(
+        (item) => isEpisodesItem(item) && Array.isArray(item.children) && item.children.length > 0,
+      )
+      const postsNavHasChildren = storedNavItems.some(
+        (item) => isPostsItem(item) && Array.isArray(item.children) && item.children.length > 0,
+      )
+
       const thumb = (m: unknown, sourceUrl?: string | null): string | null => {
         if (m && typeof m === 'object') {
           const media = m as { url?: string | null; sizes?: { thumbnail?: { url?: string | null } } }
@@ -174,37 +201,71 @@ export async function Header({ tenant }: Props) {
         }
         return null
       }
-      const allPosts = (
-        posts.docs as Array<{
-          slug?: string | null
-          title?: string | null
-          sourceUrl?: string | null
-          sourceType?: string | null
-          meta?: { image?: unknown }
-        }>
-      )
-      const episodeDocs = allPosts.filter(
-        (p) =>
-          p.sourceType === 'youtube' ||
-          p.sourceType === 'vimeo' ||
-          Boolean(p.sourceUrl?.includes('youtube.com') || p.sourceUrl?.includes('youtu.be')),
-      )
-      const postDocs = allPosts.filter((p) => !episodeDocs.includes(p))
 
-      const episodeList: PostLite[] = episodeDocs.map((p) => ({
+      const [episodeRes, postRes] = await Promise.all([
+        hasEpisodes && !episodesNavHasChildren
+          ? payload.find({
+              collection: 'posts',
+              where: {
+                and: [
+                  { tenant: { equals: tenantId } },
+                  { _status: { equals: 'published' } },
+                  videoPostWhere,
+                ],
+              },
+              limit: 8,
+              depth: 1,
+              sort: '-publishedOn',
+              select: { slug: true, title: true, sourceUrl: true, sourceType: true, meta: { image: true } },
+              overrideAccess: true,
+            })
+          : Promise.resolve({ docs: [] }),
+        hasPosts && !postsNavHasChildren
+          ? payload.find({
+              collection: 'posts',
+              where: {
+                and: [
+                  { tenant: { equals: tenantId } },
+                  { _status: { equals: 'published' } },
+                  {
+                    or: [
+                      { sourceType: { not_in: ['youtube', 'vimeo'] } },
+                      { sourceType: { exists: false } },
+                    ],
+                  },
+                ],
+              },
+              limit: 16,
+              depth: 1,
+              sort: '-publishedOn',
+              select: { slug: true, title: true, sourceUrl: true, sourceType: true, meta: { image: true } },
+              overrideAccess: true,
+            })
+          : Promise.resolve({ docs: [] }),
+      ])
+
+      type NavPostRow = {
+        slug?: string | null
+        title?: string | null
+        sourceUrl?: string | null
+        sourceType?: string | null
+        meta?: { image?: unknown }
+      }
+
+      const episodeList: PostLite[] = (episodeRes.docs as NavPostRow[]).map((p) => ({
         slug: p.slug,
         title: p.title,
         image: thumb(p.meta?.image, p.sourceUrl),
       }))
 
-      const postList: PostLite[] = postDocs.map((p) => ({
-        slug: p.slug,
-        title: p.title,
-        image: thumb(p.meta?.image, p.sourceUrl),
-      }))
-
-      if (episodeList.length > 0) hasEpisodes = true
-      if (postList.length > 0) hasPosts = true
+      const postList: PostLite[] = (postRes.docs as NavPostRow[])
+        .filter((p) => !p.sourceUrl?.includes('youtube.com') && !p.sourceUrl?.includes('youtu.be'))
+        .slice(0, 8)
+        .map((p) => ({
+          slug: p.slug,
+          title: p.title,
+          image: thumb(p.meta?.image, p.sourceUrl),
+        }))
 
       // Top products → Shop dropdown, each with its first gallery image as a
       // thumbnail. Defaults to the top N (configurable via DEFAULT_SHOP_DROPDOWN_COUNT);
@@ -269,8 +330,8 @@ export async function Header({ tenant }: Props) {
         navItems.push({ id: 'shop', link: { type: 'custom', label: 'Shop', url: '/shop' } })
       }
 
-      navItems = injectEpisodesUnderNav(navItems, episodeList, { max: 1000 })
-      navItems = injectPostsUnderNav(navItems, postList, { max: 50 })
+      navItems = injectEpisodesUnderNav(navItems, episodeList, { max: 8, skipIfHasChildren: true })
+      navItems = injectPostsUnderNav(navItems, postList, { max: 8, skipIfHasChildren: true })
       navItems = injectProductsUnderNav(navItems, productList)
       navItems = injectEventsUnderNav(navItems, eventList)
       header = { ...header, navItems }

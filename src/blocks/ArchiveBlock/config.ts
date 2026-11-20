@@ -98,6 +98,36 @@ export const Archive: Block = {
       },
     },
     {
+      name: 'enableSearch',
+      type: 'checkbox',
+      defaultValue: false,
+      label: 'Enable Search Bar',
+      admin: {
+        condition: (_, siblingData) => siblingData.populateBy === 'collection',
+        description: 'Show a live ?q= keyword search input above the archive grid.',
+      },
+    },
+    {
+      name: 'enableCategoryTabs',
+      type: 'checkbox',
+      defaultValue: false,
+      label: 'Enable Category Filter Tabs',
+      admin: {
+        condition: (_, siblingData) => siblingData.populateBy === 'collection',
+        description: 'Render clickable ?category= filter pills from the selected Categories above.',
+      },
+    },
+    {
+      name: 'enablePagination',
+      type: 'checkbox',
+      defaultValue: false,
+      label: 'Enable Pagination',
+      admin: {
+        condition: (_, siblingData) => siblingData.populateBy === 'collection',
+        description: 'Paginate results with ?page= links when total items exceed Limit.',
+      },
+    },
+    {
       name: 'selectedDocs',
       type: 'relationship',
       admin: {

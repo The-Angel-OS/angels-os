@@ -35,29 +35,80 @@ const NAME = 'My Lunch Break'
 const DOMAIN = 'mlb.spacesangels.com'
 const TAGLINE = 'Old World Architecture, Satan’s Little Season & Global Investigation Archive'
 
-async function upsertMlbAtlasPage(
+const MLB_CATEGORY_SPECS = [
+  { key: 'episodes', title: 'Episodes', slug: 'episodes' },
+  { key: 'shows', title: 'Shows', slug: 'shows' },
+  { key: 'membersOnly', title: 'Members Only', slug: 'members-only' },
+  { key: 'shorts', title: 'Shorts & Clips', slug: 'shorts' },
+  { key: 'socialPosts', title: 'Social Posts', slug: 'social-posts' },
+  { key: 'structures', title: 'Historical Structures', slug: 'structures' },
+  { key: 'topics', title: 'Subjects & Topics', slug: 'topics' },
+  { key: 'historicFires', title: 'Historic Fires', slug: 'historic-fires' },
+] as const
+
+type MlbCategoryKey = (typeof MLB_CATEGORY_SPECS)[number]['key']
+
+async function resolveMlbTenant(payload: Payload): Promise<{ id: number | string } | null> {
+  const tRes = await payload.find({
+    collection: 'tenants',
+    where: { slug: { equals: SLUG } },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const doc = tRes.docs?.[0] as { id?: number | string } | undefined
+  return doc?.id != null ? { id: doc.id } : null
+}
+
+async function upsertMlbPage(
   payload: Payload,
   tenantId: number | string,
+  slug: string,
+  data: Record<string, unknown>,
 ): Promise<{ action: 'created' | 'updated'; id: number | string }> {
-  const existingAtlas = await payload.find({
+  const existing = await payload.find({
     collection: 'pages',
-    where: { and: [{ slug: { equals: 'atlas' } }, { tenant: { equals: tenantId } }] },
+    where: { and: [{ slug: { equals: slug } }, { tenant: { equals: tenantId } }] },
     limit: 1,
     depth: 0,
     overrideAccess: true,
   })
 
-  const atlasPageData = {
+  if (existing.docs.length === 0) {
+    const created = await payload.create({
+      collection: 'pages',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: { ...data, slug, tenant: tenantId } as any,
+      depth: 0,
+      overrideAccess: true,
+    })
+    return { action: 'created', id: created.id }
+  }
+
+  const updated = await payload.update({
+    collection: 'pages',
+    id: existing.docs[0]!.id,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data: { ...data, slug, tenant: tenantId } as any,
+    depth: 0,
+    overrideAccess: true,
+  })
+  return { action: 'updated', id: updated.id }
+}
+
+async function upsertMlbAtlasPage(
+  payload: Payload,
+  tenantId: number | string,
+  databasePageId?: number | string | null,
+): Promise<{ action: 'created' | 'updated'; id: number | string }> {
+  return upsertMlbPage(payload, tenantId, 'atlas', {
     title: 'Old World Atlas',
-    slug: 'atlas',
     _status: 'published',
-    showInNav: true,
+    showInNav: false,
     navLabel: 'Old World Atlas',
     navOrder: 15,
-    tenant: tenantId,
-    hero: {
-      type: 'none',
-    },
+    ...(databasePageId != null ? { parent: databasePageId } : {}),
+    hero: { type: 'none' },
     layout: [
       {
         blockType: 'globeAtlas',
@@ -76,28 +127,240 @@ async function upsertMlbAtlasPage(
       description:
         'Interactive 3D Old World Spy-Satellite Globe & City Architecture Scanner.',
     },
-  }
+  })
+}
 
-  if (existingAtlas.docs.length === 0) {
-    const created = await payload.create({
-      collection: 'pages',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      data: atlasPageData as any,
-      depth: 0,
-      overrideAccess: true,
-    })
-    return { action: 'created', id: created.id }
-  }
-
-  const updated = await payload.update({
-    collection: 'pages',
-    id: existingAtlas.docs[0]!.id,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    data: atlasPageData as any,
+async function findOrCreateMlbCategories(
+  payload: Payload,
+  tenantId: number | string,
+): Promise<Record<MlbCategoryKey, number | string>> {
+  const existingRes = await payload.find({
+    collection: 'categories',
+    where: { tenant: { equals: tenantId } },
+    limit: 100,
     depth: 0,
     overrideAccess: true,
   })
-  return { action: 'updated', id: updated.id }
+  const bySlug = new Map<string, number | string>()
+  for (const doc of existingRes.docs as Array<{ id: number | string; slug?: string }>) {
+    if (doc.slug) bySlug.set(doc.slug, doc.id)
+  }
+
+  const result = {} as Record<MlbCategoryKey, number | string>
+  for (const spec of MLB_CATEGORY_SPECS) {
+    const existingId = bySlug.get(spec.slug)
+    if (existingId != null) {
+      result[spec.key] = existingId
+      continue
+    }
+    const created = await payload.create({
+      collection: 'categories',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: { title: spec.title, slug: spec.slug, tenant: tenantId } as any,
+      depth: 0,
+      overrideAccess: true,
+    })
+    result[spec.key] = created.id
+  }
+  return result
+}
+
+async function setupMlbPhase1Nav(payload: Payload, tenantId: number | string) {
+  const categories = await findOrCreateMlbCategories(payload, tenantId)
+
+  const showsPage = await upsertMlbPage(payload, tenantId, 'shows', {
+    title: 'Shows & Episodes',
+    _status: 'published',
+    showInNav: false,
+    hero: { type: 'none' },
+    layout: [
+      {
+        blockType: 'archive',
+        blockName: 'Shows & Video Index',
+        populateBy: 'collection',
+        relationTo: 'posts',
+        categories: [categories.episodes, categories.shows, categories.membersOnly, categories.shorts],
+        limit: 12,
+        columns: '3',
+        enableSearch: true,
+        enableCategoryTabs: true,
+        enablePagination: true,
+        introContent: createLexicalContent([
+          createHeadingNode('Shows & Video Index', 'h2'),
+          createParagraphNode(
+            'Complete My Lunch Break video archive — full investigation episodes, shows, members-only releases, and shorts & clips.',
+          ),
+        ]),
+      },
+    ],
+    meta: {
+      title: 'Shows & Episodes — My Lunch Break',
+      description:
+        'Browse all My Lunch Break episodes, shows, members-only investigations, and shorts & clips.',
+    },
+  })
+
+  const databasePage = await upsertMlbPage(payload, tenantId, 'database', {
+    title: 'Old World Database',
+    _status: 'published',
+    showInNav: false,
+    hero: { type: 'none' },
+    layout: [
+      {
+        blockType: 'archive',
+        blockName: 'Old World Database Index',
+        populateBy: 'collection',
+        relationTo: 'posts',
+        categories: [categories.structures, categories.topics, categories.historicFires],
+        limit: 12,
+        columns: '3',
+        enableSearch: true,
+        enableCategoryTabs: true,
+        enablePagination: true,
+        introContent: createLexicalContent([
+          createHeadingNode('Old World Database', 'h2'),
+          createParagraphNode(
+            'Explore geo-pinned historical structures, recurring architectural subjects (such as Old World Dams and Star Forts), and historic fire dossiers rolled up across every show.',
+          ),
+        ]),
+      },
+    ],
+    meta: {
+      title: 'Old World Database — My Lunch Break',
+      description:
+        'Searchable database of geo-pinned Old World structures, subject rollups, historic fires, and the 3D Spy-Satellite Atlas.',
+    },
+  })
+
+  const atlasPage = await upsertMlbAtlasPage(payload, tenantId, databasePage.id)
+
+  const navLinkItem = (label: string, url: string) => ({
+    link: { type: 'custom', newTab: false, label, url },
+  })
+
+  const headerNavItems = [
+    { ...navLinkItem('Home', '/'), children: [] },
+    {
+      ...navLinkItem('Shows', '/shows'),
+      children: [
+        navLinkItem('Episodes', '/shows?category=episodes'),
+        navLinkItem('Shows & Live', '/shows?category=shows'),
+        navLinkItem('Members Only', '/shows?category=members-only'),
+        navLinkItem('Shorts & Clips', '/shows?category=shorts'),
+      ],
+    },
+    { ...navLinkItem('Posts', '/posts'), children: [] },
+    {
+      ...navLinkItem('Database', '/database'),
+      children: [
+        navLinkItem('Old World Atlas', '/atlas'),
+        navLinkItem('Historical Structures', '/database?category=structures'),
+        navLinkItem('Subjects & Topics', '/database?category=topics'),
+        navLinkItem('Historic Fires', '/database?category=historic-fires'),
+      ],
+    },
+    { ...navLinkItem('Shop', '/shop'), children: [] },
+    { ...navLinkItem('Community', '/dashboard/spaces'), children: [] },
+  ]
+
+  const existingHeaders = await payload.find({
+    collection: 'header',
+    where: { tenant: { equals: tenantId } },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+
+  let headerId: number | string
+  let headerAction: 'created' | 'updated'
+  if (existingHeaders.docs.length > 0) {
+    const updated = await payload.update({
+      collection: 'header',
+      id: existingHeaders.docs[0]!.id,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: { label: 'Main Header', navItems: headerNavItems } as any,
+      depth: 0,
+      overrideAccess: true,
+    })
+    headerId = updated.id
+    headerAction = 'updated'
+  } else {
+    const created = await payload.create({
+      collection: 'header',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: { tenant: tenantId, label: 'Main Header', navItems: headerNavItems } as any,
+      depth: 0,
+      overrideAccess: true,
+    })
+    headerId = created.id
+    headerAction = 'created'
+  }
+
+  return {
+    categories,
+    pages: { shows: showsPage, database: databasePage, atlas: atlasPage },
+    header: { action: headerAction, id: headerId },
+  }
+}
+
+async function tagMlbEpisodes(
+  payload: Payload,
+  tenantId: number | string,
+  batchLimit: number,
+) {
+  const categories = await findOrCreateMlbCategories(payload, tenantId)
+  const episodesCatId = categories.episodes
+
+  const postsRes = await payload.find({
+    collection: 'posts',
+    where: {
+      and: [
+        { tenant: { equals: tenantId } },
+        { slug: { like: 'ep-' } },
+      ],
+    },
+    limit: 500,
+    depth: 0,
+    sort: 'id',
+    overrideAccess: true,
+  })
+
+  const docs = postsRes.docs as Array<{
+    id: number | string
+    slug?: string | null
+    categories?: Array<number | string | { id?: number | string }> | null
+  }>
+
+  const extractIds = (cats: typeof docs[number]['categories']): Array<number | string> =>
+    (Array.isArray(cats) ? cats : [])
+      .map((c) => (c && typeof c === 'object' ? c.id : c))
+      .filter((v): v is number | string => v !== null && v !== undefined)
+
+  const untagged = docs.filter(
+    (d) => !extractIds(d.categories).some((cid) => String(cid) === String(episodesCatId)),
+  )
+
+  const batch = untagged.slice(0, batchLimit)
+  for (const post of batch) {
+    const mergedCats = [...extractIds(post.categories), episodesCatId]
+    await payload.update({
+      collection: 'posts',
+      id: post.id,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: { categories: mergedCats } as any,
+      depth: 0,
+      overrideAccess: true,
+      context: { disableRevalidate: true, disableTranscriptIndex: true },
+    })
+  }
+
+  return {
+    episodesCategoryId: episodesCatId,
+    totalEpPosts: docs.length,
+    alreadyTagged: docs.length - untagged.length,
+    taggedThisBatch: batch.length,
+    remaining: untagged.length - batch.length,
+  }
 }
 
 export const provisionMlbPortalHandler: PayloadHandler = async (req) => {
@@ -118,30 +381,55 @@ export const provisionMlbPortalHandler: PayloadHandler = async (req) => {
 
   const onlyAtlas =
     url.searchParams.get('onlyAtlas') === '1' || url.searchParams.get('onlyAtlas') === 'true'
+  const setupNav =
+    url.searchParams.get('setupNav') === '1' || url.searchParams.get('setupNav') === 'true'
+  const tagEpisodes =
+    url.searchParams.get('tagEpisodes') === '1' || url.searchParams.get('tagEpisodes') === 'true'
   const offset = Math.max(0, parseInt(url.searchParams.get('offset') || '0', 10) || 0)
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '40', 10) || 40))
 
   try {
-    if (onlyAtlas) {
-      const tRes = await payload.find({
-        collection: 'tenants',
-        where: { slug: { equals: SLUG } },
-        limit: 1,
-        depth: 0,
-        overrideAccess: true,
-      })
-      const mlbTenant = tRes.docs?.[0] as { id?: number | string } | undefined
-      if (!mlbTenant?.id) {
+    if (onlyAtlas || setupNav || tagEpisodes) {
+      const mlbTenant = await resolveMlbTenant(payload)
+      if (!mlbTenant) {
         return Response.json({ ok: false, error: `tenant '${SLUG}' not found` }, { status: 404 })
       }
-      const atlasPage = await upsertMlbAtlasPage(payload, mlbTenant.id)
-      return Response.json({
-        ok: true,
-        onlyAtlas: true,
-        tenant: { id: mlbTenant.id, slug: SLUG, domain: DOMAIN },
-        atlasPage,
-        atlasUrl: `https://${DOMAIN}/atlas`,
-      })
+      if (onlyAtlas) {
+        const existingDb = await payload.find({
+          collection: 'pages',
+          where: { and: [{ slug: { equals: 'database' } }, { tenant: { equals: mlbTenant.id } }] },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+        })
+        const atlasPage = await upsertMlbAtlasPage(payload, mlbTenant.id, existingDb.docs?.[0]?.id ?? null)
+        return Response.json({
+          ok: true,
+          onlyAtlas: true,
+          tenant: { id: mlbTenant.id, slug: SLUG, domain: DOMAIN },
+          atlasPage,
+          atlasUrl: `https://${DOMAIN}/atlas`,
+        })
+      }
+      if (setupNav) {
+        const result = await setupMlbPhase1Nav(payload, mlbTenant.id)
+        return Response.json({
+          ok: true,
+          setupNav: true,
+          tenant: { id: mlbTenant.id, slug: SLUG, domain: DOMAIN },
+          ...result,
+        })
+      }
+      if (tagEpisodes) {
+        const tagLimit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '60', 10) || 60))
+        const result = await tagMlbEpisodes(payload, mlbTenant.id, tagLimit)
+        return Response.json({
+          ok: true,
+          tagEpisodes: true,
+          tenant: { id: mlbTenant.id, slug: SLUG, domain: DOMAIN },
+          ...result,
+        })
+      }
     }
 
     const log: string[] = []

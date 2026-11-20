@@ -58,10 +58,22 @@ describe('postsNav.injectEpisodesUnderNav', () => {
     expect(ep.children[0].image).toBe('/t/ep202.jpg')
   })
 
-  it('matches Video Log or Investigations as an Episodes item', () => {
-    const nav = [item('Video Log', '/video-log'), item('Posts', '/posts')]
+  it('matches Video Log or Investigations or Shows as an Episodes item', () => {
+    const nav = [item('Video Log', '/video-log'), item('Shows', '/shows'), item('Posts', '/posts')]
     const out = injectEpisodesUnderNav(nav, [{ slug: 'ep-1', title: 'Ep 1' }])
     expect(out[0].children).toHaveLength(1)
     expect(out[1].children).toBeUndefined()
+    expect(out[2].children).toBeUndefined()
+  })
+
+  it('preserves authored dropdown children untouched when skipIfHasChildren is true', () => {
+    const authored = [{ link: { type: 'custom', label: 'Episodes', url: '/shows?category=episodes' } }]
+    const nav = [item('Shows', '/shows', { children: authored })]
+    const out = injectEpisodesUnderNav(
+      nav,
+      [{ slug: 'ep-202', title: 'Episode 202' }],
+      { skipIfHasChildren: true },
+    )
+    expect(out[0].children).toEqual(authored)
   })
 })

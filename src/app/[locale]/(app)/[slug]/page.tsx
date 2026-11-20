@@ -26,11 +26,14 @@ type Args = {
   params: Promise<{
     slug?: string
   }>
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
 }
 
-export default async function Page({ params }: Args) {
+export default async function Page({ params, searchParams }: Args) {
   const { slug = 'home' } = await params
+  const resolvedSearchParams = searchParams ? await searchParams : undefined
   const url = '/' + slug
+  const currentPath = slug === 'home' ? '/' : url
 
   let page = await queryPageBySlug({
     slug,
@@ -129,7 +132,13 @@ export default async function Page({ params }: Args) {
       {/* Above the pitch, not below it — a customer should not have to read
           the sales page to find the door back into their own portal. */}
       <AlreadyOnboardedBanner tenantSlug={tenantSlug} />
-      <RenderBlocks blocks={layout} tenantSlug={tenantSlug} docContext={{ id: pageId, collection: 'pages' }} />
+      <RenderBlocks
+        blocks={layout}
+        tenantSlug={tenantSlug}
+        docContext={{ id: pageId, collection: 'pages' }}
+        searchParams={resolvedSearchParams}
+        currentPath={currentPath}
+      />
     </article>
   )
 }

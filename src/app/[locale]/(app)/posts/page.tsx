@@ -18,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const siteName = tenant?.branding?.siteName || tenant?.name || 'Angel OS'
   return {
     title: 'Posts', // bare — the (app) layout's title.template appends the portal name
-    description: `Stories, updates, and insights from ${siteName}.`,
+    description: `Stories, social updates, and insights from ${siteName}.`,
   }
 }
 
@@ -29,21 +29,71 @@ type Props = {
 }
 
 /**
- * Posts listing page — tenant-aware with search and branded hero.
+ * Posts listing page — tenant-aware with optional ?category= filtering and search.
+ * When a portal defines a `social-posts` category (like MLB), `/posts` scopes by
+ * default to `social-posts` so Shows (/shows) and Database (/database) stay distinct;
+ * all other portals list their full published Posts collection cleanly.
  */
 export default async function PostsPage({ searchParams }: Props) {
-  const { q: searchValue, page: pageParam } = (await searchParams) || {}
+  const { q: searchValue, page: pageParam, category: catParam } = (await searchParams) || {}
   const pageRaw = Array.isArray(pageParam) ? pageParam[0] : pageParam
   const page = Math.max(1, Number.parseInt(pageRaw || '1', 10) || 1)
   const q = typeof searchValue === 'string' && searchValue.trim() ? searchValue.trim() : undefined
+  const categorySlug =
+    typeof catParam === 'string' && catParam.trim() ? catParam.trim() : undefined
 
   let posts: PaginatedDocs<Post> | null = null
   let heroImage: string | null = null
+  let isSocialScoped = false
+  let activeCategoryTitle: string | null = null
 
   try {
     const payload = await getPayload({ config: configPromise })
     const { tenantFilter, tenant } = await resolveTenantFromHeaders()
     heroImage = tenantHeroImage(tenant, 'posts')
+
+    let categoryFilterId: number | string | null = null
+    let categoryMiss = false
+
+    if (categorySlug) {
+      const catRes = await payload.find({
+        collection: 'categories',
+        where: {
+          and: [
+            { slug: { equals: categorySlug } },
+            ...(tenant?.id != null ? [{ tenant: { equals: tenant.id } }] : []),
+          ],
+        },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      const matched = catRes.docs?.[0] as { id?: number | string; title?: string } | undefined
+      if (matched?.id != null) {
+        categoryFilterId = matched.id
+        activeCategoryTitle = matched.title || categorySlug
+      } else {
+        categoryMiss = true
+      }
+    } else if (tenant?.id != null) {
+      const socialCatRes = await payload.find({
+        collection: 'categories',
+        where: {
+          and: [
+            { tenant: { equals: tenant.id } },
+            { slug: { equals: 'social-posts' } },
+          ],
+        },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      const socialCat = socialCatRes.docs?.[0] as { id?: number | string } | undefined
+      if (socialCat?.id != null) {
+        categoryFilterId = socialCat.id
+        isSocialScoped = true
+      }
+    }
 
     posts = (await payload.find({
       collection: 'posts',
@@ -57,14 +107,22 @@ export default async function PostsPage({ searchParams }: Props) {
         and: [
           { _status: { equals: 'published' } },
           tenantFilter,
-          // Exclude video episodes if any exist, keeping Posts focused on written articles & announcements
-          {
-            or: [
-              { sourceType: { not_in: ['youtube', 'vimeo'] } },
-              { sourceType: { exists: false } },
-            ],
-          },
-          ...(q ? [{ or: [{ title: { like: q } }, { slug: { like: q } }] }] : []),
+          ...(categoryMiss
+            ? [{ categories: { in: [-1] } }]
+            : categoryFilterId != null
+              ? [{ categories: { in: [categoryFilterId] } }]
+              : []),
+          ...(q
+            ? [
+                {
+                  or: [
+                    { title: { like: q } },
+                    { slug: { like: q } },
+                    { 'geo.locationName': { like: q } },
+                  ],
+                },
+              ]
+            : []),
         ],
       },
       select: {
@@ -76,6 +134,7 @@ export default async function PostsPage({ searchParams }: Props) {
         categories: true,
         sourceUrl: true,
         sourceType: true,
+        access: true,
       },
       sort: '-publishedOn',
     })) as unknown as PaginatedDocs<Post>
@@ -86,14 +145,19 @@ export default async function PostsPage({ searchParams }: Props) {
   return (
     <div className="container py-8">
       <CollectionHero
-        title="Posts"
-        subtitle="Stories, updates, and insights"
+        title={activeCategoryTitle || 'Posts'}
+        subtitle={
+          isSocialScoped
+            ? 'Social posts, community updates & creator dispatches'
+            : 'Stories, updates, and insights'
+        }
         icon="📝"
         image={heroImage}
       />
 
       <div className="my-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <form method="GET" action="/posts" className="relative w-full max-w-md">
+          {categorySlug && <input type="hidden" name="category" value={categorySlug} />}
           <input
             type="search"
             name="q"
@@ -119,11 +183,22 @@ export default async function PostsPage({ searchParams }: Props) {
         )}
       </div>
 
-      {q && (
+      {(q || categorySlug) && (
         <p className="mb-6 text-sm text-muted-foreground">
-          Showing results for <span className="font-semibold text-foreground">&quot;{q}&quot;</span> &mdash;{' '}
+          {activeCategoryTitle && (
+            <>
+              Category: <span className="font-semibold text-foreground">{activeCategoryTitle}</span>
+              {q ? ' · ' : ' '}
+            </>
+          )}
+          {q && (
+            <>
+              Showing results for <span className="font-semibold text-foreground">&quot;{q}&quot;</span>{' '}
+            </>
+          )}
+          &mdash;{' '}
           <Link href="/posts" className="underline hover:text-foreground">
-            Clear search
+            Clear filters
           </Link>
         </p>
       )}
@@ -132,20 +207,41 @@ export default async function PostsPage({ searchParams }: Props) {
         <div className="rounded-lg border border-dashed border-border bg-card/50 p-12 text-center">
           <p className="mb-4 text-4xl">✍️</p>
           <p className="text-lg font-medium text-foreground">
-            {q ? 'No matching posts found' : 'Your blog awaits'}
+            {q || categorySlug
+              ? 'No matching posts found'
+              : isSocialScoped
+                ? 'Social posts feed ready'
+                : 'Your blog awaits'}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            {q
-              ? 'Try searching with different keywords.'
-              : 'No posts yet — check back soon, or head to the dashboard to create your first one.'}
+            {q || categorySlug
+              ? 'Try searching with different keywords or clearing filters.'
+              : isSocialScoped
+                ? 'Social media dispatches and community announcements will appear here. Video investigations live under Shows, and places/topics live in the Database.'
+                : 'No posts yet — check back soon, or head to the dashboard to create your first one.'}
           </p>
-          {q ? (
+          {q || categorySlug ? (
             <Link
               href="/posts"
               className="mt-4 inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               View All Posts
             </Link>
+          ) : isSocialScoped ? (
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/shows"
+                className="inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Browse Shows &amp; Episodes
+              </Link>
+              <Link
+                href="/database"
+                className="inline-block rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+              >
+                Explore Database
+              </Link>
+            </div>
           ) : (
             <Link
               href="/dashboard/posts"
@@ -160,7 +256,13 @@ export default async function PostsPage({ searchParams }: Props) {
           <CollectionArchive posts={posts.docs} showCategories />
           {posts.totalPages > 1 && posts.page && (
             <div className="mt-8">
-              <Pagination page={posts.page} totalPages={posts.totalPages} />
+              <Pagination
+                basePath="/posts"
+                useQueryParam={Boolean(q || categorySlug)}
+                queryParams={{ category: categorySlug, q }}
+                page={posts.page}
+                totalPages={posts.totalPages}
+              />
             </div>
           )}
         </>

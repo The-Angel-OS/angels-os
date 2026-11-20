@@ -87,8 +87,10 @@ export const RenderBlocks: React.FC<{
   /** The hosting page's endeavor/tenant slug — used as the default endeavor for
    *  context-aware blocks (e.g. Merlin Control) so editors don't retype it. */
   tenantSlug?: string
+  searchParams?: Record<string, string | string[] | undefined>
+  currentPath?: string
 }> = (props) => {
-  const { blocks, docContext, tenantSlug } = props
+  const { blocks, docContext, tenantSlug, searchParams, currentPath } = props
 
   const hasBlocks = blocks && Array.isArray(blocks) && blocks.length > 0
 
@@ -161,7 +163,9 @@ export const RenderBlocks: React.FC<{
                       ? { ...block, blockIndex: mediaTextIndex.get(index) ?? 0 }
                       : blockType === 'transcript'
                         ? { ...block, fallbackVideoUrl: docContext?.sourceUrl ?? null }
-                        : block
+                        : blockType === 'archive'
+                          ? { ...block, searchParams, currentPath }
+                          : block
               return (
                 /* One place decides the rhythm between blocks. It used to be two:
                    this wrapper said my-16 and half the blocks said my-16 again

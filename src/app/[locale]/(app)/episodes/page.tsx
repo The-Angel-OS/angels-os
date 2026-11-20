@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import type { PaginatedDocs } from 'payload'
 import React from 'react'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 
 import type { Post } from '@/payload-types'
 import { CollectionArchive, POSTS_PER_PAGE } from '@/components/CollectionArchive'
@@ -39,42 +40,69 @@ export default async function EpisodesPage({ searchParams }: Props) {
 
   let posts: PaginatedDocs<Post> | null = null
   let heroImage: string | null = null
+  let redirectTarget: string | null = null
 
   try {
     const payload = await getPayload({ config: configPromise })
     const { tenantFilter, tenant } = await resolveTenantFromHeaders()
     heroImage = tenantHeroImage(tenant, 'posts')
 
-    posts = (await payload.find({
-      collection: 'posts',
-      draft: false,
-      depth: 1,
-      limit: POSTS_PER_PAGE,
-      overrideAccess: true,
-      pagination: true,
-      page,
-      where: {
-        and: [
-          { _status: { equals: 'published' } },
-          tenantFilter,
-          { sourceType: { in: ['youtube', 'vimeo'] } },
-          ...(q ? [{ or: [{ title: { like: q } }, { slug: { like: q } }] }] : []),
-        ],
-      },
-      select: {
-        title: true,
-        slug: true,
-        publishedOn: true,
-        meta: true,
-        hero: true,
-        categories: true,
-        sourceUrl: true,
-        sourceType: true,
-      },
-      sort: '-publishedOn',
-    })) as unknown as PaginatedDocs<Post>
+    if (tenant?.id) {
+      const showsPage = await payload.find({
+        collection: 'pages',
+        where: {
+          and: [
+            { tenant: { equals: tenant.id } },
+            { slug: { equals: 'shows' } },
+            { _status: { equals: 'published' } },
+          ],
+        },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      if (showsPage.docs.length > 0) {
+        redirectTarget = q ? `/shows?q=${encodeURIComponent(q)}` : '/shows'
+      }
+    }
+
+    if (!redirectTarget) {
+      posts = (await payload.find({
+        collection: 'posts',
+        draft: false,
+        depth: 1,
+        limit: POSTS_PER_PAGE,
+        overrideAccess: true,
+        pagination: true,
+        page,
+        where: {
+          and: [
+            { _status: { equals: 'published' } },
+            tenantFilter,
+            { sourceType: { in: ['youtube', 'vimeo'] } },
+            ...(q ? [{ or: [{ title: { like: q } }, { slug: { like: q } }] }] : []),
+          ],
+        },
+        select: {
+          title: true,
+          slug: true,
+          publishedOn: true,
+          meta: true,
+          hero: true,
+          categories: true,
+          sourceUrl: true,
+          sourceType: true,
+          access: true,
+        },
+        sort: '-publishedOn',
+      })) as unknown as PaginatedDocs<Post>
+    }
   } catch (err) {
     console.error('[EpisodesPage] Query failed:', err)
+  }
+
+  if (redirectTarget) {
+    redirect(redirectTarget)
   }
 
   return (

@@ -259,7 +259,7 @@ export function composeNavItems(opts: {
   // page, which is tenantFeatures' own rule broken: an empty room advertised in
   // the nav is worse than no nav item at all. A route the OWNER put in their
   // stored navItems is untouched by this — `urls.has` wins first.
-  if (hasEpisodes && !urls.has('/episodes')) items.push(EPISODES_NAV_ITEM)
+  if (hasEpisodes && !urls.has('/episodes') && !urls.has('/shows')) items.push(EPISODES_NAV_ITEM)
   if (hasPosts && !urls.has('/posts')) items.push(POSTS_NAV_ITEM)
   if (hasEvents && !urls.has('/events')) items.push(EVENTS_NAV_ITEM)
   if (hasBook && !urls.has('/book')) items.push(BOOK_NAV_ITEM)
@@ -389,7 +389,7 @@ export function HeaderClient({ canEditContent: canEditContentProp = false, heade
   // inline cap. (Populated = the section actually has something to sell/book.)
   const forcePrimaryUrls: string[] = discoveryEnabled ? ['/federation/discover'] : []
   if (hasBook) forcePrimaryUrls.push('/book')
-  if (hasEpisodes) forcePrimaryUrls.push('/episodes')
+  if (hasEpisodes) forcePrimaryUrls.push('/episodes', '/shows')
   if (hasProducts) forcePrimaryUrls.push('/shop')
   if (givingOrg) forcePrimaryUrls.push('/donate')
   if (membership) forcePrimaryUrls.push(membership.url)
