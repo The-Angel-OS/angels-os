@@ -197,6 +197,7 @@ import { ensureMerlinBlockTablesHandler } from '@/endpoints/ensure-merlin-block-
 import { ensureGalleryBlockTablesHandler } from '@/endpoints/ensure-gallery-block-tables'
 import { ensureGlobeAtlasBlockTablesHandler } from '@/endpoints/ensure-globe-atlas-block-tables'
 import { ensurePostsGeoColumnsHandler } from '@/endpoints/ensure-posts-geo-columns'
+import { ensureTranscriptBlockTablesHandler } from '@/endpoints/ensure-transcript-block-tables'
 import { ingestUapSightingHandler } from '@/endpoints/ingest-uap-sighting'
 import { provisionNdePortalHandler } from '@/endpoints/provision-nde-portal'
 import { ingestNdeSessionHandler } from '@/endpoints/ingest-nde-session'
@@ -1496,6 +1497,17 @@ export default buildConfig({
       path: '/provision-ops/ensure-posts-geo-columns',
       method: 'post',
       handler: ensurePostsGeoColumnsHandler,
+    },
+    // Net-new Transcript block tables (live + versioned on posts & pages) + post_transcript_chunks RAG table
+    {
+      path: '/provision-ops/ensure-transcript-block-tables',
+      method: 'get',
+      handler: ensureTranscriptBlockTablesHandler,
+    },
+    {
+      path: '/provision-ops/ensure-transcript-block-tables',
+      method: 'post',
+      handler: ensureTranscriptBlockTablesHandler,
     },
     // Self-heal payload_locked_documents_rels drift (missing <collection>_id columns
     // break every admin save). Re-runnable after any new collection ships.
