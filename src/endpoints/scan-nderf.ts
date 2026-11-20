@@ -203,7 +203,7 @@ Output pure JSON only.`
         let postId: string | number | undefined
         if (extracted && ndeTenantId) {
           const contentNodes = [
-            createHeadingNode(extracted.title, 'h1'),
+            createHeadingNode(extracted.title, 'h2'),
             createParagraphNode(
               `Category: ${extracted.category} · Era: ${extracted.eraWindow} · Recorded: ${extracted.recordedYear} · Blindness: ${extracted.blindnessRating} · Non-Physical Reality Score: ${extracted.nonPhysicalRealityScore}/10 · Historical Deviation: ${extracted.historicalDeviationScore}/10`,
             ),

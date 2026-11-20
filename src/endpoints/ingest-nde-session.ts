@@ -154,7 +154,7 @@ Output pure JSON only.`
     let postId: string | number | null = null
     if (ndeTenantId) {
       const contentNodes = [
-        createHeadingNode(record.title, 'h1'),
+        createHeadingNode(record.title, 'h2'),
         createParagraphNode(
           `Category: ${record.category} · Era: ${record.eraWindow} · Recorded: ${record.recordedYear} · Blindness: ${record.blindnessRating} (Leading-Prompt Risk: ${record.leadingPromptScore}/10 · Historical Deviation: ${record.historicalDeviationScore}/10)`,
         ),

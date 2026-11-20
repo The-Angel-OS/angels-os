@@ -140,7 +140,7 @@ export const provisionNdePortalHandler: PayloadHandler = async (req) => {
       })
 
       const contentNodes = [
-        createHeadingNode(rec.title, 'h1'),
+        createHeadingNode(rec.title, 'h2'),
         createParagraphNode(
           `Category: ${rec.category} · Era Window: ${rec.eraWindow} · Recorded: ${rec.recordedYear} · Blindness: ${rec.blindnessRating} (Leading-Prompt Risk: ${rec.leadingPromptScore}/10 · Historical Deviation: ${rec.historicalDeviationScore}/10)`,
         ),
