@@ -35,6 +35,7 @@ import {
   browseYouTubeChannelTab,
   fetchYouTubeTranscript,
 } from '@/utilities/youtubeTranscripts'
+import { indexPostTranscripts } from '@/utilities/transcriptRag'
 
 const MLB_SLUG = 'mlb'
 const MLB_CHANNEL_ID = 'UC7Za5DiASIbqT8fuhiDBU6Q'
@@ -542,7 +543,7 @@ async function attachTranscriptToPost(
     currentLayout.push(transcriptBlock)
   }
 
-  await payload.update({
+  const updatedDoc = await payload.update({
     collection: 'posts',
     id: postId,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -552,8 +553,18 @@ async function attachTranscriptToPost(
     } as any,
     depth: 0,
     overrideAccess: true,
-    context: { disableRevalidate: true },
+    context: { disableRevalidate: true, disableTranscriptIndex: true },
   })
+
+  // Index RAG chunks explicitly now that the posts row transaction has committed
+  try {
+    await indexPostTranscripts(payload, updatedDoc, doc, { force: true })
+  } catch (err) {
+    payload.logger?.warn?.(
+      { err, postId },
+      '[ingest-mlb-youtube] post-update transcript indexing warning',
+    )
+  }
 
   return { updated: true }
 }
