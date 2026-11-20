@@ -9,7 +9,7 @@ const landmassPolygons = rawLandmassPolygons as number[][][]
 import { DonkeyExcavationHero } from '@/components/mlb/DonkeyExcavationHero'
 import { AudienceScoreboard } from '@/components/mlb/AudienceScoreboard'
 
-interface AtlasPlace {
+export interface AtlasPlace {
   id: string
   name: string
   city: string | null
