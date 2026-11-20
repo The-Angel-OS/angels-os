@@ -74,8 +74,10 @@ describe('formatNodeHealth', () => {
     expect(formatNodeHealth(report)).toContain('1/2 node(s) online')
   })
 
-  it('guides the operator when no nodes are locked on', () => {
+  it('reports cloud-only mode calmly when no nodes are configured', () => {
     const report: NodeHealthReport = { endeavor: 'lonely', found: false, nodeCount: 0, onlineCount: 0, nodes: [] }
-    expect(formatNodeHealth(report)).toContain('No Merlin nodes are locked onto **lonely**')
+    const out = formatNodeHealth(report)
+    expect(out).toContain('optional and not configured for **lonely**')
+    expect(out).toContain('no action needed')
   })
 })

@@ -124,7 +124,7 @@ export async function checkNodeHealth(
 /** Render a NodeHealthReport as a compact Markdown status board (LEO's reply). */
 export function formatNodeHealth(report: NodeHealthReport): string {
   if (!report.found || report.nodeCount === 0) {
-    return `No Merlin nodes are locked onto **${report.endeavor}** yet. (A machine joins via Merlin → Connect → Lock this node on.)`
+    return `Merlin local nodes are optional and not configured for **${report.endeavor}** (cloud-only mode — no action needed).`
   }
   const lines: string[] = []
   const allGreen = report.onlineCount === report.nodeCount

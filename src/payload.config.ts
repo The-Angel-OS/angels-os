@@ -199,6 +199,7 @@ import { ensureGlobeAtlasBlockTablesHandler } from '@/endpoints/ensure-globe-atl
 import { ensurePostsGeoColumnsHandler } from '@/endpoints/ensure-posts-geo-columns'
 import { ensureTranscriptBlockTablesHandler } from '@/endpoints/ensure-transcript-block-tables'
 import { ensureArchiveBlockColumnsHandler } from '@/endpoints/ensure-archive-block-columns'
+import { ingestMlbYoutubeHandler } from '@/endpoints/ingest-mlb-youtube'
 import { ingestUapSightingHandler } from '@/endpoints/ingest-uap-sighting'
 import { provisionNdePortalHandler } from '@/endpoints/provision-nde-portal'
 import { ingestNdeSessionHandler } from '@/endpoints/ingest-nde-session'
@@ -1567,6 +1568,16 @@ export default buildConfig({
       path: '/provision-ops/mlb-portal',
       method: 'post',
       handler: provisionMlbPortalHandler,
+    },
+    {
+      path: '/provision-ops/ingest-mlb-youtube',
+      method: 'get',
+      handler: ingestMlbYoutubeHandler,
+    },
+    {
+      path: '/provision-ops/ingest-mlb-youtube',
+      method: 'post',
+      handler: ingestMlbYoutubeHandler,
     },
     {
       path: '/provision-ops/uap-portal',

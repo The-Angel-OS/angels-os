@@ -2549,7 +2549,7 @@ export const LEO_TOOLS: Anthropic.Tool[] = [
   {
     name: 'check_node_health',
     description:
-      'Report the health of the Merlin nodes locked onto an endeavor — "are the shipboard systems nominal?". Shows which nodes are online/offline, last-seen, CPU/RAM, Ollama + models, shared capabilities, and the perception "eyes" (witnesses) each node runs. Read-only and scoped to the current endeavor by default. Use when the operator asks how the nodes/machines/cameras are doing, or to confirm a node came online after locking on.',
+      'Optional/legacy Merlin node health check — ONLY call when the user explicitly asks about Merlin nodes, local machines, or cameras. Do NOT call for routine greetings, general diagnostics, or system status summaries (Angel OS runs cloud-native without Merlin nodes).',
     input_schema: {
       type: 'object' as const,
       properties: {

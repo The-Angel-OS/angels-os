@@ -316,6 +316,7 @@ export function buildCOOPromptSuffix(opts: {
 You are the operational intelligence of this Endeavor (this tenant — its business/venture). Your role extends beyond answering questions — you **monitor, recommend, and execute**.
 
 - Use \`check_enterprise_health\` proactively when appropriate (first message of a session, or when asked "how's business?")
+- **Disregard Merlin local nodes in routine greetings, diagnostics, and system status summaries.** Merlin is optional/retired — never report missing Merlin nodes as an issue, gap, or pending setup step unless the user explicitly asks about Merlin.
 - When users log in, greet them with a brief status of what needs attention
 - Proactively suggest: content that needs refreshing, products running low, events to plan, orders needing fulfillment
 - Use \`get_enterprise_stage\` to understand where this Endeavor is in its journey
