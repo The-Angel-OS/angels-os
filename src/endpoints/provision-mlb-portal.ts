@@ -17,7 +17,7 @@
  *   - `?key=<CRON_SECRET>` (or super_admin session)
  *   - `?offset=0&limit=35` (batch size for episode post ingestion + thumbnail download)
  */
-import type { PayloadHandler } from 'payload'
+import type { Payload, PayloadHandler } from 'payload'
 import { findOrCreateTenant, findOrCreateTenantMembership } from '@/endpoints/seed/seed-helpers'
 import { createDefaultTenantPages } from '@/utilities/createDefaultTenantPages'
 import { createDefaultTenantNavigation } from '@/utilities/createDefaultTenantNavigation'
@@ -35,25 +35,115 @@ const NAME = 'My Lunch Break'
 const DOMAIN = 'mlb.spacesangels.com'
 const TAGLINE = 'Old World Architecture, Satan’s Little Season & Global Investigation Archive'
 
+async function upsertMlbAtlasPage(
+  payload: Payload,
+  tenantId: number | string,
+): Promise<{ action: 'created' | 'updated'; id: number | string }> {
+  const existingAtlas = await payload.find({
+    collection: 'pages',
+    where: { and: [{ slug: { equals: 'atlas' } }, { tenant: { equals: tenantId } }] },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+
+  const atlasPageData = {
+    title: 'Old World Atlas',
+    slug: 'atlas',
+    _status: 'published',
+    showInNav: true,
+    navLabel: 'Old World Atlas',
+    navOrder: 15,
+    tenant: tenantId,
+    hero: {
+      type: 'none',
+    },
+    layout: [
+      {
+        blockType: 'globeAtlas',
+        blockName: 'Old World Atlas',
+        mode: 'old_world',
+        showCityScanner: true,
+        allowFullscreen: true,
+        showAudienceMonitor: false,
+        showExcavationHero: false,
+        showGlobeAndRecon: true,
+        defaultShader: 'optical',
+      },
+    ],
+    meta: {
+      title: 'Old World Atlas',
+      description:
+        'Interactive 3D Old World Spy-Satellite Globe & City Architecture Scanner.',
+    },
+  }
+
+  if (existingAtlas.docs.length === 0) {
+    const created = await payload.create({
+      collection: 'pages',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: atlasPageData as any,
+      depth: 0,
+      overrideAccess: true,
+    })
+    return { action: 'created', id: created.id }
+  }
+
+  const updated = await payload.update({
+    collection: 'pages',
+    id: existingAtlas.docs[0]!.id,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data: atlasPageData as any,
+    depth: 0,
+    overrideAccess: true,
+  })
+  return { action: 'updated', id: updated.id }
+}
+
 export const provisionMlbPortalHandler: PayloadHandler = async (req) => {
   const { payload, user } = req
   const url = new URL(req.url || '', 'http://localhost')
 
   const secret = process.env.CRON_SECRET
   const key = url.searchParams.get('key')
+  const authHeader = req.headers?.get('authorization') || ''
   const isSuperAdmin = Boolean(
     user && ((user as { roles?: string[] }).roles || []).includes('super_admin'),
   )
-  const keyOk = Boolean(secret && key === secret)
+  const keyOk = Boolean(secret && (key === secret || authHeader === `Bearer ${secret}`))
 
   if (!isSuperAdmin && !keyOk) {
     return Response.json({ error: 'super_admin or valid key required' }, { status: 403 })
   }
 
+  const onlyAtlas =
+    url.searchParams.get('onlyAtlas') === '1' || url.searchParams.get('onlyAtlas') === 'true'
   const offset = Math.max(0, parseInt(url.searchParams.get('offset') || '0', 10) || 0)
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '40', 10) || 40))
 
   try {
+    if (onlyAtlas) {
+      const tRes = await payload.find({
+        collection: 'tenants',
+        where: { slug: { equals: SLUG } },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      const mlbTenant = tRes.docs?.[0] as { id?: number | string } | undefined
+      if (!mlbTenant?.id) {
+        return Response.json({ ok: false, error: `tenant '${SLUG}' not found` }, { status: 404 })
+      }
+      const atlasPage = await upsertMlbAtlasPage(payload, mlbTenant.id)
+      return Response.json({
+        ok: true,
+        onlyAtlas: true,
+        tenant: { id: mlbTenant.id, slug: SLUG, domain: DOMAIN },
+        atlasPage,
+        atlasUrl: `https://${DOMAIN}/atlas`,
+      })
+    }
+
     const log: string[] = []
 
     // 1. Create or update the `mlb` tenant (pass undefined for req so the
@@ -148,79 +238,9 @@ export const provisionMlbPortalHandler: PayloadHandler = async (req) => {
       log.push(`home page #${home.id} updated with old-world-atlas + episode archive`)
     }
 
-    // 3. Ensure `atlas` page exists ONLY on `mlb` (do not touch other tenants)
-    for (const targetSlug of ['mlb']) {
-      const tRes = await payload.find({
-        collection: 'tenants',
-        where: { slug: { equals: targetSlug } },
-        limit: 1,
-        depth: 0,
-        overrideAccess: true,
-      })
-      const tDoc = tRes.docs?.[0] as { id?: number } | undefined
-      if (!tDoc?.id) continue
-
-      const existingAtlas = await payload.find({
-        collection: 'pages',
-        where: { and: [{ slug: { equals: 'atlas' } }, { tenant: { equals: tDoc.id } }] },
-        limit: 1,
-        depth: 0,
-        overrideAccess: true,
-      })
-
-      const atlasPageData = {
-        title: 'Old World Atlas',
-        slug: 'atlas',
-        _status: 'published',
-        showInNav: true,
-        navLabel: 'Old World Atlas',
-        navOrder: 25,
-        tenant: tDoc.id,
-        hero: {
-          type: 'none',
-        },
-        layout: [
-          {
-            blockType: 'content',
-            blockName: 'old-world-atlas',
-            columns: [
-              {
-                size: 'full',
-                richText: createLexicalContent([
-                  createParagraphNode('3D Spy-Satellite Old World & Historic Architecture Atlas'),
-                ]),
-              },
-            ],
-          },
-        ],
-        meta: {
-          title: 'Old World Spy-Satellite Atlas & City Architecture Scanner',
-          description:
-            'Zoom to historic buildings, Carnegie libraries, post offices, and Old World landmarks across Tampa, Clearwater, and the globe.',
-        },
-      }
-
-      if (existingAtlas.docs.length === 0) {
-        await payload.create({
-          collection: 'pages',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          data: atlasPageData as any,
-          depth: 0,
-          overrideAccess: true,
-        })
-        log.push(`created /atlas page on ${targetSlug}`)
-      } else {
-        await payload.update({
-          collection: 'pages',
-          id: existingAtlas.docs[0]!.id,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          data: atlasPageData as any,
-          depth: 0,
-          overrideAccess: true,
-        })
-        log.push(`updated /atlas page on ${targetSlug}`)
-      }
-    }
+    // 3. Ensure `atlas` page exists ONLY on `mlb` with a single native `globeAtlas` block
+    const atlasPage = await upsertMlbAtlasPage(payload, tenant.id)
+    log.push(`${atlasPage.action} /atlas page (#${atlasPage.id}) on ${SLUG}`)
 
     // 4. Endeavor + Spaces + Founder Membership on `mlb`
     const existingEndeavors = await payload.find({
