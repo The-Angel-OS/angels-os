@@ -491,10 +491,11 @@ async function attachTranscriptToPost(
   const segments = normalizeTranscriptSegments(tr.segments, tr.fullText)
   if (segments.length === 0) return { updated: false, reason: 'empty_transcript' }
 
-  const fullText =
+  const rawFullText =
     typeof tr.fullText === 'string' && tr.fullText.trim()
       ? tr.fullText
       : segments.map((s) => s.text).join('\n')
+  const fullText = rawFullText.length > 39000 ? rawFullText.slice(0, 39000) : rawFullText
 
   const transcriptBlock = {
     blockType: 'transcript',
