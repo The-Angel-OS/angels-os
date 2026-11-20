@@ -2,7 +2,7 @@ import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import type { Post, Product, ArchiveBlock as ArchiveBlockProps } from '@/payload-types'
 
 import configPromise from '@payload-config'
-import { DefaultDocumentIDType, getPayload } from 'payload'
+import { DefaultDocumentIDType, getPayload, type Where } from 'payload'
 import React from 'react'
 import Link from 'next/link'
 import { RichText } from '@/components/RichText'
@@ -99,7 +99,9 @@ export const ArchiveBlock: React.FC<
     const { tenant } = await resolveTenantFromHeaders()
 
     // Preserve configured category order, hydrating any scalar IDs when needed
-    const rawCats = Array.isArray(categories) ? categories : []
+    const rawCats = (Array.isArray(categories) ? categories : []) as Array<
+      number | string | { id: number | string; title?: string | null; slug?: string | null }
+    >
     const missingIds: Array<number | string> = []
     for (const cat of rawCats) {
       if (cat && typeof cat === 'object' && 'id' in cat) {
@@ -169,7 +171,7 @@ export const ArchiveBlock: React.FC<
       }
     }
 
-    const categoryFilter = categorySlug
+    const categoryFilter: Where[] = categorySlug
       ? activeCategory
         ? [{ categories: { in: [activeCategory.id] } }]
         : [{ categories: { in: [-1] } }]
@@ -177,7 +179,7 @@ export const ArchiveBlock: React.FC<
         ? [{ categories: { in: flattenedCategories } }]
         : []
 
-    const searchFilter =
+    const searchFilter: Where[] =
       q && collection === 'posts'
         ? [
             {
@@ -186,12 +188,20 @@ export const ArchiveBlock: React.FC<
                 { slug: { like: q } },
                 { 'geo.locationName': { like: q } },
                 { 'geo.category': { like: q } },
-              ],
+              ] as Where[],
             },
           ]
         : q
-          ? [{ or: [{ title: { like: q } }, { slug: { like: q } }] }]
+          ? [{ or: [{ title: { like: q } }, { slug: { like: q } }] as Where[] }]
           : []
+
+    const whereConditions: Where[] = [
+      ...(tenant?.id != null ? [{ tenant: { equals: tenant.id } }] : []),
+      // A draft post has no live /posts/<slug> page, so never card one.
+      ...(collection === 'posts' ? [{ _status: { equals: 'published' } }] : []),
+      ...categoryFilter,
+      ...searchFilter,
+    ]
 
     /**
      * Scope to THIS portal's tenant, explicitly.
@@ -211,13 +221,7 @@ export const ArchiveBlock: React.FC<
       overrideAccess: true,
       sort: collection === 'posts' ? '-publishedOn' : '-createdAt',
       where: {
-        and: [
-          ...(tenant?.id != null ? [{ tenant: { equals: tenant.id } }] : []),
-          // A draft post has no live /posts/<slug> page, so never card one.
-          ...(collection === 'posts' ? [{ _status: { equals: 'published' } }] : []),
-          ...categoryFilter,
-          ...searchFilter,
-        ],
+        and: whereConditions,
       },
     })
 

@@ -1,5 +1,5 @@
 import type { Tenant } from '@/payload-types'
-import { getPayload } from 'payload'
+import { getPayload, type Where } from 'payload'
 import config from '@payload-config'
 import { canManagePortal } from '@/utilities/canManagePortal'
 
@@ -150,12 +150,12 @@ export async function Header({ tenant }: Props) {
         }))
 
       // Fast counts + capped preview queries (max 8) rather than fetching 1000 posts on every render.
-      const videoPostWhere = {
+      const videoPostWhere: Where = {
         or: [
           { sourceType: { in: ['youtube', 'vimeo'] } },
           { sourceUrl: { like: 'youtube.com' } },
           { sourceUrl: { like: 'youtu.be' } },
-        ],
+        ] as Where[],
       }
       const [totalPostsRes, videoPostsCountRes] = await Promise.all([
         payload.count({

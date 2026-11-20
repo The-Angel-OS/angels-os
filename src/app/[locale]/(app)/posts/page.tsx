@@ -1,5 +1,5 @@
 import configPromise from '@payload-config'
-import { getPayload } from 'payload'
+import { getPayload, type Where } from 'payload'
 import type { Metadata } from 'next'
 import type { PaginatedDocs } from 'payload'
 import React from 'react'
@@ -95,6 +95,27 @@ export default async function PostsPage({ searchParams }: Props) {
       }
     }
 
+    const postWhereConditions: Where[] = [
+      { _status: { equals: 'published' } },
+      tenantFilter,
+      ...(categoryMiss
+        ? ([{ categories: { in: [-1] } }] as Where[])
+        : categoryFilterId != null
+          ? ([{ categories: { in: [categoryFilterId] } }] as Where[])
+          : []),
+      ...(q
+        ? ([
+            {
+              or: [
+                { title: { like: q } },
+                { slug: { like: q } },
+                { 'geo.locationName': { like: q } },
+              ] as Where[],
+            },
+          ] as Where[])
+        : []),
+    ]
+
     posts = (await payload.find({
       collection: 'posts',
       draft: false,
@@ -104,26 +125,7 @@ export default async function PostsPage({ searchParams }: Props) {
       pagination: true,
       page,
       where: {
-        and: [
-          { _status: { equals: 'published' } },
-          tenantFilter,
-          ...(categoryMiss
-            ? [{ categories: { in: [-1] } }]
-            : categoryFilterId != null
-              ? [{ categories: { in: [categoryFilterId] } }]
-              : []),
-          ...(q
-            ? [
-                {
-                  or: [
-                    { title: { like: q } },
-                    { slug: { like: q } },
-                    { 'geo.locationName': { like: q } },
-                  ],
-                },
-              ]
-            : []),
-        ],
+        and: postWhereConditions,
       },
       select: {
         title: true,
