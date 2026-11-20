@@ -282,12 +282,16 @@ Output pure JSON only, no markdown fencing.`
         await payload.update({
           collection: 'posts',
           id: existingPost.docs[0].id,
-          data: postData,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data: postData as any,
+          overrideAccess: true,
         })
       } else {
         await payload.create({
           collection: 'posts',
-          data: postData,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data: postData as any,
+          overrideAccess: true,
         })
       }
     }

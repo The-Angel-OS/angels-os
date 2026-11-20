@@ -199,6 +199,7 @@ import { ensureGlobeAtlasBlockTablesHandler } from '@/endpoints/ensure-globe-atl
 import { ingestUapSightingHandler } from '@/endpoints/ingest-uap-sighting'
 import { provisionNdePortalHandler } from '@/endpoints/provision-nde-portal'
 import { ingestNdeSessionHandler } from '@/endpoints/ingest-nde-session'
+import { scanNderfHandler } from '@/endpoints/scan-nderf'
 import { ensureLockedDocsRelsHandler } from '@/endpoints/ensure-locked-docs-rels'
 import { membershipPlansHandler } from '@/endpoints/membership-plans'
 import { membershipReadinessHandler } from '@/endpoints/membership-readiness'
@@ -1564,6 +1565,16 @@ export default buildConfig({
       path: '/provision-ops/ingest-nde-session',
       method: 'post',
       handler: ingestNdeSessionHandler,
+    },
+    {
+      path: '/provision-ops/scan-nderf',
+      method: 'get',
+      handler: scanNderfHandler,
+    },
+    {
+      path: '/provision-ops/scan-nderf',
+      method: 'post',
+      handler: scanNderfHandler,
     },
     {
       path: '/booking-ops/checkout',

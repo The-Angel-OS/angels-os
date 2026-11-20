@@ -88,18 +88,18 @@ export const ensureGlobeAtlasBlockTablesHandler: PayloadHandler = async (req) =>
     return Response.json({ error: 'super_admin or valid key required' }, { status: 403 })
   }
 
-  const db = payload.db
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pool = (payload.db as any)?.pool
+  if (!pool?.query) {
+    return Response.json({ error: 'no pg pool on payload.db' }, { status: 500 })
+  }
+
   const executed: string[] = []
   const errors: Array<{ statement: string; error: string }> = []
 
   for (const sql of STATEMENTS) {
     try {
-      if (typeof (db as { execute?: (query: unknown) => Promise<unknown> }).execute === 'function') {
-        await (db as { execute: (query: unknown) => Promise<unknown> }).execute({ sql })
-      } else if (typeof (db?.drizzle as { execute?: (query: unknown) => Promise<unknown> })?.execute === 'function') {
-        const { sql: drizzleSql } = await import('drizzle-orm')
-        await (db.drizzle as { execute: (query: unknown) => Promise<unknown> }).execute(drizzleSql.raw(sql))
-      }
+      await pool.query(sql)
       executed.push(sql.trim().slice(0, 60) + '...')
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
