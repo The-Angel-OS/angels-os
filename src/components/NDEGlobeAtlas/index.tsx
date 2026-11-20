@@ -1,11 +1,11 @@
 'use client'
 
-import React, { useMemo } from 'react'
-import { OldWorldAtlas, type AtlasArchiveData } from '@/components/OldWorldAtlas'
+import React, { useEffect, useMemo, useState } from 'react'
+import { OldWorldAtlas, type AtlasArchiveData, type AtlasPlace } from '@/components/OldWorldAtlas'
 import ndeArchiveData from '@/data/nde-archive.json'
 
 export const NDEGlobeAtlas: React.FC = () => {
-  const ndeData: AtlasArchiveData = useMemo(() => {
+  const staticData: AtlasArchiveData = useMemo(() => {
     const rawRecords = (ndeArchiveData.records || []) as Array<{
       id: string
       slug: string
@@ -63,10 +63,27 @@ export const NDEGlobeAtlas: React.FC = () => {
     }
   }, [])
 
+  const [liveData, setLiveData] = useState<AtlasArchiveData>(staticData)
+
+  useEffect(() => {
+    fetch('/api/geo-posts?tenant=nde&limit=250')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json: { places?: AtlasPlace[]; asOf?: string } | null) => {
+        if (json?.places && json.places.length > 0) {
+          setLiveData((prev) => ({
+            ...prev,
+            asOf: json.asOf || prev.asOf,
+            places: json.places!,
+          }))
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   return (
     <div className="w-full">
       <OldWorldAtlas
-        initialData={ndeData}
+        initialData={liveData}
         showExcavationHero={false}
         showAudienceMonitor={false}
         showGlobeAndRecon={true}

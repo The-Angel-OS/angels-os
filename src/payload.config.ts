@@ -201,6 +201,7 @@ import { ingestUapSightingHandler } from '@/endpoints/ingest-uap-sighting'
 import { provisionNdePortalHandler } from '@/endpoints/provision-nde-portal'
 import { ingestNdeSessionHandler } from '@/endpoints/ingest-nde-session'
 import { scanNderfHandler } from '@/endpoints/scan-nderf'
+import { geoPostsHandler } from '@/endpoints/geo-posts'
 import { ensureLockedDocsRelsHandler } from '@/endpoints/ensure-locked-docs-rels'
 import { membershipPlansHandler } from '@/endpoints/membership-plans'
 import { membershipReadinessHandler } from '@/endpoints/membership-readiness'
@@ -1587,6 +1588,11 @@ export default buildConfig({
       path: '/provision-ops/scan-nderf',
       method: 'post',
       handler: scanNderfHandler,
+    },
+    {
+      path: '/geo-posts',
+      method: 'get',
+      handler: geoPostsHandler,
     },
     {
       path: '/booking-ops/checkout',

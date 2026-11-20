@@ -209,7 +209,7 @@ export const provisionUapPortalHandler: PayloadHandler = async (req) => {
       })
 
       const contentNodes = [
-        createHeadingNode(inc.title, 'h1'),
+        createHeadingNode(inc.title, 'h2'),
         createParagraphNode(
           `Classification: ${inc.classification} · Date: ${inc.date} · Location: ${inc.location.name} (${inc.location.city}, ${inc.location.country}) [GPS: ${inc.location.latitude}, ${inc.location.longitude}]`,
         ),
@@ -229,8 +229,30 @@ export const provisionUapPortalHandler: PayloadHandler = async (req) => {
         slug: postSlug,
         tenant: tenant.id,
         _status: 'published',
-        publishedAt: `${inc.year}-01-01T00:00:00.000Z`,
-        content: createLexicalContent(contentNodes),
+        sourceUrl: inc.sources?.[0]?.url || '',
+        sourceType: 'manual',
+        geo: {
+          latitude: inc.location.latitude,
+          longitude: inc.location.longitude,
+          locationName: [inc.location.city, inc.location.state, inc.location.country]
+            .filter(Boolean)
+            .join(', '),
+          eventDate: inc.date || String(inc.year),
+          category: inc.category.replace(/_/g, ' ').toUpperCase(),
+          meta: {
+            classification: inc.classification,
+            witnesses: inc.witnesses,
+            militaryUnits: inc.militaryUnits,
+            anomalies: inc.anomalies,
+            summary: inc.investigativeHypothesis,
+          },
+        },
+        layout: [
+          {
+            blockType: 'content',
+            columns: [{ size: 'full', richText: createLexicalContent(contentNodes) }],
+          },
+        ],
         meta: {
           title: `${inc.title} (${inc.year}) — UAP Dossier`,
           description: inc.investigativeHypothesis.slice(0, 160),

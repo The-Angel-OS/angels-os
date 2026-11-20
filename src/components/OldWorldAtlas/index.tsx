@@ -306,6 +306,9 @@ export const OldWorldAtlas: React.FC<OldWorldAtlasProps> = ({
   }, [globalLayers, mode])
 
   const [data, setData] = useState<AtlasArchiveData | null>(initialData ?? null)
+  useEffect(() => {
+    if (initialData) setData(initialData)
+  }, [initialData])
   const [scannedPlaces, setScannedPlaces] = useState<AtlasPlace[]>([])
   const [activeGlobalLayers, setActiveGlobalLayers] = useState<Record<string, boolean>>({})
   const [showMlbLayer, setShowMlbLayer] = useState(true)

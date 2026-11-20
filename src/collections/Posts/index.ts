@@ -49,7 +49,7 @@ export const Posts: CollectionConfig = {
   admin: {
     group: 'Content',
     defaultColumns: ['title', 'slug', 'updatedAt'],
-    listSearchableFields: ['title', 'slug', 'sourceUrl'],
+    listSearchableFields: ['title', 'slug', 'sourceUrl', 'geo.locationName', 'geo.category'],
     livePreview: {
       url: ({ data, req }) =>
         generatePreviewPath({
@@ -213,6 +213,63 @@ export const Posts: CollectionConfig = {
         position: 'sidebar',
         description: 'Where this post was sourced from',
       },
+    },
+    {
+      name: 'geo',
+      type: 'group',
+      label: 'Geo-Archive Coordinates & Metadata',
+      admin: {
+        position: 'sidebar',
+        description:
+          'Optional WGS-84 coordinates. Any published post with latitude & longitude automatically plots as a pin on this portal’s 3D Globe Atlas.',
+      },
+      fields: [
+        {
+          name: 'latitude',
+          type: 'number',
+          index: true,
+          admin: {
+            description: 'WGS-84 Latitude (e.g. 34.0537)',
+          },
+        },
+        {
+          name: 'longitude',
+          type: 'number',
+          index: true,
+          admin: {
+            description: 'WGS-84 Longitude (e.g. -105.3406)',
+          },
+        },
+        {
+          name: 'locationName',
+          type: 'text',
+          admin: {
+            description: 'Human-readable place name (e.g. Corona, NM, USA)',
+          },
+        },
+        {
+          name: 'eventDate',
+          type: 'text',
+          admin: {
+            description: 'Event date, era, or recorded year (e.g. 1947-07-04 or 1700 CE)',
+          },
+        },
+        {
+          name: 'category',
+          type: 'text',
+          index: true,
+          admin: {
+            description: 'Atlas pin category (e.g. CRASH RETRIEVAL, NDE PAST-LIFE FLASH)',
+          },
+        },
+        {
+          name: 'meta',
+          type: 'json',
+          admin: {
+            description: 'Flexible per-archive dossier metadata (blindness rating, scores, witnesses, anomalies)',
+          },
+        },
+      ],
     },
     simpleSlugField,
   ],

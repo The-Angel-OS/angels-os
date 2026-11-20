@@ -285,6 +285,27 @@ Output pure JSON only.`
             _status: 'published',
             sourceUrl: fullUrl,
             sourceType: 'manual',
+            geo: {
+              latitude: extracted.location.latitude,
+              longitude: extracted.location.longitude,
+              locationName: [
+                extracted.location.city,
+                extracted.location.state,
+                extracted.location.country,
+              ]
+                .filter(Boolean)
+                .join(', '),
+              eventDate: String(extracted.recordedYear),
+              category: extracted.category,
+              meta: {
+                eraWindow: extracted.eraWindow,
+                blindnessRating: extracted.blindnessRating,
+                nonPhysicalRealityScore: extracted.nonPhysicalRealityScore,
+                historicalDeviationScore: extracted.historicalDeviationScore,
+                matchedTags,
+                summary: extracted.summary,
+              },
+            },
             layout: [
               {
                 blockType: 'content',

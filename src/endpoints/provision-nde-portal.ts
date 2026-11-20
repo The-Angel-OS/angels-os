@@ -164,6 +164,24 @@ export const provisionNdePortalHandler: PayloadHandler = async (req) => {
         _status: 'published',
         sourceUrl: rec.sources?.[0]?.url || '',
         sourceType: rec.sourceType === 'youtube_session' ? 'youtube' : 'manual',
+        geo: {
+          latitude: rec.location.latitude,
+          longitude: rec.location.longitude,
+          locationName: [rec.location.city, rec.location.state, rec.location.country]
+            .filter(Boolean)
+            .join(', '),
+          eventDate: String(rec.recordedYear),
+          category: rec.category,
+          meta: {
+            eraWindow: rec.eraWindow,
+            blindnessRating: rec.blindnessRating,
+            leadingPromptScore: rec.leadingPromptScore,
+            historicalDeviationScore: rec.historicalDeviationScore,
+            researcher: rec.researcher,
+            anomalyMarkers: rec.anomalyMarkers,
+            summary: rec.summary,
+          },
+        },
         layout: [
           {
             blockType: 'content',
