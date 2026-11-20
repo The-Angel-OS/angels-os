@@ -28,6 +28,7 @@ import { ProductPanelBlock } from '@/blocks/ProductPanel/Component'
 import { OldWorldAtlas } from '@/components/OldWorldAtlas'
 import { UAPGlobeAtlas } from '@/components/UAPGlobeAtlas'
 import { NDEGlobeAtlas } from '@/components/NDEGlobeAtlas'
+import { GlobeAtlasBlockComponent } from '@/blocks/GlobeAtlas/Component'
 import { toKebabCase } from '@/utilities/toKebabCase'
 import React, { Fragment } from 'react'
 
@@ -50,6 +51,7 @@ const blockComponents = {
   membership: MembershipBlock,
   featuredEndeavors: FeaturedEndeavorsBlock,
   gallery: GalleryBlock,
+  globeAtlas: GlobeAtlasBlockComponent,
   merlinControl: MerlinControlBlock,
   googleReviews: GoogleReviewsBlock,
   mediaText: MediaTextBlock,

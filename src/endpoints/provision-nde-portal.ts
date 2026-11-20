@@ -100,18 +100,18 @@ export const provisionNdePortalHandler: PayloadHandler = async (req) => {
           },
           layout: [
             {
-              blockType: 'content',
-              blockName: 'nde-archive',
-              columns: [
-                {
-                  size: 'full',
-                  richText: createLexicalContent([
-                    createParagraphNode(
-                      'Interactive 3D Consciousness Recon Globe — Pre-2018 Blind Baselines & Edge-Case Outliers',
-                    ),
-                  ]),
-                },
-              ],
+              blockType: 'globeAtlas',
+              blockName: 'NDE & Past-Life Anomaly Globe',
+              mode: 'nde',
+              heading: 'CONSCIOUSNESS RECON // NDE & PAST-LIFE ANOMALY ATLAS',
+              subheading:
+                'Cross-Referencing Pre-2018 Blind Hypnotic Regressions, NDERF Accounts & 1700–1850 Historical Outliers',
+              showCityScanner: false,
+              allowFullscreen: true,
+              showAudienceMonitor: false,
+              showExcavationHero: false,
+              showGlobeAndRecon: true,
+              defaultShader: 'optical',
             },
           ],
           meta: {

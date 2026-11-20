@@ -101,30 +101,18 @@ export const provisionUapPortalHandler: PayloadHandler = async (req) => {
           },
           layout: [
             {
-              blockType: 'content',
-              blockName: 'uap-radar-atlas',
-              columns: [
-                {
-                  size: 'full',
-                  richText: createLexicalContent([
-                    createParagraphNode('Tactical Radar Incident Atlas & Declassified Intelligence Dossier'),
-                  ]),
-                },
-              ],
-            },
-            {
-              blockType: 'archive',
-              blockName: 'Incident Dossiers',
-              populateBy: 'collection',
-              relationTo: 'posts',
-              limit: 12,
-              columns: '3',
-              introContent: createLexicalContent([
-                createHeadingNode('Declassified Incident Dossiers', 'h2'),
-                createParagraphNode(
-                  'Every documented UAP retrieval, radar intercept, and whistleblower case cross-referenced with primary military records.',
-                ),
-              ]),
+              blockType: 'globeAtlas',
+              blockName: 'Global UAP Declassified Globe',
+              mode: 'uap',
+              heading: 'ORBITAL RECON // GLOBAL UAP DECLASSIFIED ATLAS',
+              subheading:
+                'Interactive 3D Spy-Satellite Globe, Declassified Radar Intercepts, Crash Retrievals & Whistleblower Dossiers',
+              showCityScanner: false,
+              allowFullscreen: true,
+              showAudienceMonitor: false,
+              showExcavationHero: false,
+              showGlobeAndRecon: true,
+              defaultShader: 'optical',
             },
           ],
           meta: {

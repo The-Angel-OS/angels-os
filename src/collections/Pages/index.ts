@@ -30,6 +30,7 @@ import { Membership } from '@/blocks/Membership/config'
 import { FeaturedEndeavors } from '@/blocks/FeaturedEndeavors/config'
 import { MerlinControl } from '@/blocks/MerlinControl/config'
 import { Gallery } from '@/blocks/Gallery/config'
+import { GlobeAtlas } from '@/blocks/GlobeAtlas/config'
 // MerlinControl re-registered 2026-06-20 AFTER creating pages_blocks_merlin_control
 // (+ versioned) on both prod DBs via /provision-ops/ensure-merlin-block-tables.
 // Gallery registered 2026-06-23 AFTER its tables are provisioned on prod via
@@ -229,6 +230,7 @@ export const Pages: CollectionConfig = {
                 FeaturedEndeavors,
                 MerlinControl,
                 Gallery,
+                GlobeAtlas,
                 GoogleReviews,
                 MediaText,
                 TicketForm,
