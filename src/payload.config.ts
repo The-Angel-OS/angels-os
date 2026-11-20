@@ -196,6 +196,7 @@ import { ensureMembershipBlockTablesHandler } from '@/endpoints/ensure-membershi
 import { ensureMerlinBlockTablesHandler } from '@/endpoints/ensure-merlin-block-tables'
 import { ensureGalleryBlockTablesHandler } from '@/endpoints/ensure-gallery-block-tables'
 import { ensureGlobeAtlasBlockTablesHandler } from '@/endpoints/ensure-globe-atlas-block-tables'
+import { ensurePostsGeoColumnsHandler } from '@/endpoints/ensure-posts-geo-columns'
 import { ingestUapSightingHandler } from '@/endpoints/ingest-uap-sighting'
 import { provisionNdePortalHandler } from '@/endpoints/provision-nde-portal'
 import { ingestNdeSessionHandler } from '@/endpoints/ingest-nde-session'
@@ -1483,6 +1484,17 @@ export default buildConfig({
       path: '/provision-ops/ensure-globe-atlas-block-tables',
       method: 'post',
       handler: ensureGlobeAtlasBlockTablesHandler,
+    },
+    // Unified Geo-Archive columns on `posts` + `_posts_v` (run BEFORE adding geo group to Posts config)
+    {
+      path: '/provision-ops/ensure-posts-geo-columns',
+      method: 'get',
+      handler: ensurePostsGeoColumnsHandler,
+    },
+    {
+      path: '/provision-ops/ensure-posts-geo-columns',
+      method: 'post',
+      handler: ensurePostsGeoColumnsHandler,
     },
     // Self-heal payload_locked_documents_rels drift (missing <collection>_id columns
     // break every admin save). Re-runnable after any new collection ships.

@@ -142,7 +142,9 @@ export const scanNderfHandler: PayloadHandler = async (req) => {
 
         // Only run Gemini extraction when we have at least 1 high-signal hit
         let extracted: ExtractedNderfCase | null = null
+        let aiError: string | undefined
         if (apiKey) {
+          const modelName = (process.env.GOOGLE_MODEL || 'gemini-2.5-flash').replace(/^google\//, '')
           const prompt = `You are a consciousness & historical-anomaly researcher analyzing a public Near-Death Experience (NDE) account from NDERF.org.
 Matched signal categories: ${matchedTags.join(', ')}.
 
@@ -180,23 +182,77 @@ ${text.slice(0, 18000)}
 
 Output pure JSON only.`
 
-          const aiRes = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { responseMimeType: 'application/json' },
-              }),
-            },
-          )
-          if (aiRes.ok) {
-            const aiJson = (await aiRes.json()) as {
-              candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>
+          try {
+            const aiRes = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:generateContent?key=${apiKey}`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: prompt }] }],
+                  generationConfig: { responseMimeType: 'application/json' },
+                }),
+              },
+            )
+            if (aiRes.ok) {
+              const aiJson = (await aiRes.json()) as {
+                candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>
+              }
+              const out = aiJson.candidates?.[0]?.content?.parts?.[0]?.text
+              if (out) {
+                const cleaned = out.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
+                extracted = JSON.parse(cleaned) as ExtractedNderfCase
+              }
+            } else {
+              aiError = `Gemini HTTP ${aiRes.status}`
             }
-            const out = aiJson.candidates?.[0]?.content?.parts?.[0]?.text
-            if (out) extracted = JSON.parse(out) as ExtractedNderfCase
+          } catch (e) {
+            aiError = e instanceof Error ? e.message : String(e)
+          }
+        }
+
+        // Deterministic fallback if Gemini was unavailable or returned non-JSON
+        if (!extracted) {
+          const baseName = relPath.replace(/^Experiences\/1?/i, '').replace(/\.html$/i, '')
+          const prettyName = baseName
+            .split('_')
+            .filter(Boolean)
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(' ')
+          const snippets: string[] = []
+          for (const pat of SIGNAL_PATTERNS) {
+            const m = text.match(new RegExp(`(.{0,100}${pat.regex.source}.{0,160})`, 'i'))
+            if (m?.[1]) snippets.push(m[1].trim())
+          }
+          const yearMatch = text.match(/\b(19[6-9]\d|20[0-2]\d)\b/)
+          const recYear = yearMatch ? Number(yearMatch[1]) : 2018
+          extracted = {
+            title: `NDERF Case: ${prettyName} (${matchedTags.join(' · ')})`,
+            slug: `nderf-${baseName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+            category: matchedTags.includes('hall_of_records')
+              ? 'NDE HALL OF RECORDS'
+              : matchedTags.includes('past_life')
+                ? 'NDE PAST-LIFE FLASH'
+                : 'PRE-2018 BLIND OUTLIER',
+            eraWindow: matchedTags.includes('history_civilization') ? '1700-1850' : 'NON_LOCAL',
+            recordedYear: recYear,
+            blindnessRating: recYear < 2018 ? 'PRE_2018_BLIND' : 'POST_2018_UNPROMPTED',
+            historicalDeviationScore: matchedTags.includes('history_civilization') ? 6 : 4,
+            nonPhysicalRealityScore: matchedTags.includes('nonphysical_reality') ? 8 : 5,
+            location: {
+              name: 'NDERF Global Archive (Houma, LA)',
+              city: 'Houma',
+              state: 'Louisiana',
+              country: 'United States',
+              latitude: 29.5958,
+              longitude: -90.7195,
+            },
+            summary: `NDERF Exceptional archive account (${prettyName}) flagged for signals: ${matchedTags.join(', ')}. Direct link preserved to original NDERF questionnaire and narrative.`,
+            verbatimQuotes: snippets.slice(0, 3),
+            anomalyMarkers: [
+              `Matched signals: ${matchedTags.join(', ')}`,
+              ...(aiError ? [`Extraction fallback used (${aiError})`] : []),
+            ],
           }
         }
 
