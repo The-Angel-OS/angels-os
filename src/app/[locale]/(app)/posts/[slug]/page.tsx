@@ -114,7 +114,7 @@ export default async function PostPage({ params }: Args) {
       {isMlbTenant && (
         <EpisodeNavigator currentSlug={slug} currentTitle={String(title || '')} sourceUrl={sourceUrl} />
       )}
-      <RenderBlocks blocks={layout} docContext={{ id, collection: 'posts' }} />
+      <RenderBlocks blocks={layout} docContext={{ id, collection: 'posts', sourceUrl }} />
       {related.length > 0 && (
         <div className="container mt-16">
           <h2 className="mb-6 text-2xl font-bold">Related Posts</h2>

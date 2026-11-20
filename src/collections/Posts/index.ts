@@ -19,6 +19,7 @@ import { GoogleReviews } from '@/blocks/GoogleReviews/config'
 import { MediaText } from '@/blocks/MediaText/config'
 import { hero } from '@/fields/hero'
 import { Video } from '@/blocks/Video/config'
+import { Transcript } from '@/blocks/Transcript/config'
 import { simpleSlugField } from '@/fields/simpleSlugField'
 import { adminOrPublishedWithTenantScope } from '@/access/adminOrPublishedWithTenantScope'
 import {
@@ -30,6 +31,10 @@ import {
 } from '@payloadcms/plugin-seo/fields'
 import { revalidateDelete, revalidatePost } from './hooks/revalidatePost'
 import { fillMetaFromContent } from './hooks/fillMetaFromContent'
+import {
+  indexTranscriptChunksAfterChange,
+  deleteTranscriptChunksAfterDelete,
+} from './hooks/indexTranscriptChunks'
 import { PAGE_ACCESS_OPTIONS } from '@/utilities/pageAccess'
 
 export const Posts: CollectionConfig = {
@@ -134,6 +139,7 @@ export const Posts: CollectionConfig = {
                 GoogleReviews,
                 MediaText,
                 Video,
+                Transcript,
               ],
               required: true,
               // `required` alone reports "The following field is invalid:
@@ -276,8 +282,8 @@ export const Posts: CollectionConfig = {
   hooks: {
     beforeValidate: [enforceManagedTenant],
     beforeChange: [enforceManagedTenantOnChange, fillMetaFromContent],
-    afterChange: [revalidatePost],
-    afterDelete: [revalidateDelete],
+    afterChange: [revalidatePost, indexTranscriptChunksAfterChange],
+    afterDelete: [revalidateDelete, deleteTranscriptChunksAfterDelete],
   },
   versions: {
     drafts: {

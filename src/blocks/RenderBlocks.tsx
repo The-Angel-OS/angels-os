@@ -29,12 +29,17 @@ import { OldWorldAtlas } from '@/components/OldWorldAtlas'
 import { UAPGlobeAtlas } from '@/components/UAPGlobeAtlas'
 import { NDEGlobeAtlas } from '@/components/NDEGlobeAtlas'
 import { GlobeAtlasBlockComponent } from '@/blocks/GlobeAtlas/Component'
+import { TranscriptBlockComponent } from '@/blocks/Transcript/Component'
 import { toKebabCase } from '@/utilities/toKebabCase'
 import React, { Fragment } from 'react'
 
 import type { Page } from '../payload-types'
 
-export type DocContext = { id: number; collection: 'posts' | 'products' | 'pages' | 'events' }
+export type DocContext = {
+  id: number
+  collection: 'posts' | 'products' | 'pages' | 'events'
+  sourceUrl?: string | null
+}
 
 const blockComponents = {
   archive: ArchiveBlock,
@@ -62,6 +67,7 @@ const blockComponents = {
   coursePlayer: CoursePlayerBlockComponent,
   courseStudio: CourseStudioBlockComponent,
   video: VideoBlockComponent,
+  transcript: TranscriptBlockComponent,
   showcase: ShowcaseBlock,
   productPanel: ProductPanelBlock,
 }
@@ -153,7 +159,9 @@ export const RenderBlocks: React.FC<{
                     ? { ...block, endeavor: block.endeavor || tenantSlug }
                     : blockType === 'mediaText'
                       ? { ...block, blockIndex: mediaTextIndex.get(index) ?? 0 }
-                      : block
+                      : blockType === 'transcript'
+                        ? { ...block, fallbackVideoUrl: docContext?.sourceUrl ?? null }
+                        : block
               return (
                 /* One place decides the rhythm between blocks. It used to be two:
                    this wrapper said my-16 and half the blocks said my-16 again
