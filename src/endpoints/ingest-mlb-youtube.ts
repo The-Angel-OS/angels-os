@@ -432,6 +432,7 @@ async function createMlbMediaPost(
         },
       ],
     } as any,
+    draft: false,
     depth: 0,
     overrideAccess: true,
   })
@@ -548,9 +549,11 @@ async function attachTranscriptToPost(
     id: postId,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data: {
+      _status: 'published',
       layout: currentLayout,
       ...(doc.meta?.image ? { meta: doc.meta } : {}),
     } as any,
+    draft: false,
     depth: 0,
     overrideAccess: true,
     context: { disableRevalidate: true, disableTranscriptIndex: true },

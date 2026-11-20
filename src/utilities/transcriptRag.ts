@@ -211,7 +211,7 @@ export async function indexPostTranscripts(
 
   try {
     // Draft autosave guard: never wipe live index if live row in `posts` is still published
-    if (doc._status !== 'published') {
+    if (!opts?.force && doc._status !== 'published') {
       const statusRes = await pool.query(
         `SELECT _status FROM "posts" WHERE "id" = $1 LIMIT 1`,
         [postId],
