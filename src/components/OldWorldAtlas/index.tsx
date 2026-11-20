@@ -1751,6 +1751,7 @@ export const OldWorldAtlas: React.FC<OldWorldAtlasProps> = ({
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* ── 4. Scrollable Structure Directory & Historic Fire Archive ── */}
