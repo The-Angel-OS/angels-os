@@ -1,6 +1,7 @@
 import React from 'react'
 import { OldWorldAtlas } from '@/components/OldWorldAtlas'
 import { UAPGlobeAtlas } from '@/components/UAPGlobeAtlas'
+import { NDEGlobeAtlas } from '@/components/NDEGlobeAtlas'
 
 export interface GlobeAtlasBlockProps {
   id?: string
@@ -34,6 +35,14 @@ export const GlobeAtlasBlockComponent: React.FC<GlobeAtlasBlockProps> = ({
     return (
       <section className="container my-8">
         <UAPGlobeAtlas />
+      </section>
+    )
+  }
+
+  if (mode === 'nde') {
+    return (
+      <section className="container my-8">
+        <NDEGlobeAtlas />
       </section>
     )
   }

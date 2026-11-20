@@ -16,6 +16,7 @@ export const GlobeAtlas: Block = {
       options: [
         { label: 'Old World & Architecture (MLB)', value: 'old_world' },
         { label: 'Declassified UAP & Disclosure Archive', value: 'uap' },
+        { label: 'NDE & Past-Life Regression Archive', value: 'nde' },
       ],
       admin: {
         description: 'Choose which dataset and coordinates to render on the 3D globe.',

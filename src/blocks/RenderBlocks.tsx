@@ -27,6 +27,7 @@ import { ShowcaseBlock } from '@/blocks/Showcase/Component'
 import { ProductPanelBlock } from '@/blocks/ProductPanel/Component'
 import { OldWorldAtlas } from '@/components/OldWorldAtlas'
 import { UAPGlobeAtlas } from '@/components/UAPGlobeAtlas'
+import { NDEGlobeAtlas } from '@/components/NDEGlobeAtlas'
 import { toKebabCase } from '@/utilities/toKebabCase'
 import React, { Fragment } from 'react'
 
@@ -121,6 +122,17 @@ export const RenderBlocks: React.FC<{
             return (
               <div className="container my-8" key={index}>
                 <UAPGlobeAtlas />
+              </div>
+            )
+          }
+
+          if (
+            blockType === 'content' &&
+            (normalizedName === 'nde-archive' || normalizedName === 'past-lives-archive')
+          ) {
+            return (
+              <div className="container my-8" key={index}>
+                <NDEGlobeAtlas />
               </div>
             )
           }

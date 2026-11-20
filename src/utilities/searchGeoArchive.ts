@@ -12,10 +12,11 @@ import type { Payload } from 'payload'
 import mlbArchive from '@/data/mlb-archive.json'
 import curatedLayersData from '@/data/curated-atlas-layers.json'
 import uapArchiveData from '@/data/uap-archive.json'
+import ndeArchiveData from '@/data/nde-archive.json'
 
 export interface GeoArchiveSearchInput {
   query?: string
-  category?: 'episodes' | 'places' | 'star_forts' | 'train_stations' | 'carnegie' | 'uap' | 'all'
+  category?: 'episodes' | 'places' | 'star_forts' | 'train_stations' | 'carnegie' | 'uap' | 'nde' | 'all'
   tenantSlug?: string
   limit?: number
 }
@@ -63,7 +64,14 @@ export async function searchGeoArchive(
   const terms = query.split(/\s+/).filter(Boolean)
 
   const results: Array<{
-    type: 'episode' | 'landmark' | 'star_fort' | 'train_station' | 'carnegie_library' | 'uap_incident'
+    type:
+      | 'episode'
+      | 'landmark'
+      | 'star_fort'
+      | 'train_station'
+      | 'carnegie_library'
+      | 'uap_incident'
+      | 'nde_regression'
     score: number
     title: string
     episodeNumber?: number
@@ -276,6 +284,73 @@ export async function searchGeoArchive(
           summary: `[${inc.classification}] ${inc.investigativeHypothesis}`,
           keyClaims: inc.anomalies,
           url: inc.sources?.[0]?.url,
+        })
+      }
+    }
+  }
+
+  // ── 5. Search NDE & Past-Life Regression Anomaly Archive ──────────────────
+  if (category === 'all' || category === 'nde') {
+    const records = (ndeArchiveData.records || []) as Array<{
+      id: string
+      title: string
+      category: string
+      eraWindow: string
+      recordedYear: number
+      blindnessRating: string
+      researcher: string
+      location: {
+        name: string
+        city: string
+        state: string
+        country: string
+        latitude: number
+        longitude: number
+      }
+      summary: string
+      anomalyMarkers: string[]
+      sources: Array<{ title: string; url: string }>
+    }>
+
+    for (const rec of records) {
+      const titleLower = rec.title.toLowerCase()
+      const researcherLower = rec.researcher.toLowerCase()
+      const summaryLower = rec.summary.toLowerCase()
+      const markersLower = rec.anomalyMarkers.join(' ').toLowerCase()
+      const eraLower = rec.eraWindow.toLowerCase()
+      const cityLower = (rec.location.city || '').toLowerCase()
+
+      let score = 0
+      if (titleLower.includes(query)) score += 100
+      if (researcherLower.includes(query)) score += 90
+      if (eraLower.includes(query)) score += 80
+      if (cityLower.includes(query)) score += 60
+      if (markersLower.includes(query)) score += 50
+      if (summaryLower.includes(query)) score += 40
+
+      for (const t of terms) {
+        if (titleLower.includes(t)) score += 25
+        if (researcherLower.includes(t)) score += 25
+        if (markersLower.includes(t)) score += 20
+        if (summaryLower.includes(t)) score += 15
+      }
+
+      if (score > 0) {
+        results.push({
+          type: 'nde_regression',
+          score,
+          title: `${rec.title} [${rec.blindnessRating}]`,
+          location: {
+            city: rec.location.city,
+            state: rec.location.state,
+            country: rec.location.country,
+            latitude: String(rec.location.latitude),
+            longitude: String(rec.location.longitude),
+          },
+          constructionYear: String(rec.recordedYear),
+          summary: `[${rec.category} · ERA: ${rec.eraWindow}] ${rec.summary}`,
+          keyClaims: rec.anomalyMarkers,
+          url: rec.sources?.[0]?.url,
         })
       }
     }

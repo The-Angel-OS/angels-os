@@ -182,6 +182,37 @@ const UAP_GLOBAL_LAYERS: AtlasGlobalLayer[] = [
   { key: 'underground_facilities', label: '⛰ Subterranean Facilities & Black Sites' },
 ]
 
+const NDE_CATEGORY_COLORS: Record<string, string> = {
+  '1700-1850 BASELINE': '#94a3b8',
+  'LOST ARCHITECTURE / ENERGY': '#10b981',
+  'CATACLYSM / RESET MEMORY': '#ef4444',
+  'NDE HALL OF RECORDS': '#06b6d4',
+  'NDE PAST-LIFE FLASH': '#a855f7',
+  'UVA VERIFIED CHILD CASE': '#3b82f6',
+  'PRE-2018 BLIND OUTLIER': '#f59e0b',
+  Other: '#94a3b8',
+}
+
+const NDE_QUICK_SECTORS: AtlasQuickSector[] = [
+  { label: '🏛 Alexandria / Med (Cannon QHHT)', lat: 31.2001, lon: 29.9187, zoom: 7, city: 'Alexandria' },
+  { label: '🌊 Bimini / Atlantic (Cayce)', lat: 25.728, lon: -79.297, zoom: 8, city: 'Alice Town' },
+  { label: '🇬🇧 London 1700 Cohort (Wambach)', lat: 51.5074, lon: -0.1278, zoom: 7, city: 'London' },
+  { label: '🇺🇸 St. Louis 1850 Cohort (Wambach)', lat: 38.627, lon: -90.1994, zoom: 7, city: 'St. Louis' },
+  { label: '🇮🇪 Belfast 1798 (Bridey Murphy)', lat: 54.5973, lon: -5.9301, zoom: 8, city: 'Belfast' },
+  { label: '🇮🇳 Mathura (Stevenson / Shanti Devi)', lat: 27.4924, lon: 77.6737, zoom: 8, city: 'Mathura' },
+  { label: '🇫🇷 Paris 1985 (Howard Storm NDE)', lat: 48.8376, lon: 2.3404, zoom: 8, city: 'Paris' },
+  { label: '🇺🇸 Houma, LA (NDERF HQ)', lat: 29.5958, lon: -90.7195, zoom: 7, city: 'Houma' },
+]
+
+const NDE_GLOBAL_LAYERS: AtlasGlobalLayer[] = [
+  { key: 'nde_baseline_1700', label: '📜 1700–1850 Baselines (Wambach)' },
+  { key: 'nde_lost_arch', label: '🏛 Lost Architecture / Energy' },
+  { key: 'nde_cataclysm', label: '🌊 Cataclysm / Reset Memories' },
+  { key: 'nde_hall_records', label: '💫 NDE Hall of Records' },
+  { key: 'nde_past_flash', label: '✨ NDE Past-Life Flashes' },
+  { key: 'nde_uva_child', label: '👶 UVA Verified Child Cases' },
+]
+
 const MILESTONES = [
   1_500_000, 2_000_000, 2_500_000, 5_000_000, 10_000_000, 25_000_000, 50_000_000, 100_000_000,
 ]
@@ -194,7 +225,7 @@ export interface OldWorldAtlasProps {
   title?: string
   subtitle?: string
   missionBrief?: string
-  mode?: 'old_world' | 'uap' | 'jon_levi' | 'custom'
+  mode?: 'old_world' | 'uap' | 'nde' | 'jon_levi' | 'custom'
   searchPlaceholder?: string
   primaryLayerLabel?: string
   categoryColors?: Record<string, string>
@@ -230,36 +261,48 @@ export const OldWorldAtlas: React.FC<OldWorldAtlasProps> = ({
     title ||
     (mode === 'uap'
       ? 'ORBITAL RECON // GLOBAL UAP DECLASSIFIED ATLAS'
-      : 'SPY SATELLITE // OLD WORLD & TARTARIA ARCHIVE')
+      : mode === 'nde'
+        ? 'CONSCIOUSNESS RECON // NDE & PAST-LIFE ANOMALY ATLAS'
+        : 'SPY SATELLITE // OLD WORLD & TARTARIA ARCHIVE')
 
   const activeSubtitle =
     subtitle ||
     (mode === 'uap'
       ? 'Interactive 3D Spy-Satellite Globe, Declassified Radar Intercepts, Crash Retrievals & Whistleblower Dossiers'
-      : 'Orbital Reconnaissance, Historic Architecture City Scanner & Satan’s Little Season Investigation Index')
+      : mode === 'nde'
+        ? 'Cross-Referencing Pre-2018 Blind Hypnotic Regressions, NDERF Accounts & 1700–1850 Historical Outliers'
+        : 'Orbital Reconnaissance, Historic Architecture City Scanner & Satan’s Little Season Investigation Index')
 
   const activeMissionBrief =
     missionBrief ||
     (mode === 'uap'
       ? 'ORBITAL RECON // DECLASSIFIED DISCLOSURE & TELEMETRY ARCHIVE'
-      : "ORBITAL RECON // SATAN'S LITTLE SEASON & OLD WORLD ARCHIVE")
+      : mode === 'nde'
+        ? 'CONSCIOUSNESS ARCHIVE // PRE-2018 BLIND REGRESSION & NDE ANOMALY INDEX'
+        : "ORBITAL RECON // SATAN'S LITTLE SEASON & OLD WORLD ARCHIVE")
 
   const effectiveShowCityScanner =
     showCityScanner !== undefined ? showCityScanner : mode === 'old_world'
 
   const activeCategoryColors = useMemo(() => {
     if (categoryColors) return categoryColors
-    return mode === 'uap' ? UAP_CATEGORY_COLORS : CATEGORY_COLORS
+    if (mode === 'uap') return UAP_CATEGORY_COLORS
+    if (mode === 'nde') return NDE_CATEGORY_COLORS
+    return CATEGORY_COLORS
   }, [categoryColors, mode])
 
   const activeQuickSectors = useMemo(() => {
     if (quickSectors && quickSectors.length > 0) return quickSectors
-    return mode === 'uap' ? UAP_QUICK_SECTORS : QUICK_SECTORS
+    if (mode === 'uap') return UAP_QUICK_SECTORS
+    if (mode === 'nde') return NDE_QUICK_SECTORS
+    return QUICK_SECTORS
   }, [quickSectors, mode])
 
   const activeLayersList = useMemo(() => {
     if (globalLayers && globalLayers.length > 0) return globalLayers
-    return mode === 'uap' ? UAP_GLOBAL_LAYERS : GLOBAL_LAYERS
+    if (mode === 'uap') return UAP_GLOBAL_LAYERS
+    if (mode === 'nde') return NDE_GLOBAL_LAYERS
+    return GLOBAL_LAYERS
   }, [globalLayers, mode])
 
   const [data, setData] = useState<AtlasArchiveData | null>(initialData ?? null)
@@ -347,7 +390,7 @@ export const OldWorldAtlas: React.FC<OldWorldAtlasProps> = ({
 
   const toggleGlobalLayer = useCallback(
     async (layerKey: string) => {
-      if (mode === 'uap') {
+      if (mode === 'uap' || mode === 'nde') {
         const categoryMap: Record<string, string> = {
           crash_retrievals: 'CRASH RETRIEVAL',
           nuclear_silos: 'NUCLEAR SILO INCURSION',
@@ -355,6 +398,12 @@ export const OldWorldAtlas: React.FC<OldWorldAtlasProps> = ({
           pilot_locks: 'AVIATOR / PILOT LOCK',
           mass_sightings: 'MASS SIGHTING',
           underground_facilities: 'UNDERGROUND / BLACK SITE',
+          nde_baseline_1700: '1700-1850 BASELINE',
+          nde_lost_arch: 'LOST ARCHITECTURE / ENERGY',
+          nde_cataclysm: 'CATACLYSM / RESET MEMORY',
+          nde_hall_records: 'NDE HALL OF RECORDS',
+          nde_past_flash: 'NDE PAST-LIFE FLASH',
+          nde_uva_child: 'UVA VERIFIED CHILD CASE',
         }
         const targetCat = categoryMap[layerKey]
         if (targetCat) {
@@ -1051,6 +1100,13 @@ export const OldWorldAtlas: React.FC<OldWorldAtlasProps> = ({
               >
                 📑 Declassified Dossiers ({allPlaces.length})
               </Link>
+            ) : mode === 'nde' ? (
+              <Link
+                href="/posts"
+                className="rounded-md border border-purple-500/40 bg-purple-500/10 px-3 py-1.5 text-xs font-mono text-purple-300 hover:bg-purple-500/20"
+              >
+                ✨ Session &amp; NDE Case Index ({allPlaces.length})
+              </Link>
             ) : (
               <Link
                 href="/posts"
@@ -1191,7 +1247,13 @@ export const OldWorldAtlas: React.FC<OldWorldAtlasProps> = ({
                 : 'border-slate-800 bg-slate-900 text-slate-400'
             }`}
           >
-            {primaryLayerLabel || (mode === 'uap' ? '🛸 Declassified Incidents Layer' : '🎬 MLB Episodes Layer')} ({data?.places?.length ?? (mode === 'uap' ? 15 : 256)})
+            {primaryLayerLabel ||
+              (mode === 'uap'
+                ? '🛸 Declassified Incidents Layer'
+                : mode === 'nde'
+                  ? '✨ Regression & NDE Case Layer'
+                  : '🎬 MLB Episodes Layer')}{' '}
+            ({data?.places?.length ?? (mode === 'uap' ? 15 : mode === 'nde' ? 12 : 256)})
           </button>
           {activeLayersList.map((layer) => {
             const active = Boolean(activeGlobalLayers[layer.key])
@@ -1222,7 +1284,7 @@ export const OldWorldAtlas: React.FC<OldWorldAtlasProps> = ({
               onClick={() => {
                 setCamera({ lat: sec.lat, lon: sec.lon, zoom: sec.zoom })
                 setScanCityInput(sec.city)
-                if (mode === 'uap') {
+                if (mode === 'uap' || mode === 'nde') {
                   const queryCity = sec.city.split(',')[0].trim().toLowerCase()
                   const match = allPlaces.find((p) =>
                     p.name.toLowerCase().includes(queryCity) ||
@@ -1270,7 +1332,9 @@ export const OldWorldAtlas: React.FC<OldWorldAtlasProps> = ({
               searchPlaceholder ||
               (mode === 'uap'
                 ? `Search ${allPlaces.length} declassified incidents, crash sites, radar locks, witnesses...`
-                : `Search ${allPlaces.length} verified structures, cities, countries...`)
+                : mode === 'nde'
+                  ? `Search ${allPlaces.length} regressions, NDEs, researchers (Wambach, Cannon, Cayce, NDERF)...`
+                  : `Search ${allPlaces.length} verified structures, cities, countries...`)
             }
             className="rounded border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs text-white"
           />
@@ -1298,6 +1362,17 @@ export const OldWorldAtlas: React.FC<OldWorldAtlasProps> = ({
               <option value="DECLASSIFIED (DOD)">Declassified (DoD / Navy)</option>
               <option value="CONFIDENTIAL">Confidential / Witness Record</option>
             </select>
+          ) : mode === 'nde' ? (
+            <select
+              value={selectedEpisodeId}
+              onChange={(e) => setSelectedEpisodeId(e.target.value)}
+              className="rounded border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs font-mono text-slate-200"
+            >
+              <option value="ALL">All Blindness / Prompt Ratings</option>
+              <option value="PRE_2018_BLIND">Pre-2018 Blind / Unprompted</option>
+              <option value="POST_2018_UNPROMPTED">Post-2018 Unprompted</option>
+              <option value="POST_2018_LED">Post-2018 (Verify Prompting)</option>
+            </select>
           ) : (
             <select
               value={selectedEpisodeId}
@@ -1323,6 +1398,18 @@ export const OldWorldAtlas: React.FC<OldWorldAtlasProps> = ({
               <option value="retrieval">Debris / Physical Craft Retrieved</option>
               <option value="nuclear">Nuclear Facility Disruption</option>
               <option value="witness">Military / Aviator Eyewitness</option>
+            </select>
+          ) : mode === 'nde' ? (
+            <select
+              value={selectedExistence}
+              onChange={(e) => setSelectedExistence(e.target.value)}
+              className="rounded border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs font-mono text-slate-200"
+            >
+              <option value="ALL">All Claimed Era Windows</option>
+              <option value="1700-1850">1700–1850 Target Window</option>
+              <option value="ATLANTIS_UNPLACED">Deep Antiquity / &ldquo;Atlantis&rdquo; Unplaced</option>
+              <option value="1850-1950">1850–1950 Modern Window</option>
+              <option value="NON_LOCAL">Non-Local / Hall of Records</option>
             </select>
           ) : (
             <select
@@ -1488,7 +1575,9 @@ export const OldWorldAtlas: React.FC<OldWorldAtlasProps> = ({
                     {selectedPlace.construction
                       ? mode === 'uap'
                         ? `· Incident Date: ${selectedPlace.construction}`
-                        : `· Claimed: ${selectedPlace.construction}`
+                        : mode === 'nde'
+                          ? `· Recorded: ${selectedPlace.construction}`
+                          : `· Claimed: ${selectedPlace.construction}`
                       : ''}
                   </p>
                 </div>
@@ -1538,7 +1627,7 @@ export const OldWorldAtlas: React.FC<OldWorldAtlasProps> = ({
                   onClick={() => flyToPlace(selectedPlace, true)}
                   className="rounded bg-cyan-500/20 border border-cyan-400/50 px-2.5 py-1 text-xs font-mono text-cyan-300 hover:bg-cyan-500/30"
                 >
-                  {mode === 'uap' ? '🛰 Zoom Satellite Site View' : '🛰 Zoom Satellite Roof View'}
+                  {mode === 'uap' || mode === 'nde' ? '🛰 Zoom Satellite Site View' : '🛰 Zoom Satellite Roof View'}
                 </button>
                 <a
                   href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${selectedPlace.latitude},${selectedPlace.longitude}`}
@@ -1555,7 +1644,11 @@ export const OldWorldAtlas: React.FC<OldWorldAtlasProps> = ({
                     rel="noreferrer"
                     className="rounded border border-slate-700 bg-slate-900 px-2.5 py-1 text-xs font-mono text-slate-300 hover:border-slate-500"
                   >
-                    {mode === 'uap' ? '📑 Primary Source Archive ↗' : '📜 Official Narrative Source ↗'}
+                    {mode === 'uap'
+                      ? '📑 Primary Source Archive ↗'
+                      : mode === 'nde'
+                        ? '✨ Primary Study / Session Link ↗'
+                        : '📜 Official Narrative Source ↗'}
                   </a>
                 )}
               </div>
@@ -1565,16 +1658,24 @@ export const OldWorldAtlas: React.FC<OldWorldAtlasProps> = ({
                 <div className="text-xs font-mono uppercase tracking-wider text-amber-400 mb-2">
                   {mode === 'uap'
                     ? '📑 DECLASSIFIED TELEMETRY & MEDIA SOURCES'
-                    : `🎬 FEATURED IN MLB EPISODES (${selectedAppearances.length})`}
+                    : mode === 'nde'
+                      ? '✨ PRIMARY ARCHIVE & BLINDNESS METADATA'
+                      : `🎬 FEATURED IN MLB EPISODES (${selectedAppearances.length})`}
                 </div>
-                {mode === 'uap' ? (
+                {mode === 'uap' || mode === 'nde' ? (
                   <div className="rounded-lg border border-slate-800 bg-[#070b12] p-3 space-y-2">
                     <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="text-cyan-300 font-bold">MILITARY TELEMETRY &amp; WITNESS DEPOSITIONS</span>
+                      <span className="text-cyan-300 font-bold">
+                        {mode === 'nde'
+                          ? 'REGRESSION / NDE EVIDENCE & BLINDNESS RATING'
+                          : 'MILITARY TELEMETRY & WITNESS DEPOSITIONS'}
+                      </span>
                       <span className="text-[10px] text-amber-400 uppercase font-mono">{selectedPlace.existence}</span>
                     </div>
                     <p className="text-xs text-slate-300 leading-relaxed font-mono">
-                      Logged under official DoD declassifications, military radar logs, and whistleblower testimony. Direct primary links preserved to the original media without third-party hosting.
+                      {mode === 'nde'
+                        ? 'Indexed for pre-2018 blindness, leading-prompt risk, and historical-baseline deviation. Direct outbound link preserved without re-hosting third-party media.'
+                        : 'Logged under official DoD declassifications, military radar logs, and whistleblower testimony. Direct primary links preserved to the original media without third-party hosting.'}
                     </p>
                     {selectedPlace.sourceUrl && (
                       <a
@@ -1583,7 +1684,11 @@ export const OldWorldAtlas: React.FC<OldWorldAtlasProps> = ({
                         rel="noreferrer"
                         className="inline-flex items-center gap-1.5 text-xs font-mono text-cyan-400 hover:underline pt-1"
                       >
-                        <span>🔗 Access Original Declassified Dossier / Media Link ↗</span>
+                        <span>
+                          {mode === 'nde'
+                            ? '🔗 Open Original NDERF / Study / YouTube Session ↗'
+                            : '🔗 Access Original Declassified Dossier / Media Link ↗'}
+                        </span>
                       </a>
                     )}
                   </div>
@@ -1640,7 +1745,9 @@ export const OldWorldAtlas: React.FC<OldWorldAtlasProps> = ({
             <div className="flex h-full items-center justify-center text-xs font-mono text-slate-500">
               {mode === 'uap'
                 ? 'Select any incident pin on the globe or list below to inspect its declassified dossier.'
-                : 'Select any pin on the globe or list below to inspect its Old World dossier.'}
+                : mode === 'nde'
+                  ? 'Select any regression or NDE pin on the globe or list below to inspect its case dossier.'
+                  : 'Select any pin on the globe or list below to inspect its Old World dossier.'}
             </div>
           )}
         </div>
@@ -1652,7 +1759,9 @@ export const OldWorldAtlas: React.FC<OldWorldAtlasProps> = ({
           <h3 className="text-xs font-mono uppercase tracking-widest text-amber-400">
             {mode === 'uap'
               ? `DECLASSIFIED INCIDENT DOSSIERS IN CURRENT FILTER (${filteredPlaces.length})`
-              : `VERIFIED OLD WORLD STRUCTURES IN CURRENT FILTER (${filteredPlaces.length})`}
+              : mode === 'nde'
+                ? `INDEXED REGRESSION & NDE CASES IN CURRENT FILTER (${filteredPlaces.length})`
+                : `VERIFIED OLD WORLD STRUCTURES IN CURRENT FILTER (${filteredPlaces.length})`}
           </h3>
           <span className="text-[11px] font-mono text-slate-400">
             Click any card to lock satellite camera

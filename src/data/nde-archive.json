@@ -1,0 +1,402 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2026-11-19T23:38:00Z",
+  "records": [
+    {
+      "id": "nde-wambach-1700-cohort",
+      "slug": "wambach-1700-ce-statistical-cohort",
+      "title": "Dr. Helen Wambach — 1700 CE Hypnotic Regression Statistical Cohort",
+      "category": "1700-1850 BASELINE",
+      "eraWindow": "1700-1850",
+      "recordedYear": 1978,
+      "blindnessRating": "PRE_2018_BLIND",
+      "leadingPromptScore": 1,
+      "historicalDeviationScore": 2,
+      "researcher": "Dr. Helen Wambach (Psychologist)",
+      "sourceType": "academic_study",
+      "location": {
+        "name": "Western Europe / London Anchor (Multi-Region Sample)",
+        "city": "London",
+        "state": "England",
+        "country": "United Kingdom",
+        "latitude": 51.5074,
+        "longitude": -0.1278
+      },
+      "summary": "Part of Wambach's 10-year quantitative study of 1,088 subjects regressed to 10 fixed dates including 1700 CE. Subjects overwhelmingly described mundane lower-class agrarian, artisan, and emerging merchant lives with micro-historically accurate clothing, footwear, and utensils—providing virtually zero corroboration for a global high-tech civilization in 1700.",
+      "anomalyMarkers": [
+        "50.6% male / 49.4% female ratio matched real historical demographics",
+        "Micro-historical accuracy on cooking pots, fabrics, and utensil tines",
+        "Zero unprompted reports of advanced domes or atmospheric energy in 1700 CE"
+      ],
+      "sources": [
+        {
+          "title": "Reliving Past Lives: The Evidence Under Hypnosis (Helen Wambach, 1979)",
+          "url": "https://www.goodreads.com/book/show/148971.Reliving_Past_Lives"
+        }
+      ]
+    },
+    {
+      "id": "nde-wambach-1850-cohort",
+      "slug": "wambach-1850-ce-statistical-cohort",
+      "title": "Dr. Helen Wambach — 1850 CE Cohort (Anti-Trope Baseline)",
+      "category": "1700-1850 BASELINE",
+      "eraWindow": "1700-1850",
+      "recordedYear": 1978,
+      "blindnessRating": "PRE_2018_BLIND",
+      "leadingPromptScore": 1,
+      "historicalDeviationScore": 2,
+      "researcher": "Dr. Helen Wambach (Psychologist)",
+      "sourceType": "academic_study",
+      "location": {
+        "name": "Eastern & Midwestern United States (1850 Cohort)",
+        "city": "St. Louis",
+        "state": "Missouri",
+        "country": "United States",
+        "latitude": 38.627,
+        "longitude": -90.1994
+      },
+      "summary": "Wambach specifically chose 1850 CE to test whether subjects would fabricate romanticized 'Wild West' or Civil War fantasies. Instead, only a small fraction placed themselves in the American West; the vast majority described unglamorous rural farm or town lives, with no reports of a recent global architectural reset or mud flood.",
+      "anomalyMarkers": [
+        "Defied 1970s Hollywood 'Wild West' cultural conditioning",
+        "Strong mundane baseline directly inside the 1776–1850 target window",
+        "Critical control dataset for testing post-2018 Tartaria regression claims"
+      ],
+      "sources": [
+        {
+          "title": "Society for Psychical Research — Wambach Past-Life Statistical Review",
+          "url": "https://psi-encyclopedia.spr.ac.uk/"
+        }
+      ]
+    },
+    {
+      "id": "nde-bridey-murphy-1798",
+      "slug": "bridey-murphy-virginia-tighe-1798-ireland",
+      "title": "Bridey Murphy / Virginia Tighe Regression (1798–1864 Ireland)",
+      "category": "1700-1850 BASELINE",
+      "eraWindow": "1700-1850",
+      "recordedYear": 1952,
+      "blindnessRating": "PRE_2018_BLIND",
+      "leadingPromptScore": 2,
+      "historicalDeviationScore": 3,
+      "researcher": "Morey Bernstein",
+      "sourceType": "hypnotic_regression",
+      "location": {
+        "name": "Cork & Belfast, Ireland",
+        "city": "Belfast",
+        "state": "Northern Ireland",
+        "country": "United Kingdom",
+        "latitude": 54.5973,
+        "longitude": -5.9301
+      },
+      "summary": "One of the earliest tape-recorded hypnotic regressions directly inside the 1798–1864 window. Virginia Tighe recounted an ordinary 19th-century Irish life including obscure grocer names (Farr & Carrigan), local coinage, and folklore—entirely consistent with mundane pre-industrial life rather than an advanced global civilization.",
+      "anomalyMarkers": [
+        "Recorded 1952—decades before modern alternative-history internet lore",
+        "Spanned exact 1798–1864 window with ordinary domestic and parish detail",
+        "Debated between cryptomnesia and genuine historical recall"
+      ],
+      "sources": [
+        {
+          "title": "The Search for Bridey Murphy (Archive Overview)",
+          "url": "https://en.wikipedia.org/wiki/Bridey_Murphy"
+        }
+      ]
+    },
+    {
+      "id": "nde-cannon-white-stone-cities",
+      "slug": "dolores-cannon-pre-industrial-white-stone-cities",
+      "title": "Dolores Cannon QHHT — White Stone Domed Cities & Sound/Atmospheric Energy",
+      "category": "LOST ARCHITECTURE / ENERGY",
+      "eraWindow": "ATLANTIS_UNPLACED",
+      "recordedYear": 2005,
+      "blindnessRating": "PRE_2018_BLIND",
+      "leadingPromptScore": 4,
+      "historicalDeviationScore": 9,
+      "researcher": "Dolores Cannon (QHHT)",
+      "sourceType": "qhht_transcript",
+      "location": {
+        "name": "Mediterranean / Unplaced Coastal Basin",
+        "city": "Alexandria",
+        "state": "Alexandria",
+        "country": "Egypt",
+        "latitude": 31.2001,
+        "longitude": 29.9187
+      },
+      "summary": "Across The Convoluted Universe series (published 2001–2014, long before Tartaria went viral), multiple independent QHHT subjects described gleaming white stone/marble cities with domes, resonant sound/atmospheric power transmission, and sudden cataclysmic destruction. Notably, hypnotists almost always filed these under 'Atlantis' because no 18th-century category existed.",
+      "anomalyMarkers": [
+        "Pre-2018 unprompted descriptions of white domed architecture & wireless energy",
+        "Classic 'Misclassification Hypothesis' candidate (filed under Atlantis)",
+        "Recurring motif of sudden water/earth cataclysm wiping technological memory"
+      ],
+      "sources": [
+        {
+          "title": "QHHT Official Archive — Dolores Cannon Publications",
+          "url": "https://www.qhhtofficial.com/"
+        }
+      ]
+    },
+    {
+      "id": "nde-cayce-poseidia-readings",
+      "slug": "edgar-cayce-poseidia-crystal-power-readings",
+      "title": "Edgar Cayce Trance Readings — Crystal & Atmospheric Power Infrastructure",
+      "category": "LOST ARCHITECTURE / ENERGY",
+      "eraWindow": "ATLANTIS_UNPLACED",
+      "recordedYear": 1933,
+      "blindnessRating": "PRE_2018_BLIND",
+      "leadingPromptScore": 2,
+      "historicalDeviationScore": 9,
+      "researcher": "Edgar Cayce (A.R.E. Archives)",
+      "sourceType": "trance_reading",
+      "location": {
+        "name": "Bimini / Western Atlantic Shelf",
+        "city": "Alice Town",
+        "state": "Bimini",
+        "country": "Bahamas",
+        "latitude": 25.728,
+        "longitude": -79.297
+      },
+      "summary": "Between 1923 and 1944, Edgar Cayce gave over 700 trance readings referencing an earlier global civilization utilizing resonant crystal/etheric power stations ('Tuaoi Stone'), airships/craft, and wireless energy transmission, ending in three major geophysical cataclysms.",
+      "anomalyMarkers": [
+        "Recorded 1923–1944—completely uncontaminated by modern internet lore",
+        "Describes centralized domed energy-distribution temples and airship transit",
+        "Places civilization in deep antiquity rather than 1700–1850 CE"
+      ],
+      "sources": [
+        {
+          "title": "Edgar Cayce's A.R.E. Research Archives",
+          "url": "https://edgarcayce.org/"
+        }
+      ]
+    },
+    {
+      "id": "nde-newton-council-library",
+      "slug": "michael-newton-journey-of-souls-library-records",
+      "title": "Dr. Michael Newton — Life-Between-Lives 'Hall of Records' & Amnesia Veil",
+      "category": "NDE HALL OF RECORDS",
+      "eraWindow": "NON_LOCAL",
+      "recordedYear": 1994,
+      "blindnessRating": "PRE_2018_BLIND",
+      "leadingPromptScore": 2,
+      "historicalDeviationScore": 6,
+      "researcher": "Dr. Michael Newton (Newton Institute)",
+      "sourceType": "hypnotic_regression",
+      "location": {
+        "name": "Los Angeles Clinical Practice (7,000+ LBL Cases)",
+        "city": "Los Angeles",
+        "state": "California",
+        "country": "United States",
+        "latitude": 34.0522,
+        "longitude": -118.2437
+      },
+      "summary": "Synthesizing thousands of superconscious 'Life Between Lives' sessions, Newton documented recurring reports of a 'Library of Life Books' and a deliberate 'amnesia veil' applied prior to incarnation—offering one metaphysical explanation for why collective civilizational memories fail to carry cleanly across resets.",
+      "anomalyMarkers": [
+        "Documents systematic 'amnesia veil' / memory-filtering before incarnation",
+        "Recurring reports of interactive Akashic / Life-Book archives",
+        "Past-life Earth memories in Newton's cases remain overwhelmingly mundane"
+      ],
+      "sources": [
+        {
+          "title": "The Newton Institute for LBL Hypnotherapy",
+          "url": "https://www.newtoninstitute.org/"
+        }
+      ]
+    },
+    {
+      "id": "nde-stevenson-shanti-devi",
+      "slug": "ian-stevenson-shanti-devi-verified-child-case",
+      "title": "UVA / Shanti Devi Verified Spontaneous Past-Life Case (Short Intermission)",
+      "category": "UVA VERIFIED CHILD CASE",
+      "eraWindow": "1850-1950",
+      "recordedYear": 1936,
+      "blindnessRating": "PRE_2018_BLIND",
+      "leadingPromptScore": 1,
+      "historicalDeviationScore": 4,
+      "researcher": "Dr. Ian Stevenson (UVA DOPS)",
+      "sourceType": "academic_study",
+      "location": {
+        "name": "Mathura & Delhi, India",
+        "city": "Mathura",
+        "state": "Uttar Pradesh",
+        "country": "India",
+        "latitude": 27.4924,
+        "longitude": 77.6737
+      },
+      "summary": "One of the most rigorously investigated spontaneous children's cases (verified by a committee appointed by Mahatma Gandhi and later analyzed by Dr. Ian Stevenson at UVA). Illustrates why UVA's 2,500+ verified cases almost never reach the 1700–1850 window: the median interval between death and rebirth in Stevenson's dataset is only ~15 months.",
+      "anomalyMarkers": [
+        "Explains the 'UVA 1776 Silence': median intermission is ~15 months",
+        "Over 24 verifiable historical facts confirmed in Mathura",
+        "Spontaneous recall without hypnosis (zero hypnotist suggestion)"
+      ],
+      "sources": [
+        {
+          "title": "UVA Division of Perceptual Studies — Reincarnation Research",
+          "url": "https://med.virginia.edu/perceptual-studies/our-research/children-who-report-memories-of-previous-lives/"
+        }
+      ]
+    },
+    {
+      "id": "nde-tucker-james-leininger",
+      "slug": "jim-tucker-james-leininger-chichi-jima",
+      "title": "Dr. Jim Tucker (UVA) — James Leininger Verified WWII Aviator Recall",
+      "category": "UVA VERIFIED CHILD CASE",
+      "eraWindow": "1850-1950",
+      "recordedYear": 2004,
+      "blindnessRating": "PRE_2018_BLIND",
+      "leadingPromptScore": 1,
+      "historicalDeviationScore": 4,
+      "researcher": "Dr. Jim Tucker (UVA DOPS)",
+      "sourceType": "academic_study",
+      "location": {
+        "name": "Chichi Jima, Bonin Islands, Pacific",
+        "city": "Ogasawara",
+        "state": "Tokyo",
+        "country": "Japan",
+        "latitude": 27.0944,
+        "longitude": 142.1917
+      },
+      "summary": "Documented by Dr. Jim Tucker at UVA: a toddler with zero aviation exposure gave verifiable names (USS Natoma Bay, Jack Larsen, Corsair fighter) matching WWII pilot James Huston Jr., killed over Chichi Jima in 1945. Demonstrates high-fidelity factual recall—making the absence of 1776–1850 high-tech memories even more notable.",
+      "anomalyMarkers": [
+        "Documented verifiable military/historical facts from a 2-year-old child",
+        "Longer intermission (~53 years), proving multi-decade recall is possible",
+        "Anchored to Charlottesville UVA DOPS methodology"
+      ],
+      "sources": [
+        {
+          "title": "UVA DOPS — Dr. Jim Tucker Research Publications",
+          "url": "https://med.virginia.edu/perceptual-studies/"
+        }
+      ]
+    },
+    {
+      "id": "nde-nderf-past-life-bubbles",
+      "slug": "nderf-archive-panoramic-past-life-flashes",
+      "title": "NDERF Archive — Panoramic Life Review & Multi-Life 'Bubbles' Pattern",
+      "category": "NDE PAST-LIFE FLASH",
+      "eraWindow": "NON_LOCAL",
+      "recordedYear": 2012,
+      "blindnessRating": "PRE_2018_BLIND",
+      "leadingPromptScore": 1,
+      "historicalDeviationScore": 6,
+      "researcher": "Dr. Jeffrey Long (NDERF)",
+      "sourceType": "nderf_database",
+      "location": {
+        "name": "NDERF Global Database HQ (Houma, LA)",
+        "city": "Houma",
+        "state": "Louisiana",
+        "country": "United States",
+        "latitude": 29.5958,
+        "longitude": -90.7195
+      },
+      "summary": "Across 5,000+ NDE submissions on NDERF.org, roughly 3–5% report seeing flashes of multiple past lives ('bubbles' or parallel timelines) during their life review. When 1800s eras appear in NDERF, they consistently depict ordinary farms, wilderness, and period attire—never a suppressed 1800s global technological empire.",
+      "anomalyMarkers": [
+        "Only ~3–5% of NDEs include past-life flashes (most review current life only)",
+        "1800s NDE visions consistently show mundane rural/period settings",
+        "Primary dataset for automated Gemini Flash edge-case scanning"
+      ],
+      "sources": [
+        {
+          "title": "Near-Death Experience Research Foundation (NDERF)",
+          "url": "https://www.nderf.org/"
+        }
+      ]
+    },
+    {
+      "id": "nde-howard-storm-1985",
+      "slug": "howard-storm-1985-paris-nde-history-review",
+      "title": "Howard Storm NDE (1985 Paris) — Uncensored Human History & Future Review",
+      "category": "NDE HALL OF RECORDS",
+      "eraWindow": "NON_LOCAL",
+      "recordedYear": 1985,
+      "blindnessRating": "PRE_2018_BLIND",
+      "leadingPromptScore": 1,
+      "historicalDeviationScore": 7,
+      "researcher": "Howard Storm / IANDS",
+      "sourceType": "nde_account",
+      "location": {
+        "name": "Cochin Hospital, Paris, France",
+        "city": "Paris",
+        "state": "Île-de-France",
+        "country": "France",
+        "latitude": 48.8376,
+        "longitude": 2.3404
+      },
+      "summary": "During a near-death experience in a Paris hospital in 1985, art professor Howard Storm reported asking luminous beings about human history and the real story of Earth. He was told that official history books are deeply incomplete and distorted, and was shown sweeping civilizational cycles and spiritual turning points.",
+      "anomalyMarkers": [
+        "Explicitly reports that official human history is severely distorted/incomplete",
+        "Recorded in 1985 (pre-internet, zero Tartaria contamination)",
+        "Also contains specific geopolitical predictions (collapse of USSR)"
+      ],
+      "sources": [
+        {
+          "title": "IANDS — International Association for Near-Death Studies",
+          "url": "https://iands.org/"
+        }
+      ]
+    },
+    {
+      "id": "nde-mellen-thomas-benedict-1982",
+      "slug": "mellen-thomas-benedict-1982-cosmic-history-nde",
+      "title": "Mellen-Thomas Benedict NDE (1982) — Earth History & Evolutionary Cycles Download",
+      "category": "NDE HALL OF RECORDS",
+      "eraWindow": "NON_LOCAL",
+      "recordedYear": 1982,
+      "blindnessRating": "PRE_2018_BLIND",
+      "leadingPromptScore": 1,
+      "historicalDeviationScore": 8,
+      "researcher": "Dr. Kenneth Ring / NDERF",
+      "sourceType": "nde_account",
+      "location": {
+        "name": "New York / Global Consciousness Archive",
+        "city": "New York",
+        "state": "New York",
+        "country": "United States",
+        "latitude": 40.7128,
+        "longitude": -74.006
+      },
+      "summary": "Clinically dead for ~90 minutes in 1982, Benedict reported touring the 'vast archive of human and planetary evolution,' observing recurring peaks and resets of human consciousness and technology across deep time—frequently cited as an archetypal 'Hall of Records' NDE.",
+      "anomalyMarkers": [
+        "One of the most detailed 'cosmic archive / Earth cycles' NDEs on record",
+        "Studied by NDE pioneer Dr. Kenneth Ring in the 1980s–1990s",
+        "Frames technological peaks as cyclical rather than strictly linear"
+      ],
+      "sources": [
+        {
+          "title": "NDERF Exceptional Experience — Mellen-Thomas Benedict",
+          "url": "https://www.nderf.org/Experiences/1mellen_thomas_benedict_nde.html"
+        }
+      ]
+    },
+    {
+      "id": "nde-alba-weinman-early-cataclysm",
+      "slug": "alba-weinman-2016-2018-cataclysm-reset-sessions",
+      "title": "Alba Weinman Early Sessions (2016–2018) — Unprompted Flood, Fire & Empty City Motifs",
+      "category": "CATACLYSM / RESET MEMORY",
+      "eraWindow": "ATLANTIS_UNPLACED",
+      "recordedYear": 2017,
+      "blindnessRating": "PRE_2018_BLIND",
+      "leadingPromptScore": 3,
+      "historicalDeviationScore": 8,
+      "researcher": "Alba Weinman (QHHT / BQH)",
+      "sourceType": "youtube_session",
+      "location": {
+        "name": "Miami Clinical Studio (Global Session Archive)",
+        "city": "Miami",
+        "state": "Florida",
+        "country": "United States",
+        "latitude": 25.7617,
+        "longitude": -80.1918
+      },
+      "summary": "Early public YouTube regression sessions recorded prior to the 2019 Tartaria wave, in which subjects spontaneously recounted fleeing sudden wall-of-water / mud cataclysms and leaving behind grand stone cities—prime targets for automated transcript mining via our Gemini Edge-Case Hunter.",
+      "anomalyMarkers": [
+        "Public YouTube archive with hundreds of 1–2 hour transcripts ready for Gemini mining",
+        "Pre-2019 sessions allow clean blind comparison against post-2020 prompted sessions",
+        "Direct YouTube timestamp linking preserves primary evidence without re-hosting"
+      ],
+      "sources": [
+        {
+          "title": "Alba Weinman Official YouTube Session Archive",
+          "url": "https://www.youtube.com/@AlbaWeinman"
+        }
+      ]
+    }
+  ]
+}

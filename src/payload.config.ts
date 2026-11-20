@@ -197,6 +197,8 @@ import { ensureMerlinBlockTablesHandler } from '@/endpoints/ensure-merlin-block-
 import { ensureGalleryBlockTablesHandler } from '@/endpoints/ensure-gallery-block-tables'
 import { ensureGlobeAtlasBlockTablesHandler } from '@/endpoints/ensure-globe-atlas-block-tables'
 import { ingestUapSightingHandler } from '@/endpoints/ingest-uap-sighting'
+import { provisionNdePortalHandler } from '@/endpoints/provision-nde-portal'
+import { ingestNdeSessionHandler } from '@/endpoints/ingest-nde-session'
 import { ensureLockedDocsRelsHandler } from '@/endpoints/ensure-locked-docs-rels'
 import { membershipPlansHandler } from '@/endpoints/membership-plans'
 import { membershipReadinessHandler } from '@/endpoints/membership-readiness'
@@ -1547,6 +1549,21 @@ export default buildConfig({
       path: '/provision-ops/ingest-uap-sighting',
       method: 'post',
       handler: ingestUapSightingHandler,
+    },
+    {
+      path: '/provision-ops/nde-portal',
+      method: 'get',
+      handler: provisionNdePortalHandler,
+    },
+    {
+      path: '/provision-ops/nde-portal',
+      method: 'post',
+      handler: provisionNdePortalHandler,
+    },
+    {
+      path: '/provision-ops/ingest-nde-session',
+      method: 'post',
+      handler: ingestNdeSessionHandler,
     },
     {
       path: '/booking-ops/checkout',
