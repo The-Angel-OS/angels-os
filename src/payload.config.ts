@@ -198,6 +198,7 @@ import { ensureGalleryBlockTablesHandler } from '@/endpoints/ensure-gallery-bloc
 import { ensureGlobeAtlasBlockTablesHandler } from '@/endpoints/ensure-globe-atlas-block-tables'
 import { ensurePostsGeoColumnsHandler } from '@/endpoints/ensure-posts-geo-columns'
 import { ensureTranscriptBlockTablesHandler } from '@/endpoints/ensure-transcript-block-tables'
+import { ensureArchiveBlockColumnsHandler } from '@/endpoints/ensure-archive-block-columns'
 import { ingestUapSightingHandler } from '@/endpoints/ingest-uap-sighting'
 import { provisionNdePortalHandler } from '@/endpoints/provision-nde-portal'
 import { ingestNdeSessionHandler } from '@/endpoints/ingest-nde-session'
@@ -1508,6 +1509,17 @@ export default buildConfig({
       path: '/provision-ops/ensure-transcript-block-tables',
       method: 'post',
       handler: ensureTranscriptBlockTablesHandler,
+    },
+    // Archive block filter/search/pagination columns across pages, posts, products (+ _v twins)
+    {
+      path: '/provision-ops/ensure-archive-block-columns',
+      method: 'get',
+      handler: ensureArchiveBlockColumnsHandler,
+    },
+    {
+      path: '/provision-ops/ensure-archive-block-columns',
+      method: 'post',
+      handler: ensureArchiveBlockColumnsHandler,
     },
     // Self-heal payload_locked_documents_rels drift (missing <collection>_id columns
     // break every admin save). Re-runnable after any new collection ships.
