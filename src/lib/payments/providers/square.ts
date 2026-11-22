@@ -205,14 +205,13 @@ async function ensureSquareSubscriptionPlanVariation(
       object: {
         type: 'SUBSCRIPTION_PLAN',
         id: `#plan_${opts.planKey}`,
-        present_at_location_ids: [opts.locationId],
+        present_at_all_locations: true,
         subscription_plan_data: {
           name: opts.title.slice(0, 250),
           subscription_plan_variations: [
             {
               type: 'SUBSCRIPTION_PLAN_VARIATION',
               id: `#var_${opts.planKey}`,
-              present_at_location_ids: [opts.locationId],
               subscription_plan_variation_data: {
                 name: `${opts.title} (${cadence.toLowerCase()})`.slice(0, 250),
                 phases: [

@@ -129,6 +129,9 @@ describe('Square Provider', () => {
     })
 
     expect(res.checkoutUrl).toBe('https://square.link/u/sub123')
+    const firstBody = JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string)
+    expect(firstBody.object.present_at_all_locations).toBe(true)
+    expect(firstBody.object.present_at_location_ids).toBeUndefined()
     const secondBody = JSON.parse((fetchMock.mock.calls[1]![1] as RequestInit).body as string)
     expect(secondBody.checkout_options.subscription_plan_id).toBe('VAR_999')
     expect(secondBody.quick_pay.price_money.amount).toBe(1500)
