@@ -23,8 +23,10 @@ export const isEpisodesItem = (item: NavItem): boolean => {
   return (
     url === '/episodes' ||
     url === '/shows' ||
+    url === '/videos' ||
     label === 'episodes' ||
     label === 'shows' ||
+    label === 'videos' ||
     label === 'video log' ||
     label === 'investigations'
   )
@@ -37,8 +39,10 @@ export const isPostsItem = (item: NavItem): boolean => {
   if (
     url === '/episodes' ||
     url === '/shows' ||
+    url === '/videos' ||
     label === 'episodes' ||
     label === 'shows' ||
+    label === 'videos' ||
     label === 'video log' ||
     label === 'investigations'
   ) {

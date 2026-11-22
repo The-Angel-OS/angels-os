@@ -58,13 +58,20 @@ describe('composeNavItems', () => {
     expect(urls(out).filter((u) => u === '/events')).toHaveLength(1)
   })
 
-  it('does not inject duplicate /episodes when the owner already configured /shows', () => {
-    const out = composeNavItems({
+  it('does not inject duplicate /episodes when the owner already configured /shows or /videos', () => {
+    const outShows = composeNavItems({
       navItems: [stored('/'), stored('/shows', 'Shows')],
       hasEpisodes: true,
     })
-    expect(urls(out)).toContain('/shows')
-    expect(urls(out)).not.toContain('/episodes')
+    expect(urls(outShows)).toContain('/shows')
+    expect(urls(outShows)).not.toContain('/episodes')
+
+    const outVideos = composeNavItems({
+      navItems: [stored('/'), stored('/videos', 'Videos')],
+      hasEpisodes: true,
+    })
+    expect(urls(outVideos)).toContain('/videos')
+    expect(urls(outVideos)).not.toContain('/episodes')
   })
 
   // --- giving --------------------------------------------------------------

@@ -48,21 +48,27 @@ export default async function EpisodesPage({ searchParams }: Props) {
     heroImage = tenantHeroImage(tenant, 'posts')
 
     if (tenant?.id) {
-      const showsPage = await payload.find({
+      const archivePages = await payload.find({
         collection: 'pages',
         where: {
           and: [
             { tenant: { equals: tenant.id } },
-            { slug: { equals: 'shows' } },
+            { slug: { in: ['shows', 'videos'] } },
             { _status: { equals: 'published' } },
           ],
         },
-        limit: 1,
+        limit: 2,
         depth: 0,
         overrideAccess: true,
       })
-      if (showsPage.docs.length > 0) {
-        redirectTarget = q ? `/shows?q=${encodeURIComponent(q)}` : '/shows'
+      const slugs = new Set(
+        (archivePages.docs as Array<{ slug?: string | null }>)
+          .map((d) => d.slug)
+          .filter(Boolean),
+      )
+      const targetBase = slugs.has('shows') ? '/shows' : slugs.has('videos') ? '/videos' : null
+      if (targetBase) {
+        redirectTarget = q ? `${targetBase}?q=${encodeURIComponent(q)}` : targetBase
       }
     }
 

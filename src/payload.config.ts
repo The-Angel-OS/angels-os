@@ -200,6 +200,8 @@ import { ensurePostsGeoColumnsHandler } from '@/endpoints/ensure-posts-geo-colum
 import { ensureTranscriptBlockTablesHandler } from '@/endpoints/ensure-transcript-block-tables'
 import { ensureArchiveBlockColumnsHandler } from '@/endpoints/ensure-archive-block-columns'
 import { ingestMlbYoutubeHandler } from '@/endpoints/ingest-mlb-youtube'
+import { provisionClearwaterPortalHandler } from '@/endpoints/provision-clearwater-portal'
+import { ingestClearwaterYoutubeHandler } from '@/endpoints/ingest-clearwater-youtube'
 import { ingestUapSightingHandler } from '@/endpoints/ingest-uap-sighting'
 import { provisionNdePortalHandler } from '@/endpoints/provision-nde-portal'
 import { ingestNdeSessionHandler } from '@/endpoints/ingest-nde-session'
@@ -1578,6 +1580,26 @@ export default buildConfig({
       path: '/provision-ops/ingest-mlb-youtube',
       method: 'post',
       handler: ingestMlbYoutubeHandler,
+    },
+    {
+      path: '/provision-ops/clearwater-portal',
+      method: 'get',
+      handler: provisionClearwaterPortalHandler,
+    },
+    {
+      path: '/provision-ops/clearwater-portal',
+      method: 'post',
+      handler: provisionClearwaterPortalHandler,
+    },
+    {
+      path: '/provision-ops/ingest-clearwater-youtube',
+      method: 'get',
+      handler: ingestClearwaterYoutubeHandler,
+    },
+    {
+      path: '/provision-ops/ingest-clearwater-youtube',
+      method: 'post',
+      handler: ingestClearwaterYoutubeHandler,
     },
     {
       path: '/provision-ops/uap-portal',

@@ -38,9 +38,10 @@ const WEB_CONTEXT = {
   },
 }
 
-const TAB_PARAMS: Record<'videos' | 'shorts' | 'posts', string> = {
+const TAB_PARAMS: Record<'videos' | 'shorts' | 'streams' | 'posts', string> = {
   videos: 'EgZ2aWRlb3PyBgQKAjoA',
   shorts: 'EgZzaG9ydHPyBgUKA5oBAA%3D%3D',
+  streams: 'EgdzdHJlYW1z8gYECgJ6AA%3D%3D',
   posts: 'EgVwb3N0c_IGBAoCSgA%3D',
 }
 
@@ -541,7 +542,7 @@ function extractCommunityPost(item: any): ChannelCommunityPostItem | null {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractBrowseItemsAndToken(data: any, tab: 'videos' | 'shorts' | 'posts', isFirstPage: boolean): { items: any[]; nextToken: string | null } {
+function extractBrowseItemsAndToken(data: any, tab: 'videos' | 'shorts' | 'streams' | 'posts', isFirstPage: boolean): { items: any[]; nextToken: string | null } {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let rawItems: any[] = []
   if (isFirstPage) {
@@ -591,15 +592,20 @@ export async function browseYouTubeChannelTab(
 ): Promise<{ items: ChannelVideoItem[]; membersOnlySkipped: number }>
 export async function browseYouTubeChannelTab(
   channelId: string,
+  tab: 'streams',
+  opts?: { maxPages?: number },
+): Promise<{ items: ChannelVideoItem[]; membersOnlySkipped: number }>
+export async function browseYouTubeChannelTab(
+  channelId: string,
   tab: 'posts',
   opts?: { maxPages?: number },
 ): Promise<{ items: ChannelCommunityPostItem[]; membersOnlySkipped: number }>
 export async function browseYouTubeChannelTab(
   channelId: string,
-  tab: 'videos' | 'shorts' | 'posts',
+  tab: 'videos' | 'shorts' | 'streams' | 'posts',
   opts: { maxPages?: number } = {},
 ): Promise<{ items: Array<ChannelVideoItem | ChannelCommunityPostItem>; membersOnlySkipped: number }> {
-  const maxPages = Math.max(1, Math.min(30, opts.maxPages ?? 15))
+  const maxPages = Math.max(1, Math.min(100, opts.maxPages ?? 15))
   const seen = new Set<string>()
   const collected: Array<ChannelVideoItem | ChannelCommunityPostItem> = []
   let membersOnlySkipped = 0
@@ -638,7 +644,9 @@ export async function browseYouTubeChannelTab(
         collected.push(parsed)
       } else {
         const parsed =
-          tab === 'videos' ? extractVideoFromRenderer(raw) : extractShortFromRenderer(raw)
+          tab === 'videos' || tab === 'streams'
+            ? extractVideoFromRenderer(raw)
+            : extractShortFromRenderer(raw)
         if (!parsed) continue
         if (parsed.isMembersOnly) {
           membersOnlySkipped++
