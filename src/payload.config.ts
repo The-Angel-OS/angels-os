@@ -226,6 +226,17 @@ import { bookingConfirmHandler } from '@/endpoints/booking-confirm'
 import { orderClaimHandler } from '@/endpoints/order-claim'
 import { orderCancelHandler } from '@/endpoints/order-cancel'
 import { makerOpportunitiesHandler } from '@/endpoints/maker-opportunities'
+import {
+  paymentProvidersHandler,
+  paymentCheckoutHandler,
+  paymentConfirmHandler,
+  squareWebhookHandler,
+  paypalWebhookHandler,
+  squareConnectInitHandler,
+  squareConnectCallbackHandler,
+  squareDisconnectHandler,
+  paymentSetupDiagnosticsHandler,
+} from '@/endpoints/payment-ops'
 import { stripeConnectOnboardHandler } from '@/endpoints/stripe-connect-onboard'
 import { stripeConnectCallbackHandler } from '@/endpoints/stripe-connect-callback'
 import { stripeConnectDashboardHandler } from '@/endpoints/stripe-connect-dashboard'
@@ -1688,7 +1699,64 @@ export default buildConfig({
       method: 'get',
       handler: makerOpportunitiesHandler,
     },
-    // ─── Stripe Connect Endpoints (Sprint 6) ─────────────────────
+    // ─── Dual-Rail Payment Operations (Square + PayPal) ──────────
+    {
+      path: '/payment-ops/providers',
+      method: 'get',
+      handler: paymentProvidersHandler,
+    },
+    {
+      path: '/payment-ops/checkout',
+      method: 'post',
+      handler: paymentCheckoutHandler,
+    },
+    {
+      path: '/payment-ops/confirm',
+      method: 'post',
+      handler: paymentConfirmHandler,
+    },
+    {
+      path: '/payment-ops/webhooks/square',
+      method: 'post',
+      handler: withEventLedger('square', squareWebhookHandler),
+    },
+    {
+      path: '/payment-ops/webhooks/paypal',
+      method: 'post',
+      handler: withEventLedger('paypal', paypalWebhookHandler),
+    },
+    {
+      path: '/payment-ops/square/connect',
+      method: 'get',
+      handler: squareConnectInitHandler,
+    },
+    {
+      path: '/payment-ops/square/connect',
+      method: 'post',
+      handler: squareConnectInitHandler,
+    },
+    {
+      path: '/payment-ops/square/callback',
+      method: 'get',
+      handler: squareConnectCallbackHandler,
+    },
+    {
+      path: '/payment-ops/square/disconnect',
+      method: 'post',
+      handler: squareDisconnectHandler,
+    },
+    {
+      path: '/payment-ops/setup',
+      method: 'get',
+      handler: paymentSetupDiagnosticsHandler,
+    },
+    {
+      path: '/payment-ops/setup',
+      method: 'post',
+      handler: paymentSetupDiagnosticsHandler,
+    },
+
+    // ─── Retired Stripe Connect Endpoints (410 Gone) ────────────
     {
       path: '/stripe/connect/onboard',
       method: 'post',

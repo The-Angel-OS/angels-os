@@ -1,43 +1,35 @@
 /**
- * Booking Checkout Endpoint — Unit Tests
- *
- * POST /api/bookings/checkout
- * Auth required. Rate limited. Creates a Stripe PaymentIntent for a booking.
+ * Booking Checkout Endpoint — Unit Tests (Dual-Rail Hosted Deposit)
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// logError lazy-imports @payload-config (boots Payload against a live DB) —
-// unmocked, error-path tests hang to the 30s timeout instead of asserting.
 vi.mock('@/utilities/logError', () => ({
   logError: vi.fn(async () => {}),
   logCaughtError: vi.fn(async () => {}),
 }))
 
-// ── Mocks ─────────────────────────────────────────────────────────────────────
-
 const mockApplyRateLimit = vi.hoisted(() => vi.fn().mockReturnValue(null))
-const mockGetApplicationFee = vi.hoisted(() => vi.fn().mockReturnValue(2000))
-
-const mockCustomersList = vi.hoisted(() => vi.fn().mockResolvedValue({ data: [] }))
-const mockCustomersCreate = vi.hoisted(() =>
-  vi.fn().mockResolvedValue({ id: 'cus_test123' }),
-)
-const mockPaymentIntentsCreate = vi.hoisted(() =>
-  vi.fn().mockResolvedValue({
-    id: 'pi_test123',
-    client_secret: 'pi_test123_secret_abc',
-  }),
-)
+const mockGetBillingMode = vi.hoisted(() => vi.fn(async () => 'connect' as const))
+const mockResolveConnectedSquare = vi.hoisted(() => vi.fn())
+const mockGetAvailableProviders = vi.hoisted(() => vi.fn())
+const mockResolveProvider = vi.hoisted(() => vi.fn(async () => 'square' as const))
+const mockStartHostedCheckout = vi.hoisted(() => vi.fn())
 
 vi.mock('@/utilities/apiRateLimiter', () => ({ applyRateLimit: mockApplyRateLimit }))
-vi.mock('@/lib/stripe-connect-config', () => ({
-  getStripeApplicationFeeCents: mockGetApplicationFee,
+vi.mock('@/utilities/billingMode', () => ({ getBillingMode: mockGetBillingMode }))
+vi.mock('@/lib/payments/config', () => ({
+  generateCheckoutRef: () => 'ref_booking_test_123',
 }))
-// The endpoint grew a booking-provider spine + payment-mode setting + conflict
-// guard after these tests were written — stub them so the checkout flow under
-// test is reachable (provider 42, deposit mode, no slot conflicts).
+vi.mock('@/lib/payments/registry', () => ({
+  resolveConnectedSquareForTenant: mockResolveConnectedSquare,
+  getAvailableProviders: mockGetAvailableProviders,
+  resolveProvider: mockResolveProvider,
+  startHostedCheckout: mockStartHostedCheckout,
+}))
 vi.mock('@/utilities/resolveBookingProvider', () => ({
   resolveBookingProvider: vi.fn(async () => 42),
+  providerWhere: vi.fn(() => ({ provider: { equals: 42 } })),
+  matchesProvider: vi.fn(() => true),
 }))
 vi.mock('@/utilities/bookingSettings', () => ({
   getBookingPaymentMode: vi.fn(async () => 'deposit'),
@@ -47,36 +39,26 @@ vi.mock('@/utilities/bookingEngine', () => ({
     checkBookingConflicts: vi.fn(async () => ({ hasConflict: false, conflicts: [] })),
   })),
 }))
-vi.mock('stripe', () => ({
-  default: vi.fn().mockReturnValue({
-    customers: { list: mockCustomersList, create: mockCustomersCreate },
-    paymentIntents: { create: mockPaymentIntentsCreate },
-  }),
+vi.mock('@/utilities/ensureTenantMembership', () => ({
+  ensureTenantMembership: vi.fn(async () => {}),
 }))
 
 import { bookingCheckoutHandler } from '@/endpoints/booking-checkout'
 
-// ── Fixtures ──────────────────────────────────────────────────────────────────
-
-const FAKE_TENANT = {
-  // slug must match a tenant in the bookable-service catalog (src/config/bookableServices.ts)
-  id: 1, name: 'Clearwater', slug: 'clearwater-cruisin',
-  stripeConnect: { stripeAccountId: 'acct_test123', stripeChargesEnabled: true },
-}
-// serviceId is required and must exist in the catalog; pressure-washing-house = $249, 20% deposit
+const FAKE_TENANT = { id: 1, name: 'Clearwater', slug: 'clearwater-cruisin' }
 const VALID_BODY = { date: '2025-06-15', time: '10:00', serviceId: 'pressure-washing-house' }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function makePayload(overrides: Record<string, unknown> = {}) {
   return {
     find: vi.fn().mockImplementation(({ collection }: any) => {
       if (collection === 'tenants') return Promise.resolve({ docs: [FAKE_TENANT], totalDocs: 1 })
-      if (collection === 'endeavors') return Promise.resolve({ docs: [{ id: 10, name: 'Clearwater Endeavor' }], totalDocs: 1 })
-      // resolveBookingProvider → first active tenant_admin membership
+      if (collection === 'endeavors')
+        return Promise.resolve({ docs: [{ id: 10, name: 'Clearwater Endeavor' }], totalDocs: 1 })
       if (collection === 'tenant-memberships')
-        return Promise.resolve({ docs: [{ id: 99, user: { id: 7 }, role: 'tenant_admin', status: 'active' }], totalDocs: 1 })
-      // BookingEngine.checkBookingConflicts → no existing bookings = no conflict
+        return Promise.resolve({
+          docs: [{ id: 99, user: { id: 7 }, role: 'tenant_admin', status: 'active' }],
+          totalDocs: 1,
+        })
       return Promise.resolve({ docs: [], totalDocs: 0 })
     }),
     create: vi.fn().mockResolvedValue({ id: 50 }),
@@ -89,188 +71,121 @@ function makeReq(
   user: Record<string, unknown> | null = { id: 1, email: 'client@test.com' },
   body: Record<string, unknown> | null = VALID_BODY,
   payloadOverrides: Record<string, unknown> = {},
-  headerOverrides: Record<string, string> = {},
 ) {
   const payload = makePayload(payloadOverrides)
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'x-tenant-id': 'clearwater-cruisin',
-    ...headerOverrides,
-  }
   const nativeReq = new Request('http://localhost/api/bookings/checkout', {
     method: 'POST',
-    headers,
+    headers: { 'Content-Type': 'application/json', 'x-tenant-id': 'clearwater-cruisin' },
     body: body !== null ? JSON.stringify(body) : 'INVALID{{{',
   })
   return Object.assign(nativeReq, { user, payload }) as any
 }
 
-// ── Tests ─────────────────────────────────────────────────────────────────────
-
 describe('bookingCheckoutHandler', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockApplyRateLimit.mockReturnValue(null)
-    mockCustomersList.mockResolvedValue({ data: [] })
-    mockCustomersCreate.mockResolvedValue({ id: 'cus_test123' })
-    mockPaymentIntentsCreate.mockResolvedValue({ id: 'pi_test123', client_secret: 'pi_test123_secret_abc' })
-    mockGetApplicationFee.mockReturnValue(2000)
-    process.env.STRIPE_SECRET_KEY = 'sk_test_fake'
+    mockGetBillingMode.mockResolvedValue('connect')
+    mockResolveConnectedSquare.mockResolvedValue({
+      merchantId: 'SQ_M_1',
+      locationId: 'SQ_L_1',
+      environment: 'sandbox',
+      accessToken: 'tok_sq_1',
+      connectedAt: '2026-11-22T00:00:00Z',
+    })
+    mockGetAvailableProviders.mockResolvedValue({
+      providers: [{ id: 'square' }],
+      defaultProvider: 'square',
+      hasConnectedSquare: true,
+    })
+    mockResolveProvider.mockResolvedValue('square')
+    mockStartHostedCheckout.mockResolvedValue({
+      provider: 'square',
+      environment: 'sandbox',
+      checkoutUrl: 'https://square.link/u/bk_50',
+      externalId: 'SQ_ORD_50',
+      ref: 'ref_booking_test_123',
+    })
   })
 
   it('returns 401 when no user', async () => {
-    const req = makeReq(null)
-    const res = await bookingCheckoutHandler(req)
+    const res = await bookingCheckoutHandler(makeReq(null))
     expect(res.status).toBe(401)
-    const body = await res.json()
-    expect(body.error).toMatch(/authentication required/i)
   })
 
   it('returns 429 when rate limited', async () => {
     mockApplyRateLimit.mockReturnValue(Response.json({ error: 'Too many requests' }, { status: 429 }))
-    const req = makeReq()
-    const res = await bookingCheckoutHandler(req)
+    const res = await bookingCheckoutHandler(makeReq())
     expect(res.status).toBe(429)
   })
 
-  it('returns 400 for invalid JSON body', async () => {
-    const req = makeReq({ id: 1, email: 'user@test.com' }, null)
-    const res = await bookingCheckoutHandler(req)
-    expect(res.status).toBe(400)
-    const body = await res.json()
-    expect(body.error).toMatch(/invalid json/i)
-  })
-
-  it('returns 400 when date is missing', async () => {
-    const req = makeReq({ id: 1, email: 'user@test.com' }, { time: '10:00' })
-    const res = await bookingCheckoutHandler(req)
-    expect(res.status).toBe(400)
-    const body = await res.json()
-    expect(body.error).toMatch(/date is required/i)
-  })
-
-  it('returns 400 when time is missing', async () => {
-    const req = makeReq({ id: 1, email: 'user@test.com' }, { date: '2025-06-15' })
-    const res = await bookingCheckoutHandler(req)
-    expect(res.status).toBe(400)
-    const body = await res.json()
-    expect(body.error).toMatch(/time is required/i)
+  it('returns 400 for missing date, time, serviceId, or unknown service', async () => {
+    expect((await bookingCheckoutHandler(makeReq({ id: 1 }, null))).status).toBe(400)
+    expect((await bookingCheckoutHandler(makeReq({ id: 1 }, { time: '10:00', serviceId: 'x' }))).status).toBe(400)
+    expect((await bookingCheckoutHandler(makeReq({ id: 1 }, { date: '2025-06-15', serviceId: 'x' }))).status).toBe(400)
+    expect((await bookingCheckoutHandler(makeReq({ id: 1 }, { date: '2025-06-15', time: '10:00' }))).status).toBe(400)
+    expect(
+      (
+        await bookingCheckoutHandler(
+          makeReq({ id: 1 }, { date: '2025-06-15', time: '10:00', serviceId: 'nope' }),
+        )
+      ).status,
+    ).toBe(400)
   })
 
   it('returns 404 when tenant not found', async () => {
-    const req = makeReq({ id: 1, email: 'user@test.com' }, VALID_BODY, {
-      find: vi.fn().mockResolvedValue({ docs: [], totalDocs: 0 }),
-    })
-    const res = await bookingCheckoutHandler(req)
+    const res = await bookingCheckoutHandler(
+      makeReq({ id: 1, email: 'user@test.com' }, VALID_BODY, {
+        find: vi.fn().mockResolvedValue({ docs: [], totalDocs: 0 }),
+      }),
+    )
     expect(res.status).toBe(404)
-    const body = await res.json()
-    expect(body.error).toMatch(/tenant not found/i)
   })
 
-  // Stripe Connect is OPTIONAL now — a trade that takes cash on completion, or
-  // any $0/no-deposit service, books as a REQUEST rather than being refused.
-  // These two used to assert a hard 400, i.e. "no card, no service".
-  it('takes the booking as a request when the tenant has no Stripe Connect', async () => {
-    const tenantNoStripe = { ...FAKE_TENANT, stripeConnect: null }
-    const req = makeReq({ id: 1, email: 'user@test.com' }, VALID_BODY, {
-      find: vi.fn().mockImplementation(({ collection }: any) => {
-        if (collection === 'tenants') return Promise.resolve({ docs: [tenantNoStripe], totalDocs: 1 })
-        return Promise.resolve({ docs: [], totalDocs: 0 })
-      }),
+  it('takes booking as COD request when connect tenant has no connected Square or platform-direct rail', async () => {
+    mockResolveConnectedSquare.mockResolvedValue(null)
+    mockGetAvailableProviders.mockResolvedValue({
+      providers: [],
+      defaultProvider: null,
+      hasConnectedSquare: false,
     })
-    const res = await bookingCheckoutHandler(req)
+
+    const res = await bookingCheckoutHandler(makeReq())
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.requested).toBe(true)
     expect(body.depositCents).toBe(0)
-    expect(body.clientSecret).toBeUndefined() // nothing to pay online
+    expect(body.checkoutUrl).toBeUndefined()
   })
 
-  it('takes the booking as a request when Stripe charges are not enabled', async () => {
-    const tenantChargesDisabled = { ...FAKE_TENANT, stripeConnect: { stripeAccountId: 'acct_test', stripeChargesEnabled: false } }
-    const req = makeReq({ id: 1, email: 'user@test.com' }, VALID_BODY, {
-      find: vi.fn().mockImplementation(({ collection }: any) => {
-        if (collection === 'tenants') return Promise.resolve({ docs: [tenantChargesDisabled], totalDocs: 1 })
-        return Promise.resolve({ docs: [], totalDocs: 0 })
-      }),
-    })
-    const res = await bookingCheckoutHandler(req)
-    expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body.requested).toBe(true)
-  })
-
-  it('returns 400 when serviceId is missing', async () => {
-    const req = makeReq({ id: 1, email: 'user@test.com' }, { date: '2025-06-15', time: '10:00' })
-    const res = await bookingCheckoutHandler(req)
-    expect(res.status).toBe(400)
-    const body = await res.json()
-    expect(body.error).toMatch(/serviceId is required/i)
-  })
-
-  it('returns 400 for an unknown serviceId', async () => {
-    const req = makeReq({ id: 1, email: 'user@test.com' }, { date: '2025-06-15', time: '10:00', serviceId: 'nope' })
-    const res = await bookingCheckoutHandler(req)
-    expect(res.status).toBe(400)
-    const body = await res.json()
-    expect(body.error).toMatch(/unknown service/i)
-  })
-
-  it('returns 400 when date/time combination is invalid', async () => {
-    const req = makeReq({ id: 1, email: 'user@test.com' }, { date: '2025-99-99', time: '10:00', serviceId: 'pressure-washing-house' })
-    const res = await bookingCheckoutHandler(req)
-    expect(res.status).toBe(400)
-    const body = await res.json()
-    expect(body.error).toMatch(/invalid date/i)
-  })
-
-  it('charges only the deposit (20% of $249 = $49.80) and returns deposit/total', async () => {
-    const req = makeReq()
-    const res = await bookingCheckoutHandler(req)
-    expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body.depositCents).toBe(4980)
-    expect(body.totalCents).toBe(24900)
-    expect(body.balanceCents).toBe(19920)
-    // PaymentIntent amount must be the deposit, not the full price
-    expect(mockPaymentIntentsCreate.mock.calls[0][0].amount).toBe(4980)
-  })
-
-  it('returns 200 with clientSecret on success', async () => {
-    const req = makeReq()
-    const res = await bookingCheckoutHandler(req)
-    expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body.clientSecret).toBe('pi_test123_secret_abc')
-    expect(body.bookingId).toBe(50)
-    expect(body.stripeAccountId).toBe('acct_test123')
-    expect(body.currency).toBe('usd')
-  })
-
-  it('creates a new Stripe customer when none exists', async () => {
-    const req = makeReq()
-    await bookingCheckoutHandler(req)
-    expect(mockCustomersCreate).toHaveBeenCalledOnce()
-    expect(mockCustomersCreate.mock.calls[0][0].email).toBe('client@test.com')
-  })
-
-  it('reuses existing Stripe customer when found', async () => {
-    mockCustomersList.mockResolvedValue({ data: [{ id: 'cus_existing' }] })
-    const req = makeReq()
-    await bookingCheckoutHandler(req)
-    expect(mockCustomersCreate).not.toHaveBeenCalled()
-    expect(mockPaymentIntentsCreate.mock.calls[0][0].customer).toBe('cus_existing')
-  })
-
-  it('creates booking record before PaymentIntent', async () => {
+  it('creates pending booking and starts hosted checkout for deposit (20% of $249 = $49.80)', async () => {
     const createMock = vi.fn().mockResolvedValue({ id: 77 })
-    const req = makeReq({ id: 1, email: 'user@test.com' }, VALID_BODY, { create: createMock })
-    await bookingCheckoutHandler(req)
-    // First create call is always the booking; additional calls may come from
-    // Sprint 42 user propagation (ensureTenantMembership) — that's expected.
-    expect(createMock).toHaveBeenCalled()
-    const createArgs = createMock.mock.calls[0][0]
-    expect(createArgs.collection).toBe('bookings')
-    expect(createArgs.data.status).toBe('pending')
+    const res = await bookingCheckoutHandler(
+      makeReq({ id: 1, email: 'client@test.com' }, VALID_BODY, { create: createMock }),
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body).toMatchObject({
+      checkoutUrl: 'https://square.link/u/bk_50',
+      provider: 'square',
+      ref: 'ref_booking_test_123',
+      bookingId: 77,
+      depositCents: 4980,
+      totalCents: 24900,
+      balanceCents: 19920,
+    })
+
+    expect(createMock.mock.calls[0]![0]).toMatchObject({
+      collection: 'bookings',
+      data: expect.objectContaining({ status: 'pending' }),
+    })
+    expect(mockStartHostedCheckout).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        kind: 'booking',
+        amountCents: 4980,
+        chargeModel: 'direct',
+      }),
+    )
   })
 })

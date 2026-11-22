@@ -1,6 +1,5 @@
 import { AuthProvider } from '@/providers/Auth'
 import { EcommerceProvider } from '@payloadcms/plugin-ecommerce/client/react'
-import { stripeAdapterClient } from '@payloadcms/plugin-ecommerce/payments/stripe'
 import React from 'react'
 
 import { HeaderThemeProvider } from './HeaderTheme'
@@ -17,7 +16,7 @@ export const Providers: React.FC<{
   // real values. See RuntimeConfig.tsx. This is a server component, so these reads
   // are runtime-safe (unlike a 'use client' module-scope process.env read).
   const runtimeConfig = {
-    stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
+    stripePublishableKey: '',
     gaMeasurementId: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || '',
     livekitUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL || '',
     serverUrl: process.env.NEXT_PUBLIC_SERVER_URL || '',
@@ -61,11 +60,7 @@ export const Providers: React.FC<{
                 },
               },
             }}
-            paymentMethods={[
-              stripeAdapterClient({
-                publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
-              }),
-            ]}
+            paymentMethods={[]}
           >
             <ClientReliability>{children}</ClientReliability>
           </EcommerceProvider>

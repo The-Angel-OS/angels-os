@@ -3,26 +3,13 @@
  *
  * GET  /api/membership-ops/my     → the logged-in member's membership(s) for the host
  *                                    endeavor (plan, status, renewal). Auth required.
- * POST /api/membership-ops/portal → a Stripe Billing Portal session so the member can
- *                                    update their card, view invoices, or cancel. Auth
- *                                    required. Destination-charge subscriptions live on
- *                                    the PLATFORM account, so the platform portal manages
- *                                    them.
+ * POST /api/membership-ops/portal → returns management guidance / URL for the member's
+ *                                    active Square or PayPal subscription without requiring
+ *                                    any Stripe secret key.
  *
  * @see src/endpoints/membership-checkout.ts  @see src/collections/Memberships
  */
 import type { PayloadHandler, Where } from 'payload'
-import Stripe from 'stripe'
-import { getServerSideURL } from '@/utilities/getURL'
-
-let _stripe: Stripe | null = null
-function getStripe(): Stripe {
-  if (!_stripe) {
-    if (!process.env.STRIPE_SECRET_KEY) throw new Error('STRIPE_SECRET_KEY is not configured')
-    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2025-02-24.acacia' as Stripe.LatestApiVersion })
-  }
-  return _stripe
-}
 
 async function resolveTenantId(req: Parameters<PayloadHandler>[0]): Promise<number | string | null> {
   const slug = req.headers?.get('x-tenant-id') || ''
@@ -53,6 +40,16 @@ async function findMyMemberships(req: Parameters<PayloadHandler>[0]) {
   return { error: null, docs: res.docs as unknown as Record<string, unknown>[] }
 }
 
+function inferProvider(doc: Record<string, unknown>): string | null {
+  const metaProvider = (doc.metadata as Record<string, unknown> | undefined)?.provider
+  if (typeof metaProvider === 'string' && metaProvider) return metaProvider
+  const sub = typeof doc.stripeSubscriptionId === 'string' ? doc.stripeSubscriptionId : ''
+  if (sub.startsWith('square:')) return 'square'
+  if (sub.startsWith('paypal:')) return 'paypal'
+  if (doc.stripeCustomerId) return 'legacy'
+  return null
+}
+
 export const myMembershipsHandler: PayloadHandler = async (req) => {
   const { error, docs } = await findMyMemberships(req)
   if (error === 'auth required') return Response.json({ error }, { status: 401 })
@@ -67,7 +64,8 @@ export const myMembershipsHandler: PayloadHandler = async (req) => {
     status: d.status ?? null,
     currentPeriodEnd: d.currentPeriodEnd ?? null,
     startedAt: d.startedAt ?? null,
-    canManage: Boolean(d.stripeCustomerId),
+    provider: inferProvider(d),
+    canManage: Boolean(d.stripeSubscriptionId || d.stripeCustomerId),
   }))
   return Response.json({ memberships })
 }
@@ -77,27 +75,43 @@ export const membershipPortalHandler: PayloadHandler = async (req) => {
   if (error === 'auth required') return Response.json({ error }, { status: 401 })
   if (error) return Response.json({ error }, { status: 400 })
 
-  // Prefer an active membership with a Stripe customer; fall back to any with one.
-  const withCustomer = docs.find((d) => d.stripeCustomerId && (d.status === 'active' || d.status === 'trialing' || d.status === 'past_due'))
-    || docs.find((d) => d.stripeCustomerId)
-  const customerId = withCustomer?.stripeCustomerId as string | undefined
-  if (!customerId) {
-    return Response.json({ error: "We couldn't find a billing account for your membership yet." }, { status: 404 })
+  const activeDoc =
+    docs.find(
+      (d) =>
+        (d.stripeSubscriptionId || d.stripeCustomerId) &&
+        (d.status === 'active' || d.status === 'trialing' || d.status === 'past_due'),
+    ) || docs.find((d) => d.stripeSubscriptionId || d.stripeCustomerId)
+
+  if (!activeDoc) {
+    return Response.json(
+      { error: "We couldn't find an active paid membership to manage yet." },
+      { status: 404 },
+    )
   }
 
-  try {
-    const baseUrl = getServerSideURL()
-    const session = await getStripe().billingPortal.sessions.create({
-      customer: customerId,
-      return_url: `${baseUrl}/?membership=managed`,
+  const provider = inferProvider(activeDoc) || 'square'
+  if (provider === 'paypal') {
+    return Response.json({
+      ok: true,
+      provider: 'paypal',
+      url: 'https://www.paypal.com/myaccount/autopay/',
+      message: 'Manage or cancel your PayPal subscription anytime in PayPal Automatic Payments.',
     })
-    return Response.json({ url: session.url })
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
-    req.payload.logger?.error?.(`[membership-portal] ${msg}`)
-    if (msg.includes('configuration') || msg.includes('No configuration')) {
-      return Response.json({ error: 'Billing portal is not configured yet. Please contact the organization.' }, { status: 503 })
-    }
-    return Response.json({ error: 'Could not open the billing portal. Please try again.' }, { status: 500 })
   }
+
+  if (provider === 'square') {
+    return Response.json({
+      ok: true,
+      provider: 'square',
+      message:
+        'Your membership is billed through Square. Use the receipt email from Square or contact the organization to update your card or cancel.',
+    })
+  }
+
+  return Response.json({
+    ok: true,
+    provider,
+    message:
+      'Stripe billing has been retired on this platform. Please contact the organization to migrate or cancel a legacy subscription.',
+  })
 }

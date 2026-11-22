@@ -1,93 +1,93 @@
 /**
- * stripeConnectOnboarding — the one way to mint a Stripe Connect onboarding link.
+ * Square OAuth Onboarding Link Helper (replaces legacy Stripe Connect onboarding)
  *
- * Create (or reuse) a tenant's Stripe Express account and return a hosted
- * onboarding URL — the parish/endeavor admin completes Stripe's flow to connect
- * their bank. Shared by the dashboard button (POST /api/stripe/connect/onboard) and
- * LEO's connect_stripe_account tool, so "connect my bank" works the same whether you
- * click it or ask for it. Status syncs back via the connect-callback + the
- * account.updated webhook.
+ * Shared by LEO's `connect_stripe_account` conversational tool and legacy callers
+ * that want a single helper returning the merchant authorization URL or current
+ * connection state.
  *
- * @see src/endpoints/stripe-connect-onboard.ts
- * @see src/endpoints/stripe-webhooks.ts (account.updated)
+ * @see src/endpoints/payment-ops.ts (/api/payment-ops/square/connect & callback)
  */
+import crypto from 'node:crypto'
 import type { Payload } from 'payload'
-import Stripe from 'stripe'
+import {
+  getConnectedSquareCredentials,
+  getPlatformSquareEnv,
+} from '@/lib/payments/config'
+import { squareBaseUrl } from '@/lib/payments/providers/square'
 import { getServerSideURL } from '@/utilities/getURL'
 
-let _stripe: Stripe | null = null
-function getStripe(): Stripe {
-  if (!_stripe) {
-    if (!process.env.STRIPE_SECRET_KEY) throw new Error('STRIPE_SECRET_KEY is not configured')
-    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2025-08-27.basil' })
-  }
-  return _stripe
-}
+const SQUARE_OAUTH_SCOPES = [
+  'PAYMENTS_WRITE',
+  'ORDERS_WRITE',
+  'CUSTOMERS_READ',
+  'CUSTOMERS_WRITE',
+  'SUBSCRIPTIONS_WRITE',
+  'MERCHANT_PROFILE_READ',
+].join(' ')
 
 export interface ConnectOnboardingResult {
-  /** True when the account is already fully onboarded — no link needed. */
   alreadyComplete: boolean
-  /** The Stripe hosted onboarding URL (absent when alreadyComplete). */
   onboardingUrl?: string
   stripeAccountId?: string
   chargesEnabled?: boolean
   payoutsEnabled?: boolean
 }
 
-/**
- * Create or reuse the tenant's Express account and return a fresh onboarding link.
- * Idempotent on the account (reuses an existing stripeAccountId); the account link
- * itself is single-use/short-lived by Stripe's design, so this is called each time.
- */
+function signOAuthState(payloadObj: Record<string, unknown>): string {
+  const secret = process.env.PAYLOAD_SECRET || process.env.ENCRYPTION_SECRET || 'angel-os-oauth'
+  const b64 = Buffer.from(JSON.stringify(payloadObj)).toString('base64url')
+  const sig = crypto.createHmac('sha256', secret).update(b64).digest('base64url')
+  return `${b64}.${sig}`
+}
+
 export async function createConnectOnboardingLink(
   payload: Payload,
   tenantId: number | string,
 ): Promise<ConnectOnboardingResult> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tenant = (await payload.findByID({ collection: 'tenants', id: tenantId as number, depth: 0 })) as any
+  const tenant = await payload.findByID({
+    collection: 'tenants',
+    id: tenantId as number,
+    depth: 0,
+    overrideAccess: true,
+  })
   if (!tenant) throw new Error(`Tenant ${tenantId} not found`)
 
-  const connect = tenant.stripeConnect as Record<string, unknown> | undefined
-  if (connect?.stripeAccountId && connect?.stripeOnboardingComplete) {
+  const sq = await getConnectedSquareCredentials(payload, tenantId)
+  if (sq) {
     return {
       alreadyComplete: true,
-      stripeAccountId: connect.stripeAccountId as string,
-      chargesEnabled: Boolean(connect.stripeChargesEnabled),
-      payoutsEnabled: Boolean(connect.stripePayoutsEnabled),
+      stripeAccountId: sq.merchantId,
+      chargesEnabled: true,
+      payoutsEnabled: true,
     }
   }
 
-  // Create the Express account on first run; reuse it on subsequent attempts.
-  let accountId = connect?.stripeAccountId as string | undefined
-  if (!accountId) {
-    const account = await getStripe().accounts.create({
-      type: 'express',
-      metadata: { tenantId: String(tenantId), tenantSlug: tenant.slug, platform: 'angel-os' },
-    })
-    accountId = account.id
-    await payload.update({
-      collection: 'tenants',
-      id: tenantId,
-      data: {
-        stripeConnect: {
-          stripeAccountId: accountId,
-          stripeOnboardingComplete: false,
-          stripePayoutsEnabled: false,
-          stripeChargesEnabled: false,
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any,
-      overrideAccess: true,
-    })
+  const cfg = getPlatformSquareEnv()
+  if (!cfg.applicationId || !cfg.applicationSecret) {
+    throw new Error(
+      'Square OAuth is not configured yet (SQUARE_APPLICATION_ID / SQUARE_APPLICATION_SECRET missing).',
+    )
   }
 
   const baseUrl = getServerSideURL()
-  const accountLink = await getStripe().accountLinks.create({
-    account: accountId,
-    refresh_url: `${baseUrl}/dashboard/admin/payments?refresh=true`,
-    return_url: `${baseUrl}/dashboard/admin/payments?onboarding=complete`,
-    type: 'account_onboarding',
+  const state = signOAuthState({
+    tenantId: Number(tenantId),
+    userId: null,
+    origin: baseUrl,
+    ts: Date.now(),
   })
 
-  return { alreadyComplete: false, onboardingUrl: accountLink.url, stripeAccountId: accountId }
+  const params = new URLSearchParams({
+    client_id: cfg.applicationId,
+    scope: SQUARE_OAUTH_SCOPES,
+    session: 'false',
+    state,
+    redirect_uri: `${baseUrl}/api/payment-ops/square/callback`,
+  })
+
+  const authUrl = `${squareBaseUrl(cfg.environment)}/oauth2/authorize?${params.toString()}`
+  return {
+    alreadyComplete: false,
+    onboardingUrl: authUrl,
+  }
 }

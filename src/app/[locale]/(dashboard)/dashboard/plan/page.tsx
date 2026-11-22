@@ -20,6 +20,7 @@ import Link from 'next/link'
 import { resolveActiveTenant } from '@/utilities/resolveActiveTenant'
 import { planOf, PLAN_PRICE_CENTS, PLAN_FEE_BPS } from '@/utilities/portalPlan'
 import { UpgradeButton } from './UpgradeButton'
+import { PlanReturnConfirm } from './PlanReturnConfirm'
 
 /** One price, one place — the map decides, this page renders it. */
 const priceOf = (id: Tier['id']) =>
@@ -109,6 +110,7 @@ export default async function PlanPage() {
   return (
     <div className="mx-auto max-w-4xl p-6">
       <h1 className="text-2xl font-bold">Your plan</h1>
+      <PlanReturnConfirm />
       {isDemo ? (
         <p className="mt-2 text-sm text-muted-foreground">
           {tenant?.name ? `${tenant.name} is a ` : 'This is a '}

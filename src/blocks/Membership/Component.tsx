@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { RichText } from '@/components/RichText'
+import { PaymentRailSelector, type PaymentRailId } from '@/components/payments/PaymentRailSelector'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -44,8 +45,7 @@ const statusLabel: Record<string, string> = {
 
 /**
  * Membership (Join) block — fetches the host endeavor's active plans and starts a
- * recurring Stripe Connect subscription. Hosted-checkout redirect (no Elements):
- * the engine's /api/membership-ops/checkout returns a Stripe URL.
+ * recurring Square or PayPal subscription via hosted checkout redirect.
  */
 export const MembershipBlock: React.FC<{
   id?: string
@@ -53,23 +53,75 @@ export const MembershipBlock: React.FC<{
   ctaText?: string
 }> = ({ richText, ctaText = 'Become a member' }) => {
   const [plans, setPlans] = useState<Plan[] | null>(null)
-  const [step, setStep] = useState<'plans' | 'info' | 'success' | 'cancelled'>('plans')
+  const [step, setStep] = useState<'plans' | 'info' | 'verifying' | 'success' | 'cancelled'>('plans')
   const [selected, setSelected] = useState<string | null>(null)
   const [memberName, setMemberName] = useState('')
   const [memberEmail, setMemberEmail] = useState('')
+  const [provider, setProvider] = useState<PaymentRailId | null>(null)
+  const [hasProviders, setHasProviders] = useState(true)
+  const [portalMessage, setPortalMessage] = useState<string | null>(null)
   const [viewer, setViewer] = useState<{ name?: string; email?: string } | null>(null)
   const [member, setMember] = useState<MyMembership | null | undefined>(undefined) // undefined = loading
   const [submitting, setSubmitting] = useState(false)
   const [managing, setManaging] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Reflect the Stripe return state (success_url / cancel_url use ?membership=...).
+  const refreshMyMemberships = useCallback(() => {
+    fetch('/api/membership-ops/my', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : { memberships: [] }))
+      .then((d) => {
+        const list = Array.isArray(d?.memberships) ? (d.memberships as MyMembership[]) : []
+        const current = list.find((m) => m.status && ACTIVE.has(m.status)) || list[0] || null
+        setMember(current)
+      })
+      .catch(() => {
+        setMember(null)
+      })
+  }, [])
+
+  // Handle Square / PayPal return (?membership=success&ref=... or ?membership=cancelled).
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const m = params.get('membership')
-    if (m === 'success') setStep('success')
-    else if (m === 'cancelled') setStep('cancelled')
-  }, [])
+    if (m === 'cancelled') {
+      setStep('cancelled')
+      return
+    }
+    if (m === 'success') {
+      const ref = params.get('ref')
+      if (!ref) {
+        setStep('success')
+        refreshMyMemberships()
+        return
+      }
+      setStep('verifying')
+      fetch('/api/payment-ops/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          ref,
+          orderId: params.get('orderId') || params.get('token') || undefined,
+          transactionId: params.get('transactionId') || undefined,
+          subscriptionId: params.get('subscription_id') || undefined,
+        }),
+      })
+        .then(async (res) => ({ ok: res.ok, data: await res.json().catch(() => ({})) }))
+        .then(({ ok, data }) => {
+          if (ok && data?.ok) {
+            setStep('success')
+            refreshMyMemberships()
+          } else {
+            setError(data?.error || 'Could not confirm your membership payment yet.')
+            setStep('plans')
+          }
+        })
+        .catch(() => {
+          setError('Network error confirming membership. Please refresh to check status.')
+          setStep('plans')
+        })
+    }
+  }, [refreshMyMemberships])
 
   // Load the host endeavor's active plans (public GET, host-tenant authoritative).
   useEffect(() => {
@@ -110,31 +162,26 @@ export const MembershipBlock: React.FC<{
 
   // Load the viewer's own membership for this endeavor (if signed in + a member).
   useEffect(() => {
-    let cancelled = false
-    fetch('/api/membership-ops/my', { credentials: 'include' })
-      .then((r) => (r.ok ? r.json() : { memberships: [] }))
-      .then((d) => {
-        if (cancelled) return
-        const list = Array.isArray(d?.memberships) ? (d.memberships as MyMembership[]) : []
-        const current = list.find((m) => m.status && ACTIVE.has(m.status)) || list[0] || null
-        setMember(current)
-      })
-      .catch(() => {
-        if (!cancelled) setMember(null)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
+    refreshMyMemberships()
+  }, [refreshMyMemberships])
 
   const openPortal = useCallback(async () => {
     setManaging(true)
     setError(null)
+    setPortalMessage(null)
     try {
       const res = await fetch('/api/membership-ops/portal', { method: 'POST', credentials: 'include' })
-      const data = await res.json()
-      if (!res.ok || !data?.url) throw new Error(data?.error || 'Could not open billing portal')
-      window.location.href = data.url as string
+      const data = (await res.json()) as { url?: string; message?: string; error?: string }
+      if (!res.ok) throw new Error(data?.error || 'Could not load membership management details')
+      if (data?.url) {
+        window.location.href = data.url
+        return
+      }
+      setPortalMessage(
+        data?.message ||
+          'Use your confirmation receipt or contact the organization to update or cancel your membership.',
+      )
+      setManaging(false)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setManaging(false)
@@ -163,16 +210,31 @@ export const MembershipBlock: React.FC<{
           tenantSlug,
           memberName: memberName || undefined,
           memberEmail: memberEmail || undefined,
+          provider: selectedPlan.amountCents > 0 ? provider || undefined : undefined,
         }),
       })
-      const data = await res.json()
-      if (!res.ok || !data?.url) throw new Error(data?.error || 'Could not start checkout')
-      window.location.href = data.url as string
+      const data = (await res.json()) as { checkoutUrl?: string; url?: string; error?: string }
+      const targetUrl = data.checkoutUrl || data.url
+      if (!res.ok || !targetUrl) throw new Error(data?.error || 'Could not start checkout')
+      window.location.href = targetUrl
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setSubmitting(false)
     }
-  }, [selectedPlan, memberName, memberEmail])
+  }, [selectedPlan, memberName, memberEmail, provider])
+
+  if (step === 'verifying') {
+    return (
+      <div className="container">
+        <div className="mx-auto max-w-lg rounded-lg border border-border bg-card p-8 text-center">
+          <h2 className="mb-2 text-xl font-bold">Confirming your membership...</h2>
+          <p className="text-sm text-muted-foreground">
+            Verifying your subscription with the payment processor.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   if (step === 'success') {
     return (
@@ -228,12 +290,17 @@ export const MembershipBlock: React.FC<{
             </div>
             {member.canManage ? (
               <Button onClick={openPortal} className="w-full" size="lg" disabled={managing}>
-                {managing ? 'Opening…' : 'Manage membership'}
+                {managing ? 'Checking…' : 'Manage membership'}
               </Button>
             ) : (
               <p className="text-xs text-muted-foreground">Contact the organization to make changes to your membership.</p>
             )}
-            <p className="text-xs text-muted-foreground">Update your card, view invoices, or cancel anytime.</p>
+            {portalMessage && (
+              <p className="rounded-md border border-border bg-muted/40 p-3 text-xs text-foreground">
+                {portalMessage}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">Update your card, view receipts, or cancel anytime.</p>
           </div>
         )}
 
@@ -338,12 +405,25 @@ export const MembershipBlock: React.FC<{
                 </div>
               </>
             )}
+            {selectedPlan.amountCents > 0 && (
+              <PaymentRailSelector
+                value={provider}
+                onChange={setProvider}
+                onLoaded={(info) => setHasProviders(info.providers.length > 0)}
+                disabled={submitting}
+              />
+            )}
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setStep('plans')} className="flex-1" disabled={submitting}>
                 Back
               </Button>
               {(viewer || selectedPlan.amountCents > 0) && (
-                <Button onClick={startCheckout} className="flex-1" size="lg" disabled={submitting}>
+                <Button
+                  onClick={startCheckout}
+                  className="flex-1"
+                  size="lg"
+                  disabled={submitting || (selectedPlan.amountCents > 0 && !hasProviders)}
+                >
                   {submitting ? 'Starting…' : ctaText}
                 </Button>
               )}
@@ -351,7 +431,7 @@ export const MembershipBlock: React.FC<{
             <p className="text-xs text-muted-foreground">
               {selectedPlan.amountCents === 0
                 ? 'No payment, no card. Leave whenever you like.'
-                : 'Secure recurring payment via Stripe. Cancel anytime.'}
+                : 'Secure recurring payment via Square or PayPal. Cancel anytime.'}
             </p>
           </div>
         )}

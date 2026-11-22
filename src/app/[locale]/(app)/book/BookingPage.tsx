@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { BookingDeposit } from './BookingDeposit'
+import { PaymentRailSelector, type PaymentRailId } from '@/components/payments/PaymentRailSelector'
 import { AgreementForm } from '@/components/signatures/AgreementForm'
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -43,8 +44,7 @@ interface ServiceOption {
 interface BookingPageProps {
   availabilitySlots: AvailabilitySlot[]
   endeavorName: string
-  /** Whether Stripe Connect can actually take a payment. False → every deposit
-   *  line becomes request language, because booking-checkout will not charge. */
+  /** Whether an online payment rail (Square OAuth or platform dual-rail) can charge a deposit. */
   connectEnabled?: boolean
   services: ServiceOption[]
   tenantSlug?: string
@@ -53,8 +53,9 @@ interface BookingPageProps {
 }
 
 interface PaymentData {
-  clientSecret: string
-  stripeAccountId: string
+  checkoutUrl: string
+  provider?: PaymentRailId
+  ref?: string
   depositCents: number
   totalCents: number
   balanceCents: number
@@ -63,12 +64,10 @@ interface PaymentData {
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`
 
-export function BookingPage({ availabilitySlots, endeavorName, services, tenantSlug, tenantId, publishableKey, connectEnabled = false }: BookingPageProps) {
+export function BookingPage({ availabilitySlots, endeavorName, services, tenantSlug, tenantId, connectEnabled = false }: BookingPageProps) {
   const [serviceId, setServiceId] = useState<string | null>(
     services.length === 1 ? services[0]!.id : null,
   )
-  // Rental/service agreement consent: keyed by serviceId so changing the selected
-  // service re-requires a signature for the new terms.
   const [signedServiceId, setSignedServiceId] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
@@ -76,6 +75,53 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
     services.length === 1 ? 'date' : 'service',
   )
   const [bookingState, setBookingState] = useState<'idle' | 'loading' | 'deposit' | 'success' | 'requested' | 'error'>('idle')
+  const [provider, setProvider] = useState<PaymentRailId | null>(null)
+  const [hasProviders, setHasProviders] = useState(true)
+  const [returnStatus, setReturnStatus] = useState<'idle' | 'verifying' | 'success' | 'error'>('idle')
+  const [returnMessage, setReturnMessage] = useState<string | null>(null)
+  const [returnBookingId, setReturnBookingId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const status = params.get('booking')
+    const bookingIdParam = params.get('bookingId')
+    const refParam = params.get('ref')
+    if (status === 'cancelled') {
+      setReturnStatus('error')
+      setReturnMessage('Deposit checkout was cancelled — you were not charged.')
+      return
+    }
+    if (status === 'paid' && bookingIdParam) {
+      setReturnStatus('verifying')
+      setReturnBookingId(bookingIdParam)
+      fetch('/api/booking-ops/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          bookingId: bookingIdParam,
+          ref: refParam || undefined,
+          orderId: params.get('orderId') || params.get('token') || undefined,
+          transactionId: params.get('transactionId') || undefined,
+          subscriptionId: params.get('subscription_id') || undefined,
+        }),
+      })
+        .then(async (res) => ({ ok: res.ok, data: await res.json().catch(() => ({})) }))
+        .then(({ ok, data }) => {
+          if (ok && data?.ok) {
+            setReturnStatus('success')
+            setReturnMessage('Your deposit has been verified and your booking is confirmed!')
+          } else {
+            setReturnStatus('error')
+            setReturnMessage(data?.error || 'Could not confirm your deposit yet.')
+          }
+        })
+        .catch(() => {
+          setReturnStatus('error')
+          setReturnMessage('Network error confirming deposit. Please refresh to check status.')
+        })
+    }
+  }, [])
 
   // Mirrors depositCents() in config/bookableServices.ts — a flat deposit wins,
   // so work that is quoted on site can still take money to hold the slot.
@@ -233,7 +279,12 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ date: selectedDate, time: selectedTime, serviceId }),
+        body: JSON.stringify({
+          date: selectedDate,
+          time: selectedTime,
+          serviceId,
+          provider: provider || undefined,
+        }),
       })
 
       if (res.status === 401) {
@@ -270,15 +321,23 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
         return
       }
 
-      setPayment({
-        clientSecret: data.clientSecret,
-        stripeAccountId: data.stripeAccountId,
-        depositCents: data.depositCents,
-        totalCents: data.totalCents,
-        balanceCents: data.balanceCents,
-        bookingId: String(data.bookingId),
-      })
-      setBookingState('deposit')
+      if (data.checkoutUrl) {
+        setPayment({
+          checkoutUrl: data.checkoutUrl,
+          provider: data.provider,
+          ref: data.ref,
+          depositCents: data.depositCents,
+          totalCents: data.totalCents,
+          balanceCents: data.balanceCents,
+          bookingId: String(data.bookingId),
+        })
+        setBookingState('deposit')
+        window.location.href = data.checkoutUrl as string
+        return
+      }
+
+      setBookingState('error')
+      setBookingError('Could not obtain a checkout link from the payment provider.')
     } catch {
       setBookingState('error')
       setBookingError('Connection error. Please try again.')
@@ -323,7 +382,36 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
         <p className="text-muted-foreground">Schedule with {endeavorName}</p>
       </div>
 
-      {availabilitySlots.length === 0 || services.length === 0 ? (
+      {returnStatus === 'verifying' ? (
+        <div className="rounded-xl border border-border bg-card p-8 text-center">
+          <h2 className="mb-2 text-lg font-semibold">Confirming your booking deposit...</h2>
+          <p className="text-sm text-muted-foreground">
+            Verifying your payment with the processor.
+          </p>
+        </div>
+      ) : returnStatus === 'success' ? (
+        <div className="rounded-xl border-2 border-green-500/30 bg-green-500/5 p-8 text-center">
+          <svg className="mx-auto mb-3 h-10 w-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h2 className="mb-1 text-lg font-semibold text-green-700 dark:text-green-400">Reserved!</h2>
+          <p className="mb-3 text-sm text-muted-foreground">
+            {returnMessage || 'Your booking is confirmed and deposit received.'}
+          </p>
+          {returnBookingId && (
+            <p className="text-xs text-muted-foreground">Booking ID: {returnBookingId}</p>
+          )}
+          <Link href="/dashboard" className="mt-4 inline-block rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+            View in Dashboard
+          </Link>
+        </div>
+      ) : returnStatus === 'error' ? (
+        <div className="mb-6 rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+          {returnMessage || 'Checkout did not complete.'}
+        </div>
+      ) : null}
+
+      {returnStatus !== 'verifying' && returnStatus !== 'success' && (availabilitySlots.length === 0 || services.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-muted/20 p-12 text-center">
           <h3 className="mb-2 text-lg font-semibold">Booking Not Set Up Yet</h3>
           <p className="text-muted-foreground">
@@ -637,21 +725,8 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
                     Pay the {money(payment.depositCents)} deposit to lock in your slot.
                   </p>
                   <BookingDeposit
-                    clientSecret={payment.clientSecret}
-                    stripeAccountId={payment.stripeAccountId}
+                    checkoutUrl={payment.checkoutUrl}
                     amountLabel={money(payment.depositCents)}
-                    publishableKey={publishableKey}
-                    onSuccess={() => {
-                      setBookingState('success')
-                      // Server-verify the deposit + lock the booking (clears the
-                      // 15-min hold so a paid slot can't expire). Fire-and-forget:
-                      // the UI already shows success; confirmation is idempotent.
-                      void fetch('/api/booking-ops/confirm', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ bookingId: payment.bookingId }),
-                      }).catch(() => {})
-                    }}
                   />
                 </div>
               ) : (
@@ -692,9 +767,20 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
                       )}
                     </div>
                   )}
+                  {depositCents > 0 && (
+                    <div className="mb-4">
+                      <PaymentRailSelector
+                        tenantSlug={tenantSlug}
+                        value={provider}
+                        onChange={setProvider}
+                        onLoaded={(info) => setHasProviders(info.providers.length > 0)}
+                        disabled={bookingState === 'loading'}
+                      />
+                    </div>
+                  )}
                   <button
                     onClick={startCheckout}
-                    disabled={bookingState === 'loading' || !agreementSatisfied}
+                    disabled={bookingState === 'loading' || !agreementSatisfied || (depositCents > 0 && !hasProviders)}
                     title={!agreementSatisfied ? 'Please sign the agreement above first' : undefined}
                     className="w-full rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
                   >
@@ -723,7 +809,7 @@ export function BookingPage({ availabilitySlots, endeavorName, services, tenantS
             </div>
           )}
         </div>
-      )}
+      ))}
     </div>
   )
 }

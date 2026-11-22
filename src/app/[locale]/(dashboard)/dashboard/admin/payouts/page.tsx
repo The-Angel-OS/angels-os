@@ -2,6 +2,7 @@ import { setRequestLocale } from 'next-intl/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { PayoutsAdmin } from './PayoutsAdmin'
+import { getTenantPaymentSettings, isPayPalConfigured } from '@/lib/payments/config'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { requirePortalManager } from '@/utilities/requirePortalManager'
 
@@ -17,13 +18,10 @@ export default async function DashboardPayoutsPage({
   await requirePortalManager()
 
   const payload = await getPayload({ config: configPromise })
+  const { tenant, tenantId, tenantFilter } = await resolveTenantFromHeaders()
+  const paymentSettings = tenantId ? await getTenantPaymentSettings(payload, tenantId) : {}
+  const sq = paymentSettings?.square
 
-  // Resolve tenant (cached, React.cache deduped)
-  const { tenant, tenantFilter } = await resolveTenantFromHeaders()
-
-  const stripeConnect = tenant?.stripeConnect || {}
-
-  // Fetch recent orders with payment info for this tenant
   let recentOrders: Array<{
     id: string
     total: number
@@ -55,10 +53,11 @@ export default async function DashboardPayoutsPage({
 
   return (
     <PayoutsAdmin
-      stripeAccountId={stripeConnect.stripeAccountId || null}
-      onboardingComplete={stripeConnect.stripeOnboardingComplete || false}
-      chargesEnabled={stripeConnect.stripeChargesEnabled || false}
-      payoutsEnabled={stripeConnect.stripePayoutsEnabled || false}
+      squareConnected={Boolean(sq?.connected)}
+      squareMerchantId={sq?.merchantId || null}
+      squareMerchantName={sq?.merchantName || null}
+      squareEnvironment={sq?.environment || 'production'}
+      paypalConfigured={isPayPalConfigured()}
       recentOrders={recentOrders}
       tenantName={tenant?.name || 'Your Enterprise'}
     />

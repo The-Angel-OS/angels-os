@@ -3,6 +3,9 @@ import { setRequestLocale } from 'next-intl/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { BookingPage } from './BookingPage'
+import { getConnectedSquareCredentials } from '@/lib/payments/config'
+import { getAvailableProviders } from '@/lib/payments/registry'
+import { getBillingMode } from '@/utilities/billingMode'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { resolveServices } from '@/utilities/resolveServices'
 import { generateTenantRouteMeta } from '@/utilities/generateMeta'
@@ -77,13 +80,18 @@ export default async function BookPage({
 
   const endeavorName = (endeavorResult?.docs?.[0] as any)?.name || tenant?.name || 'This Enterprise'
 
-  // Can this business actually take money? booking-checkout has always known —
-  // `needsPayment` requires connectEnabled — but the PAGE did not, so a portal
-  // with no Stripe still told the customer "Deposit due now $100.00" and then
-  // quietly took the booking as a request and charged nothing. The server was
-  // right and the screen was lying. Same source of truth on both sides now.
-  const connect = (tenant as { stripeConnect?: Record<string, unknown> } | null)?.stripeConnect
-  const connectEnabled = Boolean(connect?.stripeAccountId && connect?.stripeChargesEnabled)
+  // Online payment is active when the endeavor connected Square OAuth OR when
+  // platform-direct billing is active with Square/PayPal configured on the node.
+  let connectEnabled = false
+  if (tenant?.id) {
+    const [billingMode, connectedSquare, { providers }] = await Promise.all([
+      getBillingMode(payload, tenant.id),
+      getConnectedSquareCredentials(payload, tenant.id),
+      getAvailableProviders(payload, tenant.id),
+    ])
+    connectEnabled =
+      Boolean(connectedSquare) || (billingMode === 'platform-direct' && providers.length > 0)
+  }
 
   // DB-first (with static fallback) so owner-configured services — incl. a
   // per-service rental/waiver agreement — drive the booking flow.
@@ -114,9 +122,6 @@ export default async function BookPage({
       connectEnabled={connectEnabled}
       tenantSlug={tenant?.slug ?? undefined}
       tenantId={tenant?.id ?? undefined}
-      // Runtime key from the server — NEXT_PUBLIC_* is empty in a self-host Docker
-      // build, which showed "Payments aren't configured" on the deposit step.
-      publishableKey={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''}
     />
   )
 }

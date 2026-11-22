@@ -2,77 +2,104 @@
 
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { Button } from '@/components/ui/button'
-import { useCart, usePayments } from '@payloadcms/plugin-ecommerce/client/react'
+import { useCart } from '@payloadcms/plugin-ecommerce/client/react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { trackPurchase } from '@/utilities/gtagEcommerce'
 
 export const ConfirmOrder: React.FC = () => {
-  const { confirmOrder } = usePayments()
-  const { cart } = useCart()
+  const { cart, clearCart } = useCart()
   const [error, setError] = useState<string | null>(null)
 
   const searchParams = useSearchParams()
   const router = useRouter()
-  // Ensure we only confirm the order once, even if the component re-renders
   const isConfirming = useRef(false)
 
   useEffect(() => {
-    if (!cart || !cart.items || cart.items?.length === 0) {
+    const ref = searchParams.get('ref')
+    const email = searchParams.get('email') || ''
+    const orderIdParam = searchParams.get('orderId') || searchParams.get('token') || undefined
+    const transactionIdParam = searchParams.get('transactionId') || undefined
+    const subscriptionIdParam = searchParams.get('subscription_id') || undefined
+
+    if (!ref) {
+      router.push('/')
       return
     }
 
-    const paymentIntentID = searchParams.get('payment_intent')
-    const email = searchParams.get('email')
+    if (isConfirming.current) return
+    isConfirming.current = true
 
-    if (paymentIntentID) {
-      if (!isConfirming.current) {
-        isConfirming.current = true
-
-        confirmOrder('stripe', {
-          additionalData: {
-            paymentIntentID,
-          },
-        })
-          .then((result) => {
-            if (result && typeof result === 'object' && 'orderID' in result && result.orderID) {
-              // GA4: track purchase event
-              const ga4Items = (cart?.items || [])
-                .filter((item) => typeof item.product === 'object' && item.product)
-                .map((item) => {
-                  const product = item.product as Record<string, unknown>
-                  return {
-                    item_id: String(product.id || ''),
-                    item_name: (product.title as string) || 'Product',
-                    price: (product.priceInUSD as number) || 0,
-                    quantity: item.quantity || 1,
-                  }
-                })
-              trackPurchase({
-                transactionId: String(result.orderID),
-                value: cart?.subtotal || 0,
-                items: ga4Items,
-              })
-
-              router.push(`/shop/order/${result.orderID}?email=${email}`)
-            }
+    fetch('/api/payment-ops/confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        ref,
+        orderId: orderIdParam,
+        transactionId: transactionIdParam,
+        subscriptionId: subscriptionIdParam,
+      }),
+    })
+      .then(async (res) => ({
+        ok: res.ok,
+        data: (await res.json().catch(() => ({}))) as {
+          ok?: boolean
+          pending?: boolean
+          orderId?: string | number
+          amountCents?: number
+          error?: string
+        },
+      }))
+      .then(async ({ ok, data }) => {
+        if (ok && data?.ok && data?.orderId) {
+          const ga4Items = (cart?.items || [])
+            .filter((item) => typeof item.product === 'object' && item.product)
+            .map((item) => {
+              const product = item.product as Record<string, unknown>
+              return {
+                item_id: String(product.id || ''),
+                item_name: (product.title as string) || 'Product',
+                price: (product.priceInUSD as number) || 0,
+                quantity: item.quantity || 1,
+              }
+            })
+          trackPurchase({
+            transactionId: String(data.orderId),
+            value: cart?.subtotal || data.amountCents || 0,
+            items: ga4Items,
           })
-          .catch((err) => {
-            console.error('[ConfirmOrder] Error confirming order:', err)
-            isConfirming.current = false
-            setError(
-              err instanceof Error
-                ? err.message
-                : 'There was a problem confirming your order. Your payment was received — please contact support if you do not see your order shortly.',
-            )
-          })
-      }
-    } else {
-      // If no payment intent ID is found, redirect to the home
-      router.push('/')
-    }
-  }, [cart, searchParams])
+
+          try {
+            await clearCart()
+          } catch {
+            /* non-fatal — cart is also marked purchased server-side */
+          }
+
+          const emailQs = email ? `?email=${encodeURIComponent(email)}` : ''
+          router.push(`/shop/order/${data.orderId}${emailQs}`)
+          return
+        }
+
+        isConfirming.current = false
+        setError(
+          data?.error ||
+            (data?.pending
+              ? 'Your payment is still finalizing — click Try again in a moment.'
+              : 'There was a problem confirming your order. Your payment was received — please contact support if you do not see your order shortly.'),
+        )
+      })
+      .catch((err) => {
+        console.error('[ConfirmOrder] Error confirming order:', err)
+        isConfirming.current = false
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'There was a problem confirming your order. Please try again.',
+        )
+      })
+  }, [cart, clearCart, router, searchParams])
 
   if (error) {
     return (
@@ -115,7 +142,6 @@ export const ConfirmOrder: React.FC = () => {
   return (
     <div className="text-center w-full flex flex-col items-center justify-start gap-4">
       <h1 className="text-2xl">Confirming Order</h1>
-
       <LoadingSpinner className="w-12 h-6" />
     </div>
   )

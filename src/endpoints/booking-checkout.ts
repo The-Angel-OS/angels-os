@@ -1,9 +1,9 @@
 /**
  * Booking Checkout Endpoint — POST /api/booking-ops/checkout
  *
- * Creates a Stripe PaymentIntent for a booking using the Direct Charges model.
- * The PaymentIntent is created ON the connected (seller) account with an
- * application_fee_amount for the platform's share (Ultimate Fair Split).
+ * Starts a Square or PayPal hosted checkout session for a booking deposit
+ * (with Multi-Tenant Square OAuth + application fee split when connected, or
+ * free/COD booking request when no up-front deposit is required).
  *
  * Request body:
  *   - date (string, required): ISO date string (YYYY-MM-DD)
@@ -11,20 +11,27 @@
  *   - serviceId (string, required): id from the tenant's bookable service catalog
  *     (src/config/bookableServices.ts) — drives duration, total price, and deposit
  *   - notes (string): Customer notes for the booking
+ *   - provider ('square' | 'paypal', optional): Payment rail choice
  *
  * The slot is conflict-checked against the provider's existing bookings before
  * creation (overbooking guard), and only the DEPOSIT is charged up front; the
  * balance is settled on completion.
  *
- * Response:
- *   - clientSecret: Stripe PaymentIntent client_secret for the deposit
- *   - bookingId, stripeAccountId, depositCents, totalCents, balanceCents, serviceLabel
- *
  * Auth: Requires authentication.
  */
 import type { PayloadHandler } from 'payload'
-import Stripe from 'stripe'
 
+import { generateCheckoutRef } from '@/lib/payments/config'
+import {
+  getAvailableProviders,
+  resolveConnectedSquareForTenant,
+  resolveProvider,
+  startHostedCheckout,
+} from '@/lib/payments/registry'
+import type { PaymentProviderId } from '@/lib/payments/types'
+import { getBillingMode } from '@/utilities/billingMode'
+import { getServerSideURL } from '@/utilities/getURL'
+import { originFromHeaderValues } from '@/utilities/originFromHeaders'
 import { getPlatformFeeBps, feeCents } from '@/utilities/platformFee'
 import { applyRateLimit } from '@/utilities/apiRateLimiter'
 import { depositCents, totalCents } from '@/config/bookableServices'
@@ -51,7 +58,7 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
     return Response.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const { date, time, serviceId, notes } = body
+  const { date, time, serviceId, notes, provider: requestedProvider } = body
 
   if (!date || typeof date !== 'string') {
     return Response.json({ error: 'date is required (YYYY-MM-DD)' }, { status: 400 })
@@ -82,12 +89,14 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
       return Response.json({ error: 'Tenant not found' }, { status: 404 })
     }
 
-    // Stripe Connect is OPTIONAL — only needed when a deposit is actually charged.
-    // A COD/pay-on-site business (e.g. an electrician) or a $0 / no-deposit service
-    // takes the booking as a REQUEST and settles on completion. No payment ≠ no service.
-    const connect = tenant.stripeConnect as Record<string, unknown> | undefined
-    const connectEnabled = Boolean(connect?.stripeAccountId && connect?.stripeChargesEnabled)
-    const connectedAccountId = (connect?.stripeAccountId as string) || ''
+    // Online payment is OPTIONAL — only needed when a real deposit is charged AND
+    // either the endeavor has connected Square OAuth or platform-direct billing is active
+    // with Square/PayPal configured. Otherwise take the booking as a REQUEST / COD.
+    const billingMode = await getBillingMode(payload, tenant.id)
+    const connectedSquare = await resolveConnectedSquareForTenant(payload, tenant.id)
+    const { providers } = await getAvailableProviders(payload, tenant.id)
+    const connectEnabled =
+      Boolean(connectedSquare) || (billingMode === 'platform-direct' && providers.length > 0)
 
     // Resolve the service DB-first (the owner-configured Services catalog), static fallback.
     const catalog = await resolveServices(payload, { tenantSlug, tenantId: tenant.id })
@@ -100,13 +109,11 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
     const total = totalCents(service)
     const deposit = depositCents(service)
     // A flat-deposit service with no list price is QUOTED on completion, not
-    // negative. `total - deposit` wrote -7500 onto the booking and into the
-    // Stripe metadata for a $75 flat deposit on a $0-listed job.
+    // negative. `total - deposit` wrote -7500 onto the booking for a $75 flat deposit.
     const balanceCents = Math.max(0, total - deposit)
 
     // Does this booking need an up-front online payment? Only when there's a real
-    // deposit AND the endeavor can take card AND it isn't explicitly COD. A $0 / no-
-    // deposit service, a COD endeavor, or one without Stripe → booking REQUEST.
+    // deposit AND a payment rail is ready AND it isn't explicitly COD.
     const paymentMode = await getBookingPaymentMode(payload, tenant.id) // 'deposit' | 'cod' | null
     const needsPayment = deposit > 0 && connectEnabled && paymentMode !== 'cod'
 
@@ -253,88 +260,80 @@ export const bookingCheckoutHandler: PayloadHandler = async (req) => {
       })
     }
 
-    // Initialize Stripe (deposit path)
-    const stripeSecretKey = process.env.STRIPE_SECRET_KEY
-    if (!stripeSecretKey) {
-      return Response.json({ error: 'Payment system not configured' }, { status: 500 })
-    }
-    const stripe = new Stripe(stripeSecretKey)
-
-    // Find or create customer on the connected account
-    const customerEmail = (user as any).email
-    let customer = (
-      await stripe.customers.list(
-        { email: customerEmail, limit: 1 },
-        { stripeAccount: connectedAccountId },
-      )
-    ).data[0]
-    if (!customer?.id) {
-      customer = await stripe.customers.create(
-        { email: customerEmail, name: (user as any).name || undefined },
-        { stripeAccount: connectedAccountId },
-      )
-    }
-
-    // Application fee (platform share) on the DEPOSIT being charged.
-    //
-    // This used to call getStripeApplicationFeeCents, which returns FORTY PERCENT
-    // (ULTIMATE_FAIR_SPLIT's 20+15+5). Live, on a tradesperson's deposit: $75 in
-    // would have sent $30 to the platform and $45 to the electrician. Nobody chose
-    // that out loud — it was a constant nobody had re-read. Now the configured
-    // platform rate, 5% by default, changeable without a deploy.
-    // Scoped to the SELLING tenant, so a negotiated rate applies to that portal
-    // and only that portal.
-    const applicationFee = feeCents(deposit, await getPlatformFeeBps(payload, tenant.id))
-
-    // Create PaymentIntent on the connected account (Direct Charges) — DEPOSIT only
-    const paymentIntent = await stripe.paymentIntents.create(
-      {
-        amount: deposit,
-        application_fee_amount: applicationFee,
-        // Dashboard-controlled, so which methods a deposit accepts is a
-        // business decision rather than a code change.
-        automatic_payment_methods: { enabled: true },
-        currency,
-        customer: customer.id,
-        metadata: {
-          bookingId: String(booking.id),
-          bookingType: service.bookingType,
-          serviceId: service.id,
-          serviceLabel: service.label,
-          clientId: String(user.id),
-          clientEmail: customerEmail,
-          endeavorName,
-          date,
-          time,
-          duration: String(slotDuration),
-          tenantSlug,
-          angelOs_splitEnabled: 'true',
-          angelOs_chargeModel: 'direct',
-          angelOs_paymentKind: 'deposit',
-          angelOs_totalCents: String(total),
-          angelOs_balanceDueCents: String(balanceCents),
-          angelOs_applicationFee: String(applicationFee),
-        },
-      },
-      { stripeAccount: connectedAccountId },
+    // Dual-rail hosted checkout (Square primary + optional OAuth split, or PayPal/Venmo)
+    const provider = await resolveProvider(
+      payload,
+      typeof requestedProvider === 'string' ? requestedProvider : undefined,
+      tenant.id,
     )
+    const activeConnectedSquare = provider === 'square' ? connectedSquare : null
+    const applicationFee = activeConnectedSquare
+      ? feeCents(deposit, await getPlatformFeeBps(payload, tenant.id))
+      : 0
 
-    // Update booking with Stripe PaymentIntent ID
+    const ref = generateCheckoutRef()
+    const host = req.headers?.get?.('x-forwarded-host') || req.headers?.get?.('host')
+    const proto = req.headers?.get?.('x-forwarded-proto')
+    const origin = host ? originFromHeaderValues(host, proto) : getServerSideURL()
+    const customerEmail = (user as { email?: string; name?: string }).email
+    const customerName = (user as { name?: string }).name
+
+    const returnUrl = `${origin}/book?booking=paid&bookingId=${booking.id}&ref=${ref}&provider=${provider}`
+    const cancelUrl = `${origin}/book?booking=cancelled&bookingId=${booking.id}`
+
+    const session = await startHostedCheckout(payload, {
+      ref,
+      provider: provider as PaymentProviderId,
+      kind: 'booking',
+      title: `${service.label} Deposit — ${endeavorName}`,
+      description: `Booking deposit for ${date} at ${time} (${endeavorName})`,
+      amountCents: deposit,
+      currency: 'USD',
+      tenantId: tenant.id,
+      tenantSlug,
+      tenantName: endeavorName,
+      recipientName: endeavorName,
+      chargeModel: activeConnectedSquare ? 'direct' : 'platform',
+      applicationFeeCents: applicationFee,
+      connectedSquare: activeConnectedSquare,
+      customerEmail,
+      customerName,
+      returnUrl,
+      cancelUrl,
+      intentData: {
+        bookingId: booking.id,
+        memberUserId: user.id,
+      },
+    })
+
+    // Save checkout ref and provider token on the pending booking for server confirmation
     await payload.update({
       collection: 'bookings' as any,
       id: booking.id,
       data: {
+        metadata: {
+          serviceId: service.id,
+          serviceLabel: service.label,
+          depositPercent: service.depositPercent,
+          depositCents: deposit,
+          balanceDueCents: balanceCents,
+          paymentKind: 'deposit',
+          paymentRef: session.ref,
+          paymentProvider: session.provider,
+        },
         integration: {
-          stripePaymentIntent: paymentIntent.id,
+          stripePaymentIntent: `${session.provider}:${session.externalId}`,
         },
       } as any,
       overrideAccess: true,
     })
 
     return Response.json({
-      clientSecret: paymentIntent.client_secret,
+      checkoutUrl: session.checkoutUrl,
+      provider: session.provider,
+      externalId: session.externalId,
+      ref: session.ref,
       bookingId: booking.id,
-      stripeAccountId: connectedAccountId,
       depositCents: deposit,
       totalCents: total,
       balanceCents,

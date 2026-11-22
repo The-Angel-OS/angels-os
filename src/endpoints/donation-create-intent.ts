@@ -1,48 +1,24 @@
 /**
- * Donation PaymentIntent Endpoint — POST /api/donation-ops/create-intent
+ * Donation Checkout Endpoint — POST /api/donation-ops/create-intent
  *
- * Creates a Stripe PaymentIntent for one-time donations. Endeavor-specific:
- * a donation on a tenant's /donate is a destination charge to that endeavor's
- * connected account (the Justice Fund share is kept as the application fee).
- * Platform context (no Connect-enabled tenant) → platform charge, 100% Justice Fund.
- *
- * No authentication required — donations are public.
- *
- * Request body:
- *   { amount: number (cents, min 100), donorEmail?: string, donorName?: string, message?: string }
- *
- * Response:
- *   { clientSecret: string, paymentIntentId: string }
- *
- * Sprint 43 — Monetization Go-Live
+ * Starts a Square or PayPal hosted checkout session for one-time donations.
+ * Keeps MIN_DONATION_CENTS = 500 + IP/user rate limiting to prevent card-testing abuse.
  */
-
 import type { PayloadHandler } from 'payload'
-import Stripe from 'stripe'
-import { logError } from '@/utilities/logError'
-import { resolveDonationRecipient, DONATION_JUSTICE_FUND_PERCENT } from '@/utilities/donationRouting'
+import { generateCheckoutRef } from '@/lib/payments/config'
+import { startHostedCheckout } from '@/lib/payments/registry'
 import { checkApiRateLimit, extractRateLimitKey } from '@/utilities/apiRateLimiter'
+import { DONATION_JUSTICE_FUND_PERCENT, resolveDonationRecipient } from '@/utilities/donationRouting'
+import { getServerSideURL } from '@/utilities/getURL'
+import { logError } from '@/utilities/logError'
+import { originFromHeaderValues } from '@/utilities/originFromHeaders'
 
-let _stripe: Stripe | null = null
-function getStripe(): Stripe {
-  if (!_stripe) {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      throw new Error('STRIPE_SECRET_KEY is not configured')
-    }
-    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2025-02-24.acacia' as Stripe.LatestApiVersion,
-    })
-  }
-  return _stripe
-}
-
-/** Minimum donation: $5.00 (500 cents) — raised from $1.00 to block automated card-testing scripts */
+/** Minimum donation: $5.00 (500 cents) */
 const MIN_DONATION_CENTS = 500
 /** Maximum donation: $10,000.00 (1,000,000 cents) */
 const MAX_DONATION_CENTS = 1_000_000
 
 export const donationCreateIntentHandler: PayloadHandler = async (req) => {
-  // ── Rate Limiting (Stripe anti-abuse & card-spinning mitigation) ──
   const rateLimitKey = extractRateLimitKey(req)
   const rateLimit = checkApiRateLimit(rateLimitKey, 'stripe')
   if (!rateLimit.allowed) {
@@ -55,34 +31,24 @@ export const donationCreateIntentHandler: PayloadHandler = async (req) => {
     )
   }
 
-  // ── Parse body ────────────────────────────────────────────────
   let body: Record<string, unknown>
   try {
     body = await (req as unknown as Request).json()
   } catch {
-    return Response.json(
-      { error: 'Invalid JSON body' },
-      { status: 400 },
-    )
+    return Response.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const { amount, donorEmail, donorName, message, tenantSlug } = body
+  const { amount, donorEmail, donorName, message, tenantSlug, provider: requestedProvider } = body
 
-  // ── Validate amount ───────────────────────────────────────────
   if (typeof amount !== 'number' || !Number.isInteger(amount)) {
-    return Response.json(
-      { error: 'amount must be an integer (cents)' },
-      { status: 400 },
-    )
+    return Response.json({ error: 'amount must be an integer (cents)' }, { status: 400 })
   }
-
   if (amount < MIN_DONATION_CENTS) {
     return Response.json(
       { error: `Minimum donation is $${(MIN_DONATION_CENTS / 100).toFixed(2)}` },
       { status: 400 },
     )
   }
-
   if (amount > MAX_DONATION_CENTS) {
     return Response.json(
       { error: `Maximum donation is $${(MAX_DONATION_CENTS / 100).toFixed(2)}` },
@@ -90,107 +56,88 @@ export const donationCreateIntentHandler: PayloadHandler = async (req) => {
     )
   }
 
-  // ── Resolve the recipient endeavor ────────────────────────────
-  // A donation on a tenant's /donate raises funds FOR that endeavor: a Stripe
-  // destination charge routes the gift to the endeavor's connected account,
-  // with the constitutional Justice Fund share kept as the application fee.
-  // Platform context (no tenant / not Connect-enabled) keeps the legacy
-  // behavior: a platform charge, 100% to the Justice Fund.
-  // The HOST is authoritative for "whose site is this gift on": the middleware sets
-  // x-tenant-id from the hostname (e.g. grace-chapel.spacesangels.com → 'grace-chapel'),
-  // which is correct even when the client's payload-tenant cookie is absent or stale
-  // (the public church site has no such cookie). Body tenantSlug is the fallback.
   const headerTenant = req.headers?.get('x-tenant-id') || ''
-  const bodySlug = typeof tenantSlug === 'string' && tenantSlug && tenantSlug !== 'default' ? tenantSlug : ''
+  const bodySlug =
+    typeof tenantSlug === 'string' && tenantSlug && tenantSlug !== 'default' ? tenantSlug : ''
   const slug = headerTenant || bodySlug
-  let connectedAccountId: string | null = null
+
   let resolvedTenantId: number | undefined
   let recipientName = 'the Justice Fund'
-  let chargeModel: 'destination' | 'platform' = 'platform'
-  let applicationFee = 0
+  let chargeModel: 'platform' | 'direct' = 'platform'
+  let applicationFeeCents = 0
 
   try {
-    // Shared with GET /donation-ops/routing — the breakdown the form SHOWS is
-    // resolved by the same code as the charge that's MADE.
     const recipient = await resolveDonationRecipient(req.payload, slug)
     resolvedTenantId = recipient.tenantId
+    recipientName = recipient.recipientName
     if (recipient.chargeModel === 'destination') {
-      connectedAccountId = recipient.connectedAccountId
-      recipientName = recipient.recipientName
-      chargeModel = 'destination'
-      // DELIBERATELY NOT the platform fee, and not per-tenant negotiable.
-      //
-      // Every other checkout now resolves through getPlatformFeeBps, so this
-      // looks like the one that was missed. It wasn't. A donation is not a sale:
-      // this slice is the Justice Fund, it is a fixed and publishable share of
-      // money someone gave away, and it must not move because a tenant negotiated
-      // a better commercial rate on their product sales. A platform that quietly
-      // takes a larger cut of charity than it discloses is the exact thing the
-      // constitution exists to prevent.
-      applicationFee = Math.round((amount * DONATION_JUSTICE_FUND_PERCENT) / 100)
+      chargeModel = 'direct'
+      applicationFeeCents = Math.round((amount * DONATION_JUSTICE_FUND_PERCENT) / 100)
     }
   } catch (err) {
-    // Fall back to platform / Justice Fund on any lookup failure — but ESCALATE:
-    // a failed tenant/Connect-account lookup silently misroutes a donation meant
-    // for this endeavor to the platform account. That must never be invisible.
     void logError({
       level: 'warning',
       source: 'donation-create-intent/resolveTenantAccount',
-      message: `Failed to resolve Stripe Connect account for tenant '${slug}' — donation of $${(amount / 100).toFixed(2)} may misroute to the platform: ${err instanceof Error ? err.message : String(err)}`,
-      details: err instanceof Error ? err.stack : String(err),
+      message: `Failed to resolve donation recipient for tenant '${slug}': ${err instanceof Error ? err.message : String(err)}`,
       tenantId: resolvedTenantId,
     })
   }
 
-  // ── Create Stripe PaymentIntent ───────────────────────────────
   try {
-    const paymentIntent = await getStripe().paymentIntents.create({
-      amount,
-      currency: 'usd',
-      automatic_payment_methods: { enabled: true },
-      // Destination charge → funds flow to the endeavor's connected account
-      ...(connectedAccountId
-        ? {
-            transfer_data: { destination: connectedAccountId },
-            application_fee_amount: applicationFee,
-          }
-        : {}),
-      metadata: {
-        angelOs_type: 'donation',
-        angelOs_chargeModel: chargeModel,
-        recipientName,
-        ...(slug ? { recipientTenant: slug } : {}),
-        ...(applicationFee ? { angelOs_justiceFundCents: String(applicationFee) } : {}),
-        ...(typeof donorEmail === 'string' ? { donorEmail } : {}),
-        ...(typeof donorName === 'string' ? { donorName } : {}),
-        ...(typeof message === 'string' ? { message: message.slice(0, 500) } : {}),
+    const host = req.headers?.get?.('x-forwarded-host') || req.headers?.get?.('host')
+    const proto = req.headers?.get?.('x-forwarded-proto')
+    const origin = host ? originFromHeaderValues(host, proto) : getServerSideURL()
+    const ref = generateCheckoutRef()
+
+    const session = await startHostedCheckout(req.payload, {
+      ref,
+      provider: typeof requestedProvider === 'string' ? (requestedProvider as 'square' | 'paypal') : undefined,
+      kind: 'donation',
+      title: `Donation to ${recipientName}`,
+      description:
+        typeof donorName === 'string' && donorName.trim()
+          ? `Gift to ${recipientName} from ${donorName.trim()}`
+          : `Gift to ${recipientName}`,
+      amountCents: amount,
+      currency: 'USD',
+      tenantId: resolvedTenantId,
+      tenantSlug: slug || undefined,
+      tenantName: recipientName,
+      recipientName,
+      chargeModel,
+      applicationFeeCents,
+      customerEmail: typeof donorEmail === 'string' ? donorEmail.trim() : undefined,
+      customerName: typeof donorName === 'string' ? donorName.trim() : undefined,
+      returnUrl: `${origin}/donate?success=true&amount=${amount}&ref=${ref}`,
+      cancelUrl: `${origin}/donate?cancelled=true`,
+      intentData: {
+        donorEmail: typeof donorEmail === 'string' ? donorEmail.trim() : undefined,
+        donorName: typeof donorName === 'string' ? donorName.trim() : undefined,
+        message: typeof message === 'string' ? message.slice(0, 500) : undefined,
       },
-      ...(typeof donorEmail === 'string' ? { receipt_email: donorEmail } : {}),
-      description: `Donation to ${recipientName}${typeof donorName === 'string' ? ` from ${donorName}` : ''}`,
     })
 
-    console.log(
-      `[Donation] PaymentIntent ${paymentIntent.id} ($${(amount / 100).toFixed(2)}) → ${recipientName} [${chargeModel}]`,
-    )
-
     return Response.json({
-      clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id,
+      ok: true,
+      checkoutUrl: session.checkoutUrl,
+      provider: session.provider,
+      externalId: session.externalId,
+      ref: session.ref,
       recipientName,
       chargeModel,
     })
   } catch (err) {
-    console.error('[Donation] Failed to create PaymentIntent:', err)
-    await logError({
+    const msg = err instanceof Error ? err.message : 'Failed to start donation checkout'
+    void logError({
       source: 'donation-create-intent',
-      message: `Failed to create donation PaymentIntent: ${err instanceof Error ? err.message : String(err)}`,
+      message: msg,
       details: err instanceof Error ? err.stack : String(err),
       statusCode: 500,
       tenantId: resolvedTenantId,
     })
     return Response.json(
-      { error: 'Failed to create payment. Please try again.' },
-      { status: 500 },
+      { error: msg },
+      { status: msg.includes('not configured') ? 503 : 500 },
     )
   }
 }

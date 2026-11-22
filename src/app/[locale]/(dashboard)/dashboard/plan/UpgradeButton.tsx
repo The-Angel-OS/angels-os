@@ -37,8 +37,8 @@ export function UpgradeButton({ plan, label }: { plan: 'site' | 'business'; labe
         setBusy(false)
         return
       }
-      // Stripe's hosted page. Deliberately a full navigation, not a popup —
-      // popups get blocked and the customer never learns why.
+      // Hosted checkout page (Square or PayPal). Deliberately a full navigation,
+      // not a popup — popups get blocked and the customer never learns why.
       window.location.href = data.url
     } catch {
       setError('Could not reach the server. Check your connection and try again.')

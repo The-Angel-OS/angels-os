@@ -8,6 +8,7 @@ import { RenderBlocks } from '@/blocks/RenderBlocks'
 import { RenderHero } from '@/heros/RenderHero'
 import { generateMeta, generateTenantRouteMeta } from '@/utilities/generateMeta'
 import { DonationBlock } from '@/blocks/Donation/Component'
+import { getConnectedSquareCredentials } from '@/lib/payments/config'
 
 // Unfurl-complete metadata: the authored CMS Page's meta (title/description/
 // image) when one exists for this tenant, else a tenant-branded default — so a
@@ -56,11 +57,10 @@ export default async function DonatePageRoute({
   const tenantName = (tenant as any)?.branding?.siteName || (tenant as any)?.name || 'Angel OS'
   const isPlatform = !tenant || (tenant as any).type === 'platform'
 
-  // Funds route to THIS endeavor only when it's a non-platform, Connect-enabled tenant.
-  const connect = (tenant as any)?.stripeConnect
-  const isEndeavorDonation = Boolean(
-    !isPlatform && connect?.stripeAccountId && connect?.stripeChargesEnabled,
-  )
+  // Funds route directly to THIS endeavor when it has connected its Square merchant account.
+  const connectedSquare =
+    !isPlatform && tenant?.id ? await getConnectedSquareCredentials(payload, tenant.id) : null
+  const isEndeavorDonation = Boolean(!isPlatform && connectedSquare)
 
   // Check SiteSettings for donationsEnabled (non-critical)
   let donationsEnabled = true
@@ -103,7 +103,7 @@ export default async function DonatePageRoute({
           {/* A donor should be able to tell where their money goes without
               learning a house vocabulary first. "Platform fee" is what it is. */}
           {isEndeavorDonation
-            ? `95% of your gift goes straight to ${tenantName}. The remaining 5% is the platform fee that keeps the site running. Handled securely by Stripe, and every gift is on the record.`
+            ? `95% of your gift goes straight to ${tenantName}. The remaining 5% is the platform fee that keeps the site running. Handled securely via Square or PayPal, and every gift is on the record.`
             : isPlatform
               ? 'Your gift keeps the lights on and the servers running for every endeavor on this platform.'
               : `Your gift supports ${tenantName}. It is held by the platform until this endeavor connects its own payment account, then passed straight on.`}

@@ -1,60 +1,13 @@
 'use client'
 
-import React, { useCallback, useMemo, useState } from 'react'
-import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
-import { loadStripe } from '@stripe/stripe-js'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { RichText } from '@/components/RichText'
+import { PaymentRailSelector, type PaymentRailId } from '@/components/payments/PaymentRailSelector'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useRuntimeConfig } from '@/providers/RuntimeConfig'
 
-function PaymentForm({ amountCents, donorEmail }: { amountCents: number; donorEmail: string }) {
-  const stripe = useStripe()
-  const elements = useElements()
-  const [processing, setProcessing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault()
-      if (!stripe || !elements) return
-      setProcessing(true)
-      setError(null)
-
-      const { error: submitError } = await elements.submit()
-      if (submitError) {
-        setError(submitError.message || 'Payment failed')
-        setProcessing(false)
-        return
-      }
-
-      const { error: confirmError } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: `${window.location.origin}/donate?success=true&amount=${amountCents}`,
-          ...(donorEmail ? { receipt_email: donorEmail } : {}),
-        },
-      })
-
-      if (confirmError) {
-        setError(confirmError.message || 'Payment failed')
-        setProcessing(false)
-      }
-    },
-    [stripe, elements, amountCents, donorEmail],
-  )
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <PaymentElement />
-      {error && <p className="text-sm text-red-500">{error}</p>}
-      <Button type="submit" disabled={!stripe || processing} className="w-full" size="lg">
-        {processing ? 'Processing...' : `Donate $${(amountCents / 100).toFixed(2)}`}
-      </Button>
-    </form>
-  )
-}
+const MIN_DONATION_CENTS = 500
 
 export const DonationBlock: React.FC<{
   id?: string
@@ -63,31 +16,34 @@ export const DonationBlock: React.FC<{
   showDonorFields?: boolean
 }> = ({ richText, presetAmounts = '5,10,25,50,100', showDonorFields = true }) => {
   const amounts = useMemo(
-    () => (presetAmounts || '5,10,25,50,100').split(',').map((s) => parseInt(s.trim(), 10) * 100).filter((n) => n > 0),
+    () =>
+      (presetAmounts || '5,10,25,50,100')
+        .split(',')
+        .map((s) => parseInt(s.trim(), 10) * 100)
+        .filter((n) => n >= MIN_DONATION_CENTS),
     [presetAmounts],
   )
 
-  const [step, setStep] = useState<'amount' | 'info' | 'payment' | 'success'>('amount')
-  const [amountCents, setAmountCents] = useState(amounts[2] || 2500)
+  const [step, setStep] = useState<'amount' | 'info' | 'verifying' | 'success'>('amount')
+  const [amountCents, setAmountCents] = useState(amounts[2] || amounts[0] || 2500)
   const [customAmount, setCustomAmount] = useState('')
   const [donorName, setDonorName] = useState('')
   const [donorEmail, setDonorEmail] = useState('')
   const [donorMessage, setDonorMessage] = useState('')
-  const [clientSecret, setClientSecret] = useState<string | null>(null)
-  // Runtime publishable key (NEXT_PUBLIC_* is empty in a self-host client bundle).
-  const { stripePublishableKey } = useRuntimeConfig()
-  const stripePromise = useMemo(
-    () => (stripePublishableKey ? loadStripe(stripePublishableKey) : null),
-    [stripePublishableKey],
-  )
+  const [provider, setProvider] = useState<PaymentRailId | null>(null)
+  const [hasProviders, setHasProviders] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [verifyParams, setVerifyParams] = useState<{
+    ref: string
+    orderId?: string
+    transactionId?: string
+    subscriptionId?: string
+  } | null>(null)
   const [viewer, setViewer] = useState<{ name?: string; email?: string } | null>(null)
   const [breakdown, setBreakdown] = useState<string | null>(null)
 
-  // Transparency line: fetch the ACTUAL routing for this host (destination
-  // charge to the endeavor vs Justice Fund stewardship) — never a hardcoded
-  // claim. Same resolver the charge itself uses. Fail-soft to a neutral line.
-  React.useEffect(() => {
+  useEffect(() => {
     let cancelled = false
     fetch('/api/donation-ops/routing')
       .then((r) => (r.ok ? r.json() : null))
@@ -100,19 +56,74 @@ export const DonationBlock: React.FC<{
     }
   }, [])
 
-  // Check for success return from Stripe
-  React.useEffect(() => {
+  const confirmReturn = useCallback(
+    async (opts: {
+      ref: string
+      orderId?: string
+      transactionId?: string
+      subscriptionId?: string
+    }) => {
+      setStep('verifying')
+      setError(null)
+      try {
+        const res = await fetch('/api/payment-ops/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(opts),
+        })
+        const data = (await res.json()) as {
+          ok?: boolean
+          pending?: boolean
+          amountCents?: number
+          error?: string
+        }
+        if (res.ok && data.ok) {
+          if (data.amountCents && data.amountCents > 0) setAmountCents(data.amountCents)
+          setStep('success')
+          return
+        }
+        setError(
+          data.error ||
+            (data.pending
+              ? 'Payment is still finalizing — please retry verification in a few seconds.'
+              : 'Could not verify your donation yet.'),
+        )
+      } catch {
+        setError('Network error verifying donation. Please click Retry Verification.')
+      }
+    },
+    [],
+  )
+
+  // Handle return from Square or PayPal hosted checkout
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search)
+    if (params.get('cancelled') === 'true') {
+      setError('Checkout was cancelled — you were not charged.')
+      return
+    }
     if (params.get('success') === 'true') {
-      setStep('success')
       const returnedAmount = parseInt(params.get('amount') || '0', 10)
       if (returnedAmount > 0) setAmountCents(returnedAmount)
+      const ref = params.get('ref')
+      if (!ref) {
+        setStep('success')
+        return
+      }
+      const nextParams = {
+        ref,
+        orderId: params.get('orderId') || params.get('token') || undefined,
+        transactionId: params.get('transactionId') || undefined,
+        subscriptionId: params.get('subscription_id') || undefined,
+      }
+      setVerifyParams(nextParams)
+      void confirmReturn(nextParams)
     }
-  }, [])
+  }, [confirmReturn])
 
-  // Pre-fill name/email when signed in (anonymous giving stays untouched — the
-  // fields just collapse to the message). A logged-in donor shouldn't retype.
-  React.useEffect(() => {
+  // Pre-fill name/email when signed in
+  useEffect(() => {
     let cancelled = false
     fetch('/api/users/me', { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : null))
@@ -132,32 +143,26 @@ export const DonationBlock: React.FC<{
   const handleSelectAmount = (cents: number) => {
     setAmountCents(cents)
     setCustomAmount('')
+    setError(null)
   }
 
   const handleCustomAmount = (val: string) => {
     setCustomAmount(val)
     const parsed = parseFloat(val)
-    if (!isNaN(parsed) && parsed >= 1) {
+    if (!isNaN(parsed) && parsed > 0) {
       setAmountCents(Math.round(parsed * 100))
     }
   }
 
-  const handleContinue = async () => {
-    if (amountCents < 100) {
-      setError('Minimum donation is $1.00')
+  const startHostedDonation = async () => {
+    if (amountCents < MIN_DONATION_CENTS) {
+      setError(`Minimum donation is $${(MIN_DONATION_CENTS / 100).toFixed(2)}`)
       return
     }
 
-    if (showDonorFields && step === 'amount') {
-      setStep('info')
-      return
-    }
-
+    setSubmitting(true)
     setError(null)
     try {
-      // No tenantSlug in the body: the server resolves the recipient from the
-      // HOST header (x-tenant-id set by middleware) — authoritative even when
-      // the payload-tenant cookie is stale or absent on a public portal.
       const res = await fetch('/api/donation-ops/create-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -166,17 +171,51 @@ export const DonationBlock: React.FC<{
           donorName: donorName || undefined,
           donorEmail: donorEmail || undefined,
           message: donorMessage || undefined,
+          provider: provider || undefined,
         }),
       })
 
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to create payment')
+      const data = (await res.json()) as { checkoutUrl?: string; error?: string }
+      if (!res.ok || !data.checkoutUrl) {
+        throw new Error(data.error || 'Failed to start donation checkout')
+      }
 
-      setClientSecret(data.clientSecret)
-      setStep('payment')
+      window.location.href = data.checkoutUrl
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
+      setSubmitting(false)
     }
+  }
+
+  const handleContinue = async () => {
+    if (amountCents < MIN_DONATION_CENTS) {
+      setError(`Minimum donation is $${(MIN_DONATION_CENTS / 100).toFixed(2)}`)
+      return
+    }
+
+    if (showDonorFields && step === 'amount') {
+      setError(null)
+      setStep('info')
+      return
+    }
+
+    await startHostedDonation()
+  }
+
+  if (step === 'verifying') {
+    return (
+      <div className="container">
+        <div className="mx-auto max-w-lg rounded-lg border border-border bg-card p-8 text-center space-y-4">
+          <h2 className="text-xl font-semibold">Confirming your gift...</h2>
+          <p className="text-sm text-muted-foreground">
+            {error || 'Verifying payment confirmation with the processor.'}
+          </p>
+          {error && verifyParams && (
+            <Button onClick={() => void confirmReturn(verifyParams)}>Retry Verification</Button>
+          )}
+        </div>
+      </div>
+    )
   }
 
   if (step === 'success') {
@@ -215,67 +254,111 @@ export const DonationBlock: React.FC<{
               ))}
             </div>
             <div className="space-y-1">
-              <Label htmlFor="custom-amount">Custom amount</Label>
+              <Label htmlFor="custom-amount">Custom amount ($5.00 minimum)</Label>
               <Input
                 id="custom-amount"
                 type="number"
-                min="1"
+                min="5"
                 step="0.01"
                 placeholder="Enter amount"
                 value={customAmount}
                 onChange={(e) => handleCustomAmount(e.target.value)}
               />
             </div>
+            {!showDonorFields && (
+              <PaymentRailSelector
+                value={provider}
+                onChange={setProvider}
+                onLoaded={(info) => setHasProviders(info.providers.length > 0)}
+                disabled={submitting}
+              />
+            )}
             <p className="text-xs text-muted-foreground">
-              {breakdown || 'Your gift is processed securely by Stripe, with a receipt to your email.'}
+              {breakdown ||
+                'Your gift is processed securely via Square or PayPal, with a receipt to your email.'}
             </p>
-            <Button onClick={handleContinue} className="w-full" size="lg">
-              Continue — ${(amountCents / 100).toFixed(2)}
+            <Button
+              onClick={handleContinue}
+              disabled={submitting || (!showDonorFields && !hasProviders)}
+              className="w-full"
+              size="lg"
+            >
+              {!showDonorFields && submitting
+                ? 'Redirecting...'
+                : `Continue — $${(amountCents / 100).toFixed(2)}`}
             </Button>
           </div>
         )}
 
         {step === 'info' && (
           <div className="rounded-lg border border-border bg-card p-6 space-y-4">
-            <h3 className="text-lg font-semibold">{viewer ? 'Add a note (optional)' : 'Your info (optional)'}</h3>
+            <h3 className="text-lg font-semibold">
+              {viewer ? 'Add a note (optional)' : 'Your info (optional)'}
+            </h3>
             {viewer ? (
-              // Signed in — name/email already known; just confirm + take a note.
               <p className="text-sm text-muted-foreground">
-                Giving as <span className="font-medium text-foreground">{viewer.name || viewer.email}</span>
+                Giving as{' '}
+                <span className="font-medium text-foreground">{viewer.name || viewer.email}</span>
                 {viewer.name && viewer.email ? ` · ${viewer.email}` : ''} (receipt to this email).
               </p>
             ) : (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="donor-name">Name</Label>
-                  <Input id="donor-name" value={donorName} onChange={(e) => setDonorName(e.target.value)} placeholder="Your name" />
+                  <Input
+                    id="donor-name"
+                    value={donorName}
+                    onChange={(e) => setDonorName(e.target.value)}
+                    placeholder="Your name"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="donor-email">Email (for receipt)</Label>
-                  <Input id="donor-email" type="email" value={donorEmail} onChange={(e) => setDonorEmail(e.target.value)} placeholder="you@example.com" />
+                  <Input
+                    id="donor-email"
+                    type="email"
+                    value={donorEmail}
+                    onChange={(e) => setDonorEmail(e.target.value)}
+                    placeholder="you@example.com"
+                  />
                 </div>
               </>
             )}
             <div className="space-y-2">
               <Label htmlFor="donor-message">Message</Label>
-              <Input id="donor-message" value={donorMessage} onChange={(e) => setDonorMessage(e.target.value)} placeholder="Optional message" />
+              <Input
+                id="donor-message"
+                value={donorMessage}
+                onChange={(e) => setDonorMessage(e.target.value)}
+                placeholder="Optional message"
+              />
             </div>
+
+            <PaymentRailSelector
+              value={provider}
+              onChange={setProvider}
+              onLoaded={(info) => setHasProviders(info.providers.length > 0)}
+              disabled={submitting}
+            />
+
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setStep('amount')} className="flex-1">
+              <Button
+                variant="outline"
+                onClick={() => setStep('amount')}
+                className="flex-1"
+                disabled={submitting}
+              >
                 Back
               </Button>
-              <Button onClick={handleContinue} className="flex-1" size="lg">
-                Continue — ${(amountCents / 100).toFixed(2)}
+              <Button
+                onClick={handleContinue}
+                className="flex-1"
+                size="lg"
+                disabled={submitting || !hasProviders}
+              >
+                {submitting ? 'Redirecting...' : `Give $${(amountCents / 100).toFixed(2)}`}
               </Button>
             </div>
-          </div>
-        )}
-
-        {step === 'payment' && clientSecret && (
-          <div className="rounded-lg border border-border bg-card p-6">
-            <Elements stripe={stripePromise} options={{ clientSecret }}>
-              <PaymentForm amountCents={amountCents} donorEmail={donorEmail} />
-            </Elements>
           </div>
         )}
 

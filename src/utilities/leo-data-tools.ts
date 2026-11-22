@@ -7666,31 +7666,27 @@ async function handleConnectStripe(
   }
 
   try {
-    // Mint the REAL Stripe onboarding link (shared with the Payments dashboard),
+    // Mint the Square OAuth onboarding link (shared with the Payments dashboard),
     // so "connect my bank" works conversationally — the link below takes you
-    // straight into Stripe's hosted onboarding; status syncs back automatically.
+    // straight into Square's hosted OAuth flow; status syncs back automatically.
     const { createConnectOnboardingLink } = await import('@/utilities/stripeConnectOnboarding')
     const result = await createConnectOnboardingLink(payload, tenantId)
 
     if (result.alreadyComplete) {
-      return `Your Stripe account is already connected (${result.stripeAccountId}). Charges: ${result.chargesEnabled ? 'enabled' : 'pending'}, Payouts: ${result.payoutsEnabled ? 'enabled' : 'pending'}. You can manage it in the Payments dashboard.`
+      return `Your Square merchant account is already connected (${result.stripeAccountId}). Charges: ${result.chargesEnabled ? 'enabled' : 'pending'}, Payouts: ${result.payoutsEnabled ? 'enabled' : 'pending'}. You can manage it in the Payments dashboard.`
     }
 
     return [
-      `Here's your secure Stripe onboarding link — it takes about 5 minutes and you'll need basic details and a bank account for payouts:`,
+      `Here's your secure Square OAuth connection link — it takes about 2 minutes to authorize payouts to your Square account:`,
       ``,
       result.onboardingUrl,
       ``,
-      `Once you finish, your gifts and payments flow straight to your account (the platform keeps only the small constitutional share). You can come back any time via the Payments dashboard.`,
+      `Once you finish, your gifts, bookings, and shop orders flow directly to your Square account (the platform keeps only the small constitutional share). You can manage it any time via the Payments dashboard.`,
     ].join('\n')
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     logCaughtError('leo-tools', err).catch(() => {})
-    // Surface the common platform-profile gate as an actionable message.
-    if (message.includes('platform-profile') || message.includes('managing losses')) {
-      return 'Stripe needs the Angel OS platform owner to accept the Connect platform profile before new accounts can onboard (a one-time step at dashboard.stripe.com/settings/connect/platform-profile). I have flagged it — please try again shortly.'
-    }
-    return `I couldn't start Stripe onboarding right now: ${message}. You can also connect from the Payments dashboard.`
+    return `I couldn't start Square connection right now: ${message}. You can also connect from the Payments dashboard.`
   }
 }
 

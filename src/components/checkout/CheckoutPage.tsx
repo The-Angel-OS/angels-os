@@ -8,16 +8,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/providers/Auth'
-import { useTheme } from '@/providers/Theme'
-import { Elements } from '@stripe/react-stripe-js'
-import { loadStripe } from '@stripe/stripe-js'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 
-import { cssVariables } from '@/cssVariables'
-import { CheckoutForm } from '@/components/forms/CheckoutForm'
-import { useAddresses, useCart, usePayments } from '@payloadcms/plugin-ecommerce/client/react'
+import { PaymentRailSelector, type PaymentRailId } from '@/components/payments/PaymentRailSelector'
+import { useAddresses, useCart } from '@payloadcms/plugin-ecommerce/client/react'
 import { CheckoutAddresses } from '@/components/checkout/CheckoutAddresses'
 import { CreateAddressModal } from '@/components/addresses/CreateAddressModal'
 import { Address } from '@/payload-types'
@@ -29,15 +25,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { trackBeginCheckout, trackAddPaymentInfo } from '@/utilities/gtagEcommerce'
 import { FEATURES } from '@/config/features'
 
-// Build-time fallback (works on Vercel where NEXT_PUBLIC_* bake into the bundle).
-// On a self-hosted Docker build this is empty, so prefer the runtime `publishableKey`
-// prop threaded from the server page.
-const BUILD_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
-
-export const CheckoutPage: React.FC<{ publishableKey?: string }> = ({ publishableKey }) => {
-  const stripeKey = publishableKey || BUILD_PUBLISHABLE_KEY
-  // Default Stripe instance (platform account — used when no Connect account).
-  const defaultStripe = useMemo(() => (stripeKey ? loadStripe(stripeKey) : null), [stripeKey])
+export const CheckoutPage: React.FC<{ publishableKey?: string }> = () => {
   const { user } = useAuth()
   const router = useRouter()
   const { cart, removeItem } = useCart()
@@ -59,60 +47,42 @@ export const CheckoutPage: React.FC<{ publishableKey?: string }> = ({ publishabl
     [removeItem, removingItemId],
   )
   const [error, setError] = useState<null | string>(null)
-  const { theme } = useTheme()
-  /**
-   * State to manage the email input for guest checkout.
-   */
   const [email, setEmail] = useState('')
   const [emailEditable, setEmailEditable] = useState(true)
-  const [paymentData, setPaymentData] = useState<null | Record<string, unknown>>(null)
-  const { initiatePayment } = usePayments()
+  const [provider, setProvider] = useState<PaymentRailId | null>(null)
+  const [hasProviders, setHasProviders] = useState(true)
+  const [checkoutCancelled, setCheckoutCancelled] = useState(false)
   const { addresses } = useAddresses()
   const [shippingAddress, setShippingAddress] = useState<Partial<Address>>()
   const [billingAddress, setBillingAddress] = useState<Partial<Address>>()
   const [billingAddressSameAsShipping, setBillingAddressSameAsShipping] = useState(true)
   const [isProcessingPayment, setProcessingPayment] = useState(false)
-  /**
-   * Fulfillment method. When local-pickup is offered (FEATURES.localPickup) and
-   * the buyer chooses 'pickup', we drop the address wall entirely — cash-and-carry
-   * items need no shipping address, and Stripe's PaymentElement collects whatever
-   * billing details the card network actually requires. 'ship' keeps the full
-   * address requirement unchanged.
-   */
   const [fulfillmentMethod, setFulfillmentMethod] = useState<'ship' | 'pickup'>('ship')
   const isPickup = FEATURES.localPickup && fulfillmentMethod === 'pickup'
 
-  // Direct charges: when paymentData includes stripeAccountId, load Stripe
-  // with the connected account context so Elements targets the seller's account.
-  // Falls back to defaultStripe (platform account) for non-Connect payments.
-  const stripePromise = useMemo(() => {
-    if (!paymentData) return defaultStripe
-    const connectedAccountId = paymentData['stripeAccountId'] as string | undefined
-    if (connectedAccountId && stripeKey) {
-      return loadStripe(stripeKey, { stripeAccount: connectedAccountId })
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('cancelled') === '1') {
+      setCheckoutCancelled(true)
     }
-    return defaultStripe
-  }, [paymentData, stripeKey, defaultStripe])
+  }, [])
 
   const cartIsEmpty = !cart || !cart.items || !cart.items.length
 
   const canGoToPayment = Boolean(
     (email || user) &&
-    // Local pickup drops the address requirement to just email + card.
-    (isPickup || (billingAddress && (billingAddressSameAsShipping || shippingAddress))),
+      (emailEditable ? Boolean(user) : true) &&
+      (isPickup || (billingAddress && (billingAddressSameAsShipping || shippingAddress))),
   )
 
-  // On initial load wait for addresses to be loaded and check to see if we can prefill a default one
   useEffect(() => {
-    if (!shippingAddress) {
-      if (addresses && addresses.length > 0) {
-        const defaultAddress = addresses[0]
-        if (defaultAddress) {
-          setBillingAddress(defaultAddress)
-        }
+    if (!shippingAddress && addresses && addresses.length > 0) {
+      const defaultAddress = addresses[0]
+      if (defaultAddress) {
+        setBillingAddress(defaultAddress)
       }
     }
-  }, [addresses])
+  }, [addresses, shippingAddress])
 
   useEffect(() => {
     return () => {
@@ -124,63 +94,85 @@ export const CheckoutPage: React.FC<{ publishableKey?: string }> = ({ publishabl
     }
   }, [])
 
-  const initiatePaymentIntent = useCallback(
-    async (paymentID: string) => {
-      try {
-        const paymentData = (await initiatePayment(paymentID, {
-          additionalData: {
-            ...(email ? { customerEmail: email } : {}),
-            fulfillmentMethod: isPickup ? 'pickup' : 'ship',
-            ...(isPickup
-              ? {}
-              : {
-                  billingAddress,
-                  shippingAddress: billingAddressSameAsShipping ? billingAddress : shippingAddress,
-                }),
-          },
-        })) as Record<string, unknown>
+  const startHostedCartCheckout = useCallback(async () => {
+    if (!cart?.id) {
+      setError('Cart is missing or empty.')
+      return
+    }
+    const customerEmail = ((user as { email?: string } | null)?.email || email || '').trim()
+    if (!customerEmail) {
+      setError('Please enter your email address first.')
+      return
+    }
 
-        if (paymentData) {
-          setPaymentData(paymentData)
+    setProcessingPayment(true)
+    setError(null)
+    setCheckoutCancelled(false)
+    try {
+      const ga4Items = (cart?.items || [])
+        .filter((item) => typeof item.product === 'object' && item.product)
+        .map((item) => {
+          const product = item.product as Record<string, unknown>
+          return {
+            item_id: String(product.id || ''),
+            item_name: (product.title as string) || 'Product',
+            price: (product.priceInUSD as number) || 0,
+            quantity: item.quantity || 1,
+          }
+        })
+      trackBeginCheckout(ga4Items, cart?.subtotal || 0)
+      trackAddPaymentInfo(ga4Items, cart?.subtotal || 0)
 
-          // GA4: track checkout initiation
-          const ga4Items = (cart?.items || [])
-            .filter((item) => typeof item.product === 'object' && item.product)
-            .map((item) => {
-              const product = item.product as Record<string, unknown>
-              return {
-                item_id: String(product.id || ''),
-                item_name: (product.title as string) || 'Product',
-                price: (product.priceInUSD as number) || 0,
-                quantity: item.quantity || 1,
-              }
-            })
-          trackBeginCheckout(ga4Items, cart?.subtotal || 0)
-          trackAddPaymentInfo(ga4Items, cart?.subtotal || 0)
-        }
-      } catch (error) {
-        const errorData = error instanceof Error ? JSON.parse(error.message) : {}
-        let errorMessage = 'An error occurred while initiating payment.'
+      const res = await fetch('/api/payment-ops/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          cartId: cart.id,
+          customerEmail,
+          provider: provider || undefined,
+          fulfillmentMethod: isPickup ? 'pickup' : 'ship',
+          ...(isPickup
+            ? {}
+            : {
+                billingAddress,
+                shippingAddress: billingAddressSameAsShipping ? billingAddress : shippingAddress,
+              }),
+        }),
+      })
 
-        if (errorData?.cause?.code === 'OutOfStock') {
-          errorMessage = 'One or more items in your cart are out of stock.'
-        }
-
-        setError(errorMessage)
-        toast.error(errorMessage)
+      const data = (await res.json().catch(() => ({}))) as {
+        checkoutUrl?: string
+        error?: string
       }
-    },
-    [billingAddress, billingAddressSameAsShipping, shippingAddress, isPickup, email, cart],
-  )
 
-  // Derive current checkout step for progress indicator
-  const checkoutStep: 'contact' | 'address' | 'payment' = paymentData?.['clientSecret']
+      if (!res.ok || !data.checkoutUrl) {
+        throw new Error(data.error || 'Could not start secure checkout.')
+      }
+
+      window.location.href = data.checkoutUrl
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'An error occurred while initiating payment.'
+      setError(msg)
+      toast.error(msg)
+      setProcessingPayment(false)
+    }
+  }, [
+    cart,
+    user,
+    email,
+    provider,
+    isPickup,
+    billingAddress,
+    billingAddressSameAsShipping,
+    shippingAddress,
+  ])
+
+  const checkoutStep: 'contact' | 'address' | 'payment' = canGoToPayment
     ? 'payment'
     : billingAddress || (isPickup && (user || (email && !emailEditable)))
       ? 'address'
       : 'contact'
-
-  if (!stripePromise) return null
 
   if (cartIsEmpty && isProcessingPayment) {
     return (
@@ -289,7 +281,7 @@ export const CheckoutPage: React.FC<{ publishableKey?: string }> = ({ publishabl
             <div className="flex flex-col gap-3">
               <button
                 type="button"
-                disabled={Boolean(paymentData)}
+                disabled={isProcessingPayment}
                 onClick={() => setFulfillmentMethod('ship')}
                 className={`text-left rounded-lg border p-4 transition-colors ${
                   fulfillmentMethod === 'ship'
@@ -304,7 +296,7 @@ export const CheckoutPage: React.FC<{ publishableKey?: string }> = ({ publishabl
               </button>
               <button
                 type="button"
-                disabled={Boolean(paymentData)}
+                disabled={isProcessingPayment}
                 onClick={() => setFulfillmentMethod('pickup')}
                 className={`text-left rounded-lg border p-4 transition-colors ${
                   fulfillmentMethod === 'pickup'
@@ -338,7 +330,7 @@ export const CheckoutPage: React.FC<{ publishableKey?: string }> = ({ publishabl
                   actions={
                     <Button
                       variant={'outline'}
-                      disabled={Boolean(paymentData)}
+                      disabled={isProcessingPayment}
                       onClick={(e) => {
                         e.preventDefault()
                         setBillingAddress(undefined)
@@ -366,7 +358,7 @@ export const CheckoutPage: React.FC<{ publishableKey?: string }> = ({ publishabl
               <Checkbox
                 id="shippingTheSameAsBilling"
                 checked={billingAddressSameAsShipping}
-                disabled={Boolean(paymentData || (!user && (!email || Boolean(emailEditable))))}
+                disabled={isProcessingPayment || (!user && (!email || Boolean(emailEditable)))}
                 onCheckedChange={(state) => {
                   setBillingAddressSameAsShipping(state as boolean)
                 }}
@@ -382,7 +374,7 @@ export const CheckoutPage: React.FC<{ publishableKey?: string }> = ({ publishabl
                       actions={
                         <Button
                           variant={'outline'}
-                          disabled={Boolean(paymentData)}
+                          disabled={isProcessingPayment}
                           onClick={(e) => {
                             e.preventDefault()
                             setShippingAddress(undefined)
@@ -414,26 +406,42 @@ export const CheckoutPage: React.FC<{ publishableKey?: string }> = ({ publishabl
           </>
         )}
 
-        {!paymentData && (
+        <div className="flex flex-col gap-4 border-t pt-6">
+          <h2 className="font-medium text-3xl">Payment</h2>
+          {checkoutCancelled && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
+              Checkout was cancelled — you have not been charged.
+            </div>
+          )}
+
+          <PaymentRailSelector
+            value={provider}
+            onChange={setProvider}
+            onLoaded={(info) => setHasProviders(info.providers.length > 0)}
+            disabled={isProcessingPayment}
+          />
+
           <Button
             className="self-start"
-            disabled={!canGoToPayment}
+            size="lg"
+            disabled={!canGoToPayment || isProcessingPayment || !hasProviders}
             onClick={(e) => {
               e.preventDefault()
-              void initiatePaymentIntent('stripe')
+              void startHostedCartCheckout()
             }}
           >
-            Go to payment
+            {isProcessingPayment ? 'Redirecting to Secure Payment...' : 'Continue to Secure Payment'}
           </Button>
-        )}
+        </div>
 
-        {!paymentData?.['clientSecret'] && error && (
-          <div className="my-8">
+        {error && (
+          <div className="my-4">
             <Message error={error} />
 
             <Button
               onClick={(e) => {
                 e.preventDefault()
+                setError(null)
                 router.refresh()
               }}
               variant="default"
@@ -442,57 +450,6 @@ export const CheckoutPage: React.FC<{ publishableKey?: string }> = ({ publishabl
             </Button>
           </div>
         )}
-
-        <Suspense fallback={<React.Fragment />}>
-          {paymentData && Boolean(paymentData['clientSecret']) && (
-            <div className="pb-16">
-              <h2 className="font-medium text-3xl">Payment</h2>
-              {error && <p>{`Error: ${error}`}</p>}
-              <Elements
-                options={{
-                  appearance: {
-                    theme: 'stripe',
-                    variables: {
-                      borderRadius: '6px',
-                      colorPrimary: '#858585',
-                      gridColumnSpacing: '20px',
-                      gridRowSpacing: '20px',
-                      colorBackground: theme === 'dark' ? '#0a0a0a' : cssVariables.colors.base0,
-                      colorDanger: cssVariables.colors.error500,
-                      colorDangerText: cssVariables.colors.error500,
-                      colorIcon:
-                        theme === 'dark' ? cssVariables.colors.base0 : cssVariables.colors.base1000,
-                      colorText: theme === 'dark' ? '#858585' : cssVariables.colors.base1000,
-                      colorTextPlaceholder: '#858585',
-                      fontFamily: 'Geist, sans-serif',
-                      fontSizeBase: '16px',
-                      fontWeightBold: '600',
-                      fontWeightNormal: '500',
-                      spacingUnit: '4px',
-                    },
-                  },
-                  clientSecret: paymentData['clientSecret'] as string,
-                }}
-                stripe={stripePromise}
-              >
-                <div className="flex flex-col gap-8">
-                  <CheckoutForm
-                    customerEmail={email}
-                    billingAddress={billingAddress}
-                    setProcessingPayment={setProcessingPayment}
-                  />
-                  <Button
-                    variant="ghost"
-                    className="self-start"
-                    onClick={() => setPaymentData(null)}
-                  >
-                    Cancel payment
-                  </Button>
-                </div>
-              </Elements>
-            </div>
-          )}
-        </Suspense>
       </div>
 
       {!cartIsEmpty && (

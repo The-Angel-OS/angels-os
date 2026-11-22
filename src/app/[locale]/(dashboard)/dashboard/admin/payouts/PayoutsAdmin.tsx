@@ -5,10 +5,11 @@ import { isOrderPaid } from '@/utilities/orderPaid'
 import Link from 'next/link'
 
 interface PayoutsAdminProps {
-  stripeAccountId: string | null
-  onboardingComplete: boolean
-  chargesEnabled: boolean
-  payoutsEnabled: boolean
+  squareConnected: boolean
+  squareMerchantId: string | null
+  squareMerchantName: string | null
+  squareEnvironment: 'sandbox' | 'production'
+  paypalConfigured: boolean
   recentOrders: Array<{
     id: string
     total: number
@@ -20,10 +21,11 @@ interface PayoutsAdminProps {
 }
 
 export function PayoutsAdmin({
-  stripeAccountId,
-  onboardingComplete,
-  chargesEnabled,
-  payoutsEnabled,
+  squareConnected,
+  squareMerchantId,
+  squareMerchantName,
+  squareEnvironment,
+  paypalConfigured,
   recentOrders,
   tenantName,
 }: PayoutsAdminProps) {
@@ -36,76 +38,74 @@ export function PayoutsAdmin({
       <div>
         <h1 className="text-2xl font-bold">Payouts &amp; Revenue</h1>
         <p className="text-muted-foreground">
-          Manage your Stripe Connect account and track revenue for {tenantName}.
+          Manage your Square payouts, PayPal rail status, and track revenue for {tenantName}.
         </p>
       </div>
 
-      {/* Stripe Connect Status */}
+      {/* Dual-Rail Payout Status */}
       <div className="rounded-xl border border-border bg-card p-6">
-        <h2 className="mb-4 text-lg font-semibold">Stripe Connect Status</h2>
+        <h2 className="mb-4 text-lg font-semibold">Payout Rails</h2>
 
-        {!stripeAccountId ? (
+        {!squareConnected ? (
           <div className="rounded-lg border-2 border-dashed border-amber-300 bg-amber-50 p-6 text-center dark:border-amber-800 dark:bg-amber-950/30">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900">
               <svg className="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
             </div>
-            <h3 className="mb-1 font-semibold">Stripe Connect Not Set Up</h3>
+            <h3 className="mb-1 font-semibold">Square Merchant Not Connected</h3>
             <p className="text-sm text-muted-foreground">
-              Connect your Stripe account to start receiving payments. Go to{' '}
+              Connect your Square account for automatic direct payouts. Go to{' '}
               <Link href="/dashboard/admin/payments" className="text-primary underline">
                 Payments Settings
               </Link>{' '}
-              to begin onboarding.
+              to connect Square.
+              {paypalConfigured ? ' Platform PayPal / Venmo rail is active as a companion option.' : ''}
             </p>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatusCard
-              label="Account ID"
-              value={stripeAccountId.slice(0, 16) + '...'}
+              label="Square Merchant"
+              value={squareMerchantName || squareMerchantId || 'Connected'}
               status="info"
             />
             <StatusCard
-              label="Onboarding"
-              value={onboardingComplete ? 'Complete' : 'Incomplete'}
-              status={onboardingComplete ? 'success' : 'warning'}
+              label="Direct Card Rail"
+              value="Connected"
+              status="success"
             />
             <StatusCard
-              label="Charges"
-              value={chargesEnabled ? 'Enabled' : 'Disabled'}
-              status={chargesEnabled ? 'success' : 'error'}
+              label="Square Environment"
+              value={squareEnvironment === 'sandbox' ? 'Sandbox' : 'Production'}
+              status={squareEnvironment === 'sandbox' ? 'warning' : 'success'}
             />
             <StatusCard
-              label="Payouts"
-              value={payoutsEnabled ? 'Enabled' : 'Disabled'}
-              status={payoutsEnabled ? 'success' : 'error'}
+              label="PayPal / Venmo"
+              value={paypalConfigured ? 'Active' : 'Not Set'}
+              status={paypalConfigured ? 'success' : 'warning'}
             />
           </div>
         )}
 
-        {stripeAccountId && (
-          <div className="mt-4 flex flex-wrap gap-3">
+        <div className="mt-4 flex flex-wrap gap-3">
+          {squareConnected && (
             <a
-              href="https://connect.stripe.com/express_login"
+              href="https://squareup.com/dashboard"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg bg-[#635BFF] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#5349d6]"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-7.076-2.19l-.893 5.575C4.746 22.901 7.614 24 11.174 24c2.6 0 4.719-.63 6.209-1.828 1.614-1.283 2.427-3.178 2.427-5.554 0-4.103-2.494-5.793-5.834-7.468z"/>
-              </svg>
-              Open Stripe Dashboard
+              Open Square Dashboard
             </a>
-            <Link
-              href="/dashboard/admin/payments"
-              className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
-            >
-              Payment Settings
-            </Link>
-          </div>
-        )}
+          )}
+          <Link
+            href="/dashboard/admin/payments"
+            className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
+          >
+            Payment Settings
+          </Link>
+        </div>
       </div>
 
       {/* Revenue Summary */}

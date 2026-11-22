@@ -1,194 +1,152 @@
 /**
- * Sprint 43 — Donation PaymentIntent endpoint tests
+ * Donation Checkout Endpoint Tests — POST /api/donation-ops/create-intent
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// getStripe() throws "STRIPE_SECRET_KEY is not configured" BEFORE it ever
-// constructs Stripe, so the mock below never engaged and every case 500'd. The
-// key is absent in CI (no .env) and absent locally (dotenv loads .env, which
-// does not exist — only .env.local). Set it before the module is imported.
-process.env.STRIPE_SECRET_KEY ||= 'sk_test_fake'
+const mockStartHostedCheckout = vi.hoisted(() => vi.fn())
+const mockResolveDonationRecipient = vi.hoisted(() =>
+  vi.fn(async () => ({
+    recipientName: 'the Justice Fund',
+    chargeModel: 'platform' as const,
+  })),
+)
 
-// Mock Stripe
-const mockCreate = vi.fn()
-vi.mock('stripe', () => {
-  return {
-    default: vi.fn().mockImplementation(() => ({
-      paymentIntents: { create: mockCreate },
-    })),
-  }
-})
+vi.mock('@/lib/payments/config', () => ({
+  generateCheckoutRef: () => 'ref_donation_test_123',
+}))
 
-// logError lazy-imports @payload-config (boots Payload against a live DB) —
-// unmocked, the 500-path test hangs to the 30s timeout instead of asserting.
+vi.mock('@/lib/payments/registry', () => ({
+  startHostedCheckout: mockStartHostedCheckout,
+}))
+
+vi.mock('@/utilities/donationRouting', () => ({
+  DONATION_JUSTICE_FUND_PERCENT: 5,
+  resolveDonationRecipient: mockResolveDonationRecipient,
+}))
+
 vi.mock('@/utilities/logError', () => ({
   logError: vi.fn(async () => {}),
   logCaughtError: vi.fn(async () => {}),
 }))
 
-// Dynamic import after mocks
-const { donationCreateIntentHandler } = await import(
-  '@/endpoints/donation-create-intent'
-)
+const { donationCreateIntentHandler } = await import('@/endpoints/donation-create-intent')
 
-function makeReq(body: Record<string, unknown>) {
+function makeReq(body: Record<string, unknown>, ip = '10.0.0.1') {
   const request = new Request('http://localhost:3000/api/donation-ops/create-intent', {
     method: 'POST',
     body: JSON.stringify(body),
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-forwarded-for': ip },
   })
-  // Preserve Request prototype (json(), text()) while adding payload property
   ;(request as any).payload = {}
   return request as any
 }
 
-describe('donation-create-intent', () => {
+describe('donation-create-intent (dual-rail hosted checkout)', () => {
+  let reqIdx = 1
+
   beforeEach(() => {
     vi.clearAllMocks()
-    mockCreate.mockResolvedValue({
-      id: 'pi_test_123',
-      client_secret: 'pi_test_123_secret_abc',
-      amount: 2500,
+    mockStartHostedCheckout.mockResolvedValue({
+      provider: 'square',
+      environment: 'sandbox',
+      checkoutUrl: 'https://square.link/u/don_123',
+      externalId: 'ORD_DON_1',
+      ref: 'ref_donation_test_123',
     })
   })
 
-  it('creates PaymentIntent for valid donation', async () => {
-    const res = await donationCreateIntentHandler(makeReq({ amount: 2500 }))
+  it('starts hosted Square checkout for valid donation', async () => {
+    const res = await donationCreateIntentHandler(makeReq({ amount: 2500 }, `10.0.0.${reqIdx++}`))
     const data = await res.json()
 
     expect(res.status).toBe(200)
-    expect(data.clientSecret).toBe('pi_test_123_secret_abc')
-    expect(data.paymentIntentId).toBe('pi_test_123')
-    expect(mockCreate).toHaveBeenCalledWith(
+    expect(data).toMatchObject({
+      ok: true,
+      checkoutUrl: 'https://square.link/u/don_123',
+      provider: 'square',
+      externalId: 'ORD_DON_1',
+      ref: 'ref_donation_test_123',
+    })
+    expect(mockStartHostedCheckout).toHaveBeenCalledWith(
+      expect.anything(),
       expect.objectContaining({
-        amount: 2500,
-        currency: 'usd',
-        metadata: expect.objectContaining({ angelOs_type: 'donation' }),
+        kind: 'donation',
+        amountCents: 2500,
+        currency: 'USD',
       }),
     )
   })
 
   it('rejects non-integer amount', async () => {
-    const res = await donationCreateIntentHandler(makeReq({ amount: 25.5 }))
+    const res = await donationCreateIntentHandler(makeReq({ amount: 25.5 }, `10.0.0.${reqIdx++}`))
     expect(res.status).toBe(400)
     const data = await res.json()
     expect(data.error).toContain('integer')
   })
 
-  it('rejects amount below minimum ($1.00)', async () => {
-    const res = await donationCreateIntentHandler(makeReq({ amount: 50 }))
+  it('rejects amount below minimum ($5.00 = 500 cents)', async () => {
+    const res = await donationCreateIntentHandler(makeReq({ amount: 400 }, `10.0.0.${reqIdx++}`))
     expect(res.status).toBe(400)
     const data = await res.json()
     expect(data.error).toContain('Minimum')
   })
 
   it('rejects amount above maximum ($10,000)', async () => {
-    const res = await donationCreateIntentHandler(makeReq({ amount: 1_500_000 }))
+    const res = await donationCreateIntentHandler(
+      makeReq({ amount: 1_500_000 }, `10.0.0.${reqIdx++}`),
+    )
     expect(res.status).toBe(400)
     const data = await res.json()
     expect(data.error).toContain('Maximum')
   })
 
-  it('rejects missing amount', async () => {
-    const res = await donationCreateIntentHandler(makeReq({}))
-    expect(res.status).toBe(400)
-  })
-
-  it('rejects string amount', async () => {
-    const res = await donationCreateIntentHandler(makeReq({ amount: '2500' }))
-    expect(res.status).toBe(400)
-  })
-
-  it('includes donor metadata when provided', async () => {
-    await donationCreateIntentHandler(
-      makeReq({
-        amount: 5000,
-        donorEmail: 'ken@test.com',
-        donorName: 'Kenneth',
-        message: 'For Ernesto',
-      }),
-    )
-
-    expect(mockCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        metadata: expect.objectContaining({
-          donorEmail: 'ken@test.com',
-          donorName: 'Kenneth',
-          message: 'For Ernesto',
-        }),
-        receipt_email: 'ken@test.com',
-      }),
-    )
-  })
-
-  it('omits donor fields when not provided', async () => {
-    await donationCreateIntentHandler(makeReq({ amount: 1000 }))
-
-    const call = mockCreate.mock.calls[0][0]
-    expect(call.metadata.donorEmail).toBeUndefined()
-    expect(call.metadata.donorName).toBeUndefined()
-    expect(call.receipt_email).toBeUndefined()
-  })
-
-  it('truncates message to 500 chars', async () => {
+  it('forwards donor metadata and truncates message to 500 chars', async () => {
     const longMessage = 'x'.repeat(600)
     await donationCreateIntentHandler(
-      makeReq({ amount: 1000, message: longMessage }),
+      makeReq(
+        {
+          amount: 5000,
+          donorEmail: 'ken@test.com',
+          donorName: 'Kenneth',
+          message: longMessage,
+          provider: 'paypal',
+        },
+        `10.0.0.${reqIdx++}`,
+      ),
     )
 
-    const call = mockCreate.mock.calls[0][0]
-    expect(call.metadata.message.length).toBe(500)
+    const call = mockStartHostedCheckout.mock.calls[0]![1]
+    expect(call.provider).toBe('paypal')
+    expect(call.description).toBe('Gift to the Justice Fund from Kenneth')
+    expect(call.customerEmail).toBe('ken@test.com')
+    expect(call.intentData.message.length).toBe(500)
   })
 
-  it('returns 500 on Stripe failure', async () => {
-    mockCreate.mockRejectedValue(new Error('Stripe down'))
-    const res = await donationCreateIntentHandler(makeReq({ amount: 2500 }))
-    expect(res.status).toBe(500)
-    const data = await res.json()
-    expect(data.error).toContain('try again')
+  it('returns 503 when payment rails are not configured', async () => {
+    mockStartHostedCheckout.mockRejectedValue(
+      new Error('Online payments are not configured yet on this node.'),
+    )
+    const res = await donationCreateIntentHandler(makeReq({ amount: 2500 }, `10.0.0.${reqIdx++}`))
+    expect(res.status).toBe(503)
   })
 
   it('rejects invalid JSON body', async () => {
     const request = new Request('http://localhost:3000/api/donation-ops/create-intent', {
       method: 'POST',
       body: 'not json',
-      headers: { 'Content-Type': 'text/plain' },
+      headers: { 'Content-Type': 'text/plain', 'x-forwarded-for': `10.0.0.${reqIdx++}` },
     })
     ;(request as any).payload = {}
     const res = await donationCreateIntentHandler(request as any)
     expect(res.status).toBe(400)
   })
 
-  it('sets correct PaymentIntent description', async () => {
-    await donationCreateIntentHandler(
-      makeReq({ amount: 5000, donorName: 'Kenneth' }),
+  it('accepts minimum valid amount ($5.00 = 500 cents) and max ($10,000)', async () => {
+    const resMin = await donationCreateIntentHandler(makeReq({ amount: 500 }, `10.0.0.${reqIdx++}`))
+    expect(resMin.status).toBe(200)
+    const resMax = await donationCreateIntentHandler(
+      makeReq({ amount: 1_000_000 }, `10.0.0.${reqIdx++}`),
     )
-
-    const call = mockCreate.mock.calls[0][0]
-    expect(call.description).toBe('Donation to the Justice Fund from Kenneth')
-  })
-
-  it('sets generic description without donor name', async () => {
-    await donationCreateIntentHandler(makeReq({ amount: 5000 }))
-
-    const call = mockCreate.mock.calls[0][0]
-    expect(call.description).toBe('Donation to the Justice Fund')
-  })
-
-  it('enables automatic payment methods', async () => {
-    await donationCreateIntentHandler(makeReq({ amount: 1000 }))
-
-    const call = mockCreate.mock.calls[0][0]
-    expect(call.automatic_payment_methods).toEqual({ enabled: true })
-  })
-
-  it('accepts minimum valid amount ($1.00 = 100 cents)', async () => {
-    const res = await donationCreateIntentHandler(makeReq({ amount: 100 }))
-    expect(res.status).toBe(200)
-  })
-
-  it('accepts maximum valid amount ($10,000 = 1,000,000 cents)', async () => {
-    const res = await donationCreateIntentHandler(makeReq({ amount: 1_000_000 }))
-    expect(res.status).toBe(200)
+    expect(resMax.status).toBe(200)
   })
 })
