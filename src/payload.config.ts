@@ -207,6 +207,7 @@ import { provisionNdePortalHandler } from '@/endpoints/provision-nde-portal'
 import { ingestNdeSessionHandler } from '@/endpoints/ingest-nde-session'
 import { scanNderfHandler } from '@/endpoints/scan-nderf'
 import { geoPostsHandler } from '@/endpoints/geo-posts'
+import { archiveFeedHandler } from '@/endpoints/archive-feed'
 import { ensureLockedDocsRelsHandler } from '@/endpoints/ensure-locked-docs-rels'
 import { membershipPlansHandler } from '@/endpoints/membership-plans'
 import { membershipReadinessHandler } from '@/endpoints/membership-readiness'
@@ -1650,6 +1651,11 @@ export default buildConfig({
       path: '/geo-posts',
       method: 'get',
       handler: geoPostsHandler,
+    },
+    {
+      path: '/archive-feed',
+      method: 'get',
+      handler: archiveFeedHandler,
     },
     {
       path: '/booking-ops/checkout',

@@ -8,6 +8,8 @@ import Link from 'next/link'
 import { RichText } from '@/components/RichText'
 
 import { CollectionArchive } from '@/components/CollectionArchive'
+import { InfiniteArchiveGrid } from '@/components/CollectionArchive/InfiniteArchiveGrid'
+import type { PostCardData } from '@/components/CollectionArchive/PostCard'
 import { PageRange } from '@/components/PageRange'
 import { Pagination } from '@/components/Pagination'
 import { cn } from '@/utilities/cn'
@@ -93,10 +95,13 @@ export const ArchiveBlock: React.FC<
   let resolvedPage = currentPage
   const configuredCategories: CategoryPill[] = []
   let activeCategory: CategoryPill | null = null
+  let tenantId: number | string | null = null
+  let feedCategoryIds: Array<number | string> = []
 
   if (populateBy === 'collection') {
     const payload = await getPayload({ config: configPromise })
     const { tenant } = await resolveTenantFromHeaders()
+    tenantId = tenant?.id ?? null
 
     // Preserve configured category order, hydrating any scalar IDs when needed
     const rawCats = (Array.isArray(categories) ? categories : []) as Array<
@@ -171,6 +176,12 @@ export const ArchiveBlock: React.FC<
       }
     }
 
+    feedCategoryIds = categorySlug
+      ? activeCategory
+        ? [activeCategory.id]
+        : [-1]
+      : flattenedCategories
+
     const categoryFilter: Where[] = categorySlug
       ? activeCategory
         ? [{ categories: { in: [activeCategory.id] } }]
@@ -239,6 +250,7 @@ export const ArchiveBlock: React.FC<
   }
 
   const showControls = populateBy === 'collection' && (useSearch || useTabs || usePagination)
+  const useInfiniteScroll = populateBy === 'collection' && collection === 'posts' && usePagination
   const isFiltered = Boolean(q || categorySlug)
   const tabCategories =
     activeCategory && !configuredCategories.some((c) => c.slug === activeCategory!.slug)
@@ -310,14 +322,19 @@ export const ArchiveBlock: React.FC<
               <div />
             )}
 
-            {usePagination && (
-              <PageRange
-                collection={collection}
-                currentPage={resolvedPage}
-                limit={limit}
-                totalDocs={totalDocs}
-              />
-            )}
+            {usePagination &&
+              (useInfiniteScroll ? (
+                <span className="text-sm text-muted-foreground">
+                  {totalDocs.toLocaleString()} {totalDocs === 1 ? 'item' : 'items'}
+                </span>
+              ) : (
+                <PageRange
+                  collection={collection}
+                  currentPage={resolvedPage}
+                  limit={limit}
+                  totalDocs={totalDocs}
+                />
+              ))}
           </div>
 
           {isFiltered && (
@@ -363,6 +380,38 @@ export const ArchiveBlock: React.FC<
             )}
           </div>
         </div>
+      ) : useInfiniteScroll ? (
+        <>
+          <InfiniteArchiveGrid
+            key={`${tenantId ?? ''}:${categorySlug ?? ''}:${q ?? ''}:${resolvedPage}`}
+            initialPosts={posts as PostCardData[]}
+            initialPage={resolvedPage}
+            totalPages={totalPages}
+            totalDocs={totalDocs}
+            limit={limit}
+            columns={columns === '3' ? 3 : 4}
+            showCategories
+            basePath={cardBasePath}
+            feedParams={{
+              tenantId,
+              categoryIds: feedCategoryIds,
+              q,
+            }}
+          />
+          {totalPages > 1 && (
+            <noscript>
+              <div className="container mt-8">
+                <Pagination
+                  basePath={pageUrlBase}
+                  useQueryParam
+                  queryParams={{ category: categorySlug, q }}
+                  page={resolvedPage}
+                  totalPages={totalPages}
+                />
+              </div>
+            </noscript>
+          )}
+        </>
       ) : (
         <>
           <CollectionArchive posts={posts as never} basePath={cardBasePath} columns={columns === '3' ? 3 : 4} />
