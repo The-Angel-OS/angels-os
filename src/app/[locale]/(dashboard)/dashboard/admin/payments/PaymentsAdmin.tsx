@@ -18,6 +18,18 @@ interface ProviderBadge {
   environment: 'sandbox' | 'production'
 }
 
+interface RailHealthInfo {
+  configured: boolean
+  healthy: boolean
+  environment: string
+  detectedEnvironmentMismatch?: string
+  merchantOrAppName?: string
+  locationId?: string
+  webhookConfigured: boolean
+  errors: string[]
+  warnings: string[]
+}
+
 interface DiagnosticsReport {
   ready: boolean
   leftoverStripeEnvVars?: string[]
@@ -27,27 +39,8 @@ interface DiagnosticsReport {
     squareOAuthRedirect: string
   }
   rails?: {
-    square?: {
-      configured: boolean
-      healthy: boolean
-      environment: string
-      detectedEnvironmentMismatch?: string
-      merchantOrAppName?: string
-      locationId?: string
-      webhookConfigured: boolean
-      errors: string[]
-      warnings: string[]
-    }
-    paypal?: {
-      configured: boolean
-      healthy: boolean
-      environment: string
-      detectedEnvironmentMismatch?: string
-      merchantOrAppName?: string
-      webhookConfigured: boolean
-      errors: string[]
-      warnings: string[]
-    }
+    square?: RailHealthInfo
+    paypal?: RailHealthInfo
   }
 }
 

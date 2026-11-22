@@ -514,8 +514,8 @@ export function verifySquareWebhookSignature(
     .createHmac('sha256', signatureKey)
     .update(webhookUrl + rawBody)
     .digest('base64')
-  const a = Buffer.from(signatureHeader)
-  const b = Buffer.from(expected)
+  const a = Uint8Array.from(Buffer.from(signatureHeader))
+  const b = Uint8Array.from(Buffer.from(expected))
   if (a.length !== b.length) return false
   return crypto.timingSafeEqual(a, b)
 }

@@ -25,7 +25,11 @@ export const bookingConfirmHandler: PayloadHandler = async (req) => {
   } catch {
     /* validated below */
   }
-  const bookingId = body.bookingId
+  const rawBookingId = body.bookingId
+  const bookingId =
+    typeof rawBookingId === 'string' || typeof rawBookingId === 'number'
+      ? rawBookingId
+      : undefined
   if (bookingId == null) return Response.json({ error: 'bookingId required' }, { status: 400 })
 
   const booking = (await payload

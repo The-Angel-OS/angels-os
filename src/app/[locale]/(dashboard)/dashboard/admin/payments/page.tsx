@@ -5,6 +5,7 @@ import configPromise from '@payload-config'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { getTenantPaymentSettings } from '@/lib/payments/config'
 import { getAvailableProviders } from '@/lib/payments/registry'
+import type { TenantPaymentSettings } from '@/lib/payments/types'
 import { PaymentsAdmin } from './PaymentsAdmin'
 import { getJusticeFundGrowth, getRevenueTimeSeries } from '@/utilities/chartData'
 import { SplitDonutChart, JusticeFundChart, RevenueChart } from '@/components/charts/DashboardCharts'
@@ -31,7 +32,9 @@ export default async function DashboardPaymentsPage({
   const { tenant, tenantId, tenantFilter } = await resolveTenantFromHeaders()
 
   const [paymentSettings, availableRails, jfResult, txResult, jfGrowth, revData] = await Promise.all([
-    tenantId ? getTenantPaymentSettings(payload, tenantId) : Promise.resolve({}),
+    tenantId
+      ? getTenantPaymentSettings(payload, tenantId)
+      : Promise.resolve({} as TenantPaymentSettings),
     getAvailableProviders(payload, tenantId ?? undefined),
     payload.find({
       collection: 'justice-fund-transactions',

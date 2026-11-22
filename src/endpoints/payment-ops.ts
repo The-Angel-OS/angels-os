@@ -106,8 +106,8 @@ function verifyOAuthState(stateRaw: string): Record<string, unknown> | null {
   const [b64, sig] = parts
   const secret = process.env.PAYLOAD_SECRET || process.env.ENCRYPTION_SECRET || 'angel-os-oauth'
   const expected = crypto.createHmac('sha256', secret).update(b64).digest('base64url')
-  const a = Buffer.from(sig)
-  const b = Buffer.from(expected)
+  const a = Uint8Array.from(Buffer.from(sig))
+  const b = Uint8Array.from(Buffer.from(expected))
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null
   try {
     const parsed = JSON.parse(Buffer.from(b64, 'base64url').toString('utf-8')) as Record<
