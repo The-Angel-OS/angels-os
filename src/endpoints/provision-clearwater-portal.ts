@@ -273,11 +273,15 @@ async function tagExistingClearwaterPosts(payload: Payload, tenantId: number | s
   let taggedVideos = 0
   let taggedWrittenPosts = 0
   let alreadyCategorized = 0
+  const skippedErrors: Array<{ id: number | string; error: string }> = []
 
   while (page <= totalPages && page <= 40) {
     const res = await payload.find({
       collection: 'posts',
-      where: { tenant: { equals: tenantId } },
+      where: {
+        and: [{ tenant: { equals: tenantId } }, { _status: { equals: 'published' } }],
+      },
+      draft: false,
       limit: 200,
       page,
       depth: 0,
@@ -313,31 +317,47 @@ async function tagExistingClearwaterPosts(payload: Payload, tenantId: number | s
           alreadyCategorized++
           continue
         }
-        await payload.update({
-          collection: 'posts',
-          id: doc.id,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          data: { categories: [...existingIds, categories.videos] } as any,
-          depth: 0,
-          overrideAccess: true,
-          context: { disableRevalidate: true, disableTranscriptIndex: true },
-        })
-        taggedVideos++
+        try {
+          await payload.update({
+            collection: 'posts',
+            id: doc.id,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            data: { categories: [...existingIds, categories.videos] } as any,
+            draft: false,
+            depth: 0,
+            overrideAccess: true,
+            context: { disableRevalidate: true, disableTranscriptIndex: true },
+          })
+          taggedVideos++
+        } catch (err) {
+          skippedErrors.push({
+            id: doc.id,
+            error: err instanceof Error ? err.message : String(err),
+          })
+        }
       } else {
         if (existingStrSet.has(socialCatIdStr)) {
           alreadyCategorized++
           continue
         }
-        await payload.update({
-          collection: 'posts',
-          id: doc.id,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          data: { categories: [...existingIds, categories.socialPosts] } as any,
-          depth: 0,
-          overrideAccess: true,
-          context: { disableRevalidate: true, disableTranscriptIndex: true },
-        })
-        taggedWrittenPosts++
+        try {
+          await payload.update({
+            collection: 'posts',
+            id: doc.id,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            data: { categories: [...existingIds, categories.socialPosts] } as any,
+            draft: false,
+            depth: 0,
+            overrideAccess: true,
+            context: { disableRevalidate: true, disableTranscriptIndex: true },
+          })
+          taggedWrittenPosts++
+        } catch (err) {
+          skippedErrors.push({
+            id: doc.id,
+            error: err instanceof Error ? err.message : String(err),
+          })
+        }
       }
     }
     page++
@@ -348,6 +368,7 @@ async function tagExistingClearwaterPosts(payload: Payload, tenantId: number | s
     taggedVideos,
     taggedWrittenPosts,
     alreadyCategorized,
+    skippedErrors,
   }
 }
 
