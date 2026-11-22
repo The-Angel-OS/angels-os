@@ -3,6 +3,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 
 import { PostCard, type PostCardData } from './PostCard'
+import {
+  isPostLockedForViewer,
+  JoinToUnlockModal,
+  type ViewerAccessStanding,
+} from '@/components/memberships/JoinToUnlockModal'
+import { useAuth } from '@/providers/Auth'
 import { cn } from '@/utilities/cn'
 
 export interface InfiniteArchiveFeedParams {
@@ -21,6 +27,7 @@ export interface InfiniteArchiveGridProps {
   showCategories?: boolean
   basePath?: string
   feedParams: InfiniteArchiveFeedParams
+  viewerStanding?: ViewerAccessStanding | null
 }
 
 interface ArchiveFeedResponse {
@@ -47,7 +54,16 @@ export const InfiniteArchiveGrid: React.FC<InfiniteArchiveGridProps> = ({
   showCategories = true,
   basePath = '/posts',
   feedParams,
+  viewerStanding,
 }) => {
+  const { user } = useAuth()
+  const [clientStanding, setClientStanding] = useState<ViewerAccessStanding | null>(
+    viewerStanding ?? null,
+  )
+  const [modalTarget, setModalTarget] = useState<{
+    post: PostCardData
+    thumbnailUrl: string | null
+  } | null>(null)
   const [posts, setPosts] = useState<PostCardData[]>(initialPosts)
   const [currentPage, setCurrentPage] = useState<number>(initialPage)
   const [hasMore, setHasMore] = useState<boolean>(initialPage < totalPages)
@@ -163,6 +179,33 @@ export const InfiniteArchiveGrid: React.FC<InfiniteArchiveGridProps> = ({
     return () => observer.disconnect()
   }, [hasMore, error, loadMore, currentPage])
 
+  useEffect(() => {
+    if (viewerStanding !== undefined) {
+      setClientStanding(viewerStanding)
+      return
+    }
+    const hasGated = posts.some((p) => p.access && p.access !== 'public')
+    if (!hasGated) return
+    if (!user) {
+      setClientStanding({
+        isAdmin: false,
+        isAuthenticated: false,
+        isMember: false,
+        inGoodStanding: false,
+      })
+      return
+    }
+    const roles = ((user as { roles?: string[] }).roles) || []
+    if (roles.some((r) => ['super_admin', 'admin', 'archangel'].includes(r))) {
+      setClientStanding({
+        isAdmin: true,
+        isAuthenticated: true,
+        isMember: true,
+        inGoodStanding: true,
+      })
+    }
+  }, [viewerStanding, posts, user])
+
   const gridCols =
     columns === 4
       ? 'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
@@ -173,15 +216,41 @@ export const InfiniteArchiveGrid: React.FC<InfiniteArchiveGridProps> = ({
   return (
     <div className="container">
       <div className={cn('grid grid-cols-1 gap-6', gridCols)}>
-        {posts.map((post, index) => (
-          <PostCard
-            key={postKey(post, index)}
-            post={post}
-            showCategories={showCategories}
-            basePath={basePath}
-          />
-        ))}
+        {posts.map((post, index) => {
+          const locked = isPostLockedForViewer(post.access, clientStanding)
+          const isUnlockedMember = Boolean(post.access && post.access !== 'public' && !locked)
+          return (
+            <PostCard
+              key={postKey(post, index)}
+              post={post}
+              showCategories={showCategories}
+              basePath={basePath}
+              locked={locked}
+              isUnlockedMember={isUnlockedMember}
+              onLockedClick={(clickedPost, thumbUrl) =>
+                setModalTarget({ post: clickedPost, thumbnailUrl: thumbUrl })
+              }
+            />
+          )
+        })}
       </div>
+
+      {modalTarget && (
+        <JoinToUnlockModal
+          open
+          access={modalTarget.post.access || 'members'}
+          targetPath={`${basePath}/${modalTarget.post.slug}`}
+          title={String(modalTarget.post.title || '')}
+          thumbnailUrl={modalTarget.thumbnailUrl}
+          description={
+            typeof modalTarget.post.meta?.description === 'string'
+              ? modalTarget.post.meta.description
+              : null
+          }
+          onClose={() => setModalTarget(null)}
+          onUnlocked={() => setModalTarget(null)}
+        />
+      )}
 
       {hasMore && !error && <div ref={sentinelRef} className="h-4 w-full" aria-hidden="true" />}
 

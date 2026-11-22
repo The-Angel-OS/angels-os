@@ -109,7 +109,26 @@ export default async function Page({ params, searchParams }: Args) {
     const payload = await getPayload({ config: configPromise })
     const { user } = await payload.auth({ headers: await headers() })
     if (!(await canViewPage(payload, access, user, tenantId))) {
-      return <MembersOnlyGate access={access} isAuthenticated={Boolean(user)} path={url} />
+      const metaObj = (page as { meta?: { image?: unknown; description?: string } }).meta
+      const metaImg =
+        metaObj?.image && typeof metaObj.image === 'object'
+          ? ((metaObj.image as { url?: string }).url ?? null)
+          : null
+      const heroImg =
+        hero && typeof (hero as { media?: unknown }).media === 'object'
+          ? (((hero as { media?: { url?: string } }).media)?.url ?? null)
+          : null
+
+      return (
+        <MembersOnlyGate
+          access={access}
+          isAuthenticated={Boolean(user)}
+          path={url}
+          title={String((page as { title?: string }).title || '')}
+          thumbnailUrl={metaImg || heroImg}
+          description={typeof metaObj?.description === 'string' ? metaObj.description : null}
+        />
+      )
     }
   }
 

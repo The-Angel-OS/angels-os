@@ -1,7 +1,8 @@
 import React from 'react'
 
-import { PostCard, type PostCardData } from './PostCard'
-import { cn } from '@/utilities/cn'
+import { InteractivePostGrid } from './InteractivePostGrid'
+import type { PostCardData } from './PostCard'
+import type { ViewerAccessStanding } from '@/components/memberships/JoinToUnlockModal'
 
 const POSTS_PER_PAGE = 12
 
@@ -13,6 +14,7 @@ export type CollectionArchiveProps = {
   columns?: 3 | 4
   /** Card link prefix — '/posts' for posts, '/products' for products. */
   basePath?: string
+  viewerStanding?: ViewerAccessStanding | null
 }
 
 export const CollectionArchive: React.FC<CollectionArchiveProps> = ({
@@ -20,21 +22,15 @@ export const CollectionArchive: React.FC<CollectionArchiveProps> = ({
   showCategories = true,
   columns = 4,
   basePath,
+  viewerStanding,
 }) => {
-  const gridCols = columns === 4 ? 'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'sm:grid-cols-2 lg:grid-cols-3'
-
   return (
-    <div className={cn('container')}>
-      <div className={cn('grid grid-cols-1 gap-6', gridCols)}>
-        {posts?.map((post, index) => (
-          <PostCard
-            key={post.id ?? post.slug ?? index}
-            post={post}
-            showCategories={showCategories}
-            basePath={basePath}
-          />
-        ))}
-      </div>
-    </div>
+    <InteractivePostGrid
+      posts={posts}
+      showCategories={showCategories}
+      columns={columns}
+      basePath={basePath}
+      viewerStanding={viewerStanding}
+    />
   )
 }

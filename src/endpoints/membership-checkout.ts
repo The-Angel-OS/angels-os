@@ -14,6 +14,22 @@ import { getMembershipPlan } from '@/utilities/membershipPlans'
 import { originFromHeaderValues } from '@/utilities/originFromHeaders'
 import { feeCents, getPlatformFeeBps } from '@/utilities/platformFee'
 
+const MANAGER_PLAN_FALLBACK = '/'
+
+/**
+ * Validate and normalize an optional client-supplied return path so checkout
+ * redirects back to the exact gated post/page without creating an open redirect.
+ */
+export function sanitizeReturnPath(raw: unknown, fallback = MANAGER_PLAN_FALLBACK): string {
+  if (typeof raw !== 'string') return fallback
+  const trimmed = raw.trim()
+  if (!trimmed || !trimmed.startsWith('/') || trimmed.startsWith('//')) return fallback
+  if (/[\r\n\0\\]/.test(trimmed)) return fallback
+  const hashIdx = trimmed.indexOf('#')
+  const withoutHash = hashIdx >= 0 ? trimmed.slice(0, hashIdx) : trimmed
+  return withoutHash || fallback
+}
+
 export function buildSubscriptionMetadata(input: {
   tenantId: number | string
   tenantSlug: string
@@ -94,6 +110,8 @@ export const membershipCheckoutHandler: PayloadHandler = async (req) => {
     const host = req.headers?.get?.('x-forwarded-host') || req.headers?.get?.('host')
     const proto = req.headers?.get?.('x-forwarded-proto')
     const origin = host ? originFromHeaderValues(host, proto) : getServerSideURL()
+    const returnPath = sanitizeReturnPath(body.returnPath, '/')
+    const returnSep = returnPath.includes('?') ? '&' : '?'
 
     // FREE PLAN — instant activation without payment provider round-trip
     if (plan.amountCents === 0) {
@@ -134,7 +152,7 @@ export const membershipCheckoutHandler: PayloadHandler = async (req) => {
       } else {
         await payload.create({ collection: 'memberships', data, overrideAccess: true, req })
       }
-      return Response.json({ url: `${origin}/?membership=success`, free: true })
+      return Response.json({ url: `${origin}${returnPath}${returnSep}membership=success`, free: true })
     }
 
     const tenantName = tenant.branding?.siteName || tenant.name || slug
@@ -163,8 +181,8 @@ export const membershipCheckoutHandler: PayloadHandler = async (req) => {
       applicationFeeCents,
       customerEmail: memberEmail || undefined,
       customerName: memberName || undefined,
-      returnUrl: `${origin}/?membership=success&ref=${ref}`,
-      cancelUrl: `${origin}/?membership=cancelled`,
+      returnUrl: `${origin}${returnPath}${returnSep}membership=success&ref=${ref}`,
+      cancelUrl: `${origin}${returnPath}${returnSep}membership=cancelled`,
       intentData: {
         planId: plan.id,
         planName: plan.name,

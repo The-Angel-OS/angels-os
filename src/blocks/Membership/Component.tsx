@@ -142,27 +142,30 @@ export const MembershipBlock: React.FC<{
     }
   }, [])
 
-  // Pre-fill name/email for signed-in members (mirrors Donation).
+  // Pre-fill name/email for signed-in members and load memberships ONLY when signed in
+  // (avoids unnecessary 401 console/client-error noise for logged-out guests).
   useEffect(() => {
     let cancelled = false
     fetch('/api/users/me', { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        const u = d?.user as { name?: string; email?: string } | undefined
-        if (cancelled || !u?.email) return
+        if (cancelled) return
+        const u = d?.user as { id?: number | string; name?: string; email?: string } | undefined
+        if (!u?.id && !u?.email) {
+          setMember(null)
+          return
+        }
         setViewer({ name: u.name, email: u.email })
         setMemberName((prev) => prev || u.name || '')
         setMemberEmail((prev) => prev || u.email || '')
+        refreshMyMemberships()
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) setMember(null)
+      })
     return () => {
       cancelled = true
     }
-  }, [])
-
-  // Load the viewer's own membership for this endeavor (if signed in + a member).
-  useEffect(() => {
-    refreshMyMemberships()
   }, [refreshMyMemberships])
 
   const openPortal = useCallback(async () => {
@@ -211,6 +214,7 @@ export const MembershipBlock: React.FC<{
           memberName: memberName || undefined,
           memberEmail: memberEmail || undefined,
           provider: selectedPlan.amountCents > 0 ? provider || undefined : undefined,
+          returnPath: typeof window !== 'undefined' ? window.location.pathname : '/support',
         }),
       })
       const data = (await res.json()) as { checkoutUrl?: string; url?: string; error?: string }

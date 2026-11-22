@@ -121,11 +121,11 @@ export const updateAllNavHandler: PayloadHandler = async (req) => {
                   // (destination charge vs Justice Fund stewardship), so seeded copy
                   // can never contradict where the money actually goes.
                   blockType: 'content',
-                  columns: [{ size: 'full' as const, richText: buildRichText([`Every gift supports ${tenantName}'s mission — processed securely by Stripe, all of it on the record.`]) }],
+                  columns: [{ size: 'full' as const, richText: buildRichText([`Every gift supports ${tenantName}'s mission — processed securely via Square or PayPal, all of it on the record.`]) }],
                 },
                 { blockType: 'donation', presetAmounts: '5,10,25,50,100', showDonorFields: true },
               ],
-              meta: { title: 'Donate', description: `Support ${tenantName} — secure giving via Stripe, all on the record.` },
+              meta: { title: 'Donate', description: `Support ${tenantName} — secure giving via Square or PayPal, all on the record.` },
             } as any,
           }),
         )

@@ -3,9 +3,11 @@ import type { Post, Product, ArchiveBlock as ArchiveBlockProps } from '@/payload
 
 import configPromise from '@payload-config'
 import { DefaultDocumentIDType, getPayload, type Where } from 'payload'
+import { headers } from 'next/headers'
 import React from 'react'
 import Link from 'next/link'
 import { RichText } from '@/components/RichText'
+import { resolveViewerStanding, type ViewerStanding } from '@/utilities/pageAccess'
 
 import { CollectionArchive } from '@/components/CollectionArchive'
 import { InfiniteArchiveGrid } from '@/components/CollectionArchive/InfiniteArchiveGrid'
@@ -257,6 +259,23 @@ export const ArchiveBlock: React.FC<
       ? [...configuredCategories, activeCategory]
       : configuredCategories
 
+  let viewerStanding: ViewerStanding | null = null
+  if (collection === 'posts') {
+    try {
+      const payload = await getPayload({ config: configPromise })
+      const { tenant } = await resolveTenantFromHeaders()
+      const { user } = await payload.auth({ headers: await headers() })
+      viewerStanding = await resolveViewerStanding(payload, user, tenant?.id)
+    } catch {
+      viewerStanding = {
+        isAdmin: false,
+        isAuthenticated: false,
+        isMember: false,
+        inGoodStanding: false,
+      }
+    }
+  }
+
   return (
     <div id={`block-${id}`}>
       {introContent && (
@@ -392,6 +411,7 @@ export const ArchiveBlock: React.FC<
             columns={columns === '3' ? 3 : 4}
             showCategories
             basePath={cardBasePath}
+            viewerStanding={viewerStanding}
             feedParams={{
               tenantId,
               categoryIds: feedCategoryIds,
@@ -414,7 +434,12 @@ export const ArchiveBlock: React.FC<
         </>
       ) : (
         <>
-          <CollectionArchive posts={posts as never} basePath={cardBasePath} columns={columns === '3' ? 3 : 4} />
+          <CollectionArchive
+            posts={posts as never}
+            basePath={cardBasePath}
+            columns={columns === '3' ? 3 : 4}
+            viewerStanding={viewerStanding}
+          />
           {usePagination && totalPages > 1 && (
             <div className="container mt-8">
               <Pagination

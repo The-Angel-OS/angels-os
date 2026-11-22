@@ -24,7 +24,18 @@ export const PostCard: React.FC<{
   /** Where the card links. The Archive block renders products through this same
    *  card, and every one of them linked to /posts/<slug> — a 404. */
   basePath?: string
-}> = ({ className, post, showCategories = true, basePath = '/posts' }) => {
+  locked?: boolean
+  isUnlockedMember?: boolean
+  onLockedClick?: (post: PostCardData, thumbnailUrl: string | null) => void
+}> = ({
+  className,
+  post,
+  showCategories = true,
+  basePath = '/posts',
+  locked = false,
+  isUnlockedMember = false,
+  onLockedClick,
+}) => {
   const { slug, title, categories, meta, publishedOn, hero, sourceUrl, sourceType, access } = post
   const metaImage = typeof meta?.image === 'object' ? meta.image : null
   const heroMedia = typeof hero?.media === 'object' ? hero.media : null
@@ -39,6 +50,19 @@ export const PostCard: React.FC<{
       ? `https://i.ytimg.com/vi/${ytEmbed.videoId}/hqdefault.jpg`
       : null
 
+  const resolvedThumbUrl =
+    thumbnail && typeof thumbnail === 'object' && 'url' in thumbnail
+      ? ((thumbnail as { url?: string | null }).url ?? ytFallbackThumb)
+      : ytFallbackThumb
+
+  const handleLinkClick =
+    locked && onLockedClick
+      ? (e: React.MouseEvent<HTMLAnchorElement>) => {
+          e.preventDefault()
+          onLockedClick(post, resolvedThumbUrl)
+        }
+      : undefined
+
   const description = typeof meta?.description === 'string' ? meta.description : undefined
   const hasCategories = categories && Array.isArray(categories) && categories.length > 0
 
@@ -49,7 +73,7 @@ export const PostCard: React.FC<{
         className,
       )}
     >
-      <Link href={`${basePath}/${slug}`} className="block">
+      <Link href={`${basePath}/${slug}`} onClick={handleLinkClick} className="block">
         <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted">
           {thumbnail && typeof thumbnail === 'object' ? (
             <Media fill imgClassName="object-cover" resource={thumbnail} size="33vw" />
@@ -67,9 +91,15 @@ export const PostCard: React.FC<{
             </div>
           )}
           {access && access !== 'public' && (
-            <span className="absolute right-2.5 top-2.5 inline-flex items-center gap-1 rounded-full border border-amber-400/50 bg-slate-950/85 px-2.5 py-0.5 text-[11px] font-semibold text-amber-300 shadow-sm backdrop-blur-sm">
-              {access === 'authenticated' ? '🔒 Sign In' : '🔒 Members Only'}
-            </span>
+            isUnlockedMember && !locked ? (
+              <span className="absolute right-2.5 top-2.5 inline-flex items-center gap-1 rounded-full border border-emerald-400/50 bg-emerald-950/85 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300 shadow-sm backdrop-blur-sm">
+                🔓 Member
+              </span>
+            ) : (
+              <span className="absolute right-2.5 top-2.5 inline-flex items-center gap-1 rounded-full border border-amber-400/50 bg-slate-950/85 px-2.5 py-0.5 text-[11px] font-semibold text-amber-300 shadow-sm backdrop-blur-sm">
+                {access === 'authenticated' ? '🔒 Sign In' : '🔒 Members Only'}
+              </span>
+            )
           )}
         </div>
       </Link>
@@ -85,7 +115,7 @@ export const PostCard: React.FC<{
           </div>
         )}
         <h3 className="text-lg font-semibold">
-          <Link href={`${basePath}/${slug}`} className="hover:underline">
+          <Link href={`${basePath}/${slug}`} onClick={handleLinkClick} className="hover:underline">
             {title}
           </Link>
         </h3>

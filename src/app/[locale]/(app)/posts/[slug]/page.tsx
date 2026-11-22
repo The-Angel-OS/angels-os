@@ -43,8 +43,29 @@ export default async function PostPage({ params }: Args) {
     const payload = await getPayload({ config: configPromise })
     const { user } = await payload.auth({ headers: await headers() })
     if (!(await canViewPage(payload, access, user, tenantId))) {
+      const metaImg =
+        post.meta?.image && typeof post.meta.image === 'object' ? post.meta.image.url : null
+      const heroImg =
+        post.hero?.media && typeof post.hero.media === 'object' ? post.hero.media.url : null
+      const ytThumb =
+        post.sourceUrl && (post.sourceType === 'youtube' || post.sourceUrl.includes('youtu'))
+          ? (() => {
+              const em = computeEmbedUrl(post.sourceUrl)
+              return em?.provider === 'youtube' && em.videoId
+                ? `https://i.ytimg.com/vi/${em.videoId}/hqdefault.jpg`
+                : null
+            })()
+          : null
+
       return (
-        <MembersOnlyGate access={access} isAuthenticated={Boolean(user)} path={`/posts/${slug}`} />
+        <MembersOnlyGate
+          access={access}
+          isAuthenticated={Boolean(user)}
+          path={`/posts/${slug}`}
+          title={String(post.title || '')}
+          thumbnailUrl={metaImg || heroImg || ytThumb}
+          description={typeof post.meta?.description === 'string' ? post.meta.description : null}
+        />
       )
     }
   }
