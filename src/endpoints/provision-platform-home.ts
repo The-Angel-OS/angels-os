@@ -24,6 +24,7 @@ import {
   createHeadingNode,
   createLexicalContent,
   createParagraphNode,
+  createUnorderedListNode,
 } from '@/utilities/lexicalHelpers'
 
 type MediaSpec = {
@@ -460,6 +461,80 @@ function buildHomeLayout(mediaIds: Record<string, number | string | null>) {
   return layout
 }
 
+async function cleanPrivacyPolicyPage(
+  payload: Payload,
+  platformTenantId: number | string,
+): Promise<{ privacyPageId: number | string | null; privacyUpdated: boolean }> {
+  const res = await payload.find({
+    collection: 'pages',
+    where: {
+      and: [{ slug: { equals: 'privacy-policy' } }, { tenant: { equals: platformTenantId } }],
+    },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const doc = res.docs?.[0] as { id: number | string } | undefined
+  if (!doc) {
+    return { privacyPageId: null, privacyUpdated: false }
+  }
+
+  // Note: Content block only permits h2/h3/h4 headings (no duplicate h1 here — hero has h1).
+  const layout = [
+    {
+      blockType: 'content',
+      columns: [
+        {
+          size: 'full',
+          richText: createLexicalContent([
+            createParagraphNode(
+              'Angel OS respects your privacy. This policy explains what information we collect, how we use it, and the choices you have.',
+            ),
+            createHeadingNode('Information We Collect', 'h2'),
+            createUnorderedListNode([
+              'Contact details you provide (name, email, phone) when you sign up, give, subscribe, or message us.',
+              'Payment information processed securely by our PCI-compliant payment providers — we do not store card numbers.',
+              'Basic usage and device data to keep the site secure and working.',
+            ]),
+            createHeadingNode('How We Use It', 'h2'),
+            createUnorderedListNode([
+              'To provide the services you request (memberships, giving, bookings, communication).',
+              'To send receipts, confirmations, and messages you have opted into.',
+              'To protect the site and comply with the law.',
+            ]),
+            createParagraphNode(
+              'We do not sell your personal information. We share it only with service providers who help us operate (e.g. payment and messaging providers) and only as needed.',
+            ),
+            createHeadingNode('Your Choices', 'h2'),
+            createParagraphNode(
+              'You may request access to, correction of, or deletion of your personal information, and you may unsubscribe from non-essential messages at any time. If you have questions about these terms, contact us at support@spacesangels.com.',
+            ),
+          ]),
+        },
+      ],
+    },
+  ]
+
+  await payload.update({
+    collection: 'pages',
+    id: doc.id,
+    data: {
+      layout: layout as never,
+      _status: 'published',
+    } as never,
+    overrideAccess: true,
+  })
+
+  try {
+    revalidatePath('/privacy-policy')
+    revalidatePath('/en/privacy-policy')
+  } catch {
+    /* non-fatal outside Next request cache */
+  }
+
+  return { privacyPageId: doc.id, privacyUpdated: true }
+}
+
 function extractHeroHeading(hero: unknown): string | null {
   try {
     const rich = (hero as { richText?: { root?: { children?: Array<{ children?: Array<{ text?: string }> }> } } })
@@ -493,6 +568,8 @@ export const provisionPlatformHomeHandler: PayloadHandler = async (req) => {
   const shouldGenerate = url.searchParams.get('generateImages') !== '0'
   const shouldSyncNav = url.searchParams.get('syncNav') !== '0'
   const shouldSyncHelp = url.searchParams.get('syncHelp') !== '0'
+  const onlyPrivacy = url.searchParams.get('onlyPrivacy') === '1'
+  const shouldSyncPrivacy = onlyPrivacy || url.searchParams.get('syncPrivacy') === '1'
 
   try {
     // 1. Resolve Platform Tenant (ID 1 or slug 'platform')
@@ -507,6 +584,23 @@ export const provisionPlatformHomeHandler: PayloadHandler = async (req) => {
     const platformTenantId = tenantRes.docs?.[0]?.id
     if (platformTenantId == null) {
       return Response.json({ error: 'Platform tenant not found' }, { status: 404 })
+    }
+
+    let privacyPageId: number | string | null = null
+    let privacyUpdated = false
+    if (shouldSyncPrivacy) {
+      const priv = await cleanPrivacyPolicyPage(payload, platformTenantId)
+      privacyPageId = priv.privacyPageId
+      privacyUpdated = priv.privacyUpdated
+      if (onlyPrivacy) {
+        return Response.json({
+          ok: true,
+          privacyPageId,
+          privacyUpdated,
+          tenantId: platformTenantId,
+          timestamp: new Date().toISOString(),
+        })
+      }
     }
 
     // 2. Gather existing Tenant 1 media IDs as deterministic fallback pool
@@ -738,6 +832,8 @@ export const provisionPlatformHomeHandler: PayloadHandler = async (req) => {
       footerUpdated,
       helpPageId,
       helpPageAction,
+      privacyPageId,
+      privacyUpdated,
       timestamp: new Date().toISOString(),
     })
   } catch (err: unknown) {

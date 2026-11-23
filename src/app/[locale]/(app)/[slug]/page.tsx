@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 
 import { RenderBlocks } from '@/blocks/RenderBlocks'
-import { AlreadyOnboardedBanner } from '@/components/AlreadyOnboardedBanner'
 import { RenderHero } from '@/heros/RenderHero'
 import { CollectionHero } from '@/components/CollectionHero'
 import { tenantHeroImage } from '@/utilities/tenantHeroImage'
@@ -148,9 +147,6 @@ export default async function Page({ params, searchParams }: Args) {
   return (
     <article className={opensWithAtlas ? 'pt-0 pb-24' : bleedsToTop ? 'pb-24' : 'pt-16 pb-24'}>
       {opensWithAtlas ? null : (homeSplash ?? <RenderHero {...hero} />)}
-      {/* Above the pitch, not below it — a customer should not have to read
-          the sales page to find the door back into their own portal. */}
-      <AlreadyOnboardedBanner tenantSlug={tenantSlug} />
       <RenderBlocks
         blocks={layout}
         tenantSlug={tenantSlug}

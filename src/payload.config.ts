@@ -202,6 +202,7 @@ import { ensureGlobeAtlasBlockTablesHandler } from '@/endpoints/ensure-globe-atl
 import { ensurePostsGeoColumnsHandler } from '@/endpoints/ensure-posts-geo-columns'
 import { ensureTranscriptBlockTablesHandler } from '@/endpoints/ensure-transcript-block-tables'
 import { ensureArchiveBlockColumnsHandler } from '@/endpoints/ensure-archive-block-columns'
+import { ensureUserPortalsBlockTablesHandler } from '@/endpoints/ensure-user-portals-block-tables'
 import { ingestMlbYoutubeHandler } from '@/endpoints/ingest-mlb-youtube'
 import { provisionClearwaterPortalHandler } from '@/endpoints/provision-clearwater-portal'
 import { ingestClearwaterYoutubeHandler } from '@/endpoints/ingest-clearwater-youtube'
@@ -1537,6 +1538,17 @@ export default buildConfig({
       path: '/provision-ops/ensure-globe-atlas-block-tables',
       method: 'post',
       handler: ensureGlobeAtlasBlockTablesHandler,
+    },
+    // Net-new UserPortals block tables (live + versioned) for Pages layout
+    {
+      path: '/provision-ops/ensure-user-portals-block-tables',
+      method: 'get',
+      handler: ensureUserPortalsBlockTablesHandler,
+    },
+    {
+      path: '/provision-ops/ensure-user-portals-block-tables',
+      method: 'post',
+      handler: ensureUserPortalsBlockTablesHandler,
     },
     // Unified Geo-Archive columns on `posts` + `_posts_v` (run BEFORE adding geo group to Posts config)
     {
