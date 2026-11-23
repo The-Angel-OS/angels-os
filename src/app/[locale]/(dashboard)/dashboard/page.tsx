@@ -47,6 +47,7 @@ export default async function DashboardPage({
     posts: 0,
     bookings: 0,
     orders: 0,
+    openTickets: 0,
   }
   let tenantName = 'Creator Studio'
   let tenantStatus = 'active'
@@ -149,7 +150,7 @@ export default async function DashboardPage({
           ? { tenant: { equals: currentTenant.id } }
           : undefined
 
-    const [tenants, spaces, users, products, posts, bookings, orders] = await Promise.all([
+    const [tenants, spaces, users, products, posts, bookings, orders, openTickets] = await Promise.all([
       isSuperAdmin && isPlatformView
         ? payload.count({ collection: 'tenants', overrideAccess: true })
         : Promise.resolve({ totalDocs: 0 }),
@@ -183,6 +184,18 @@ export default async function DashboardPage({
       payload
         .count({ collection: 'orders' as any, where: tenantFilter, overrideAccess: true })
         .catch(() => ({ totalDocs: 0 })),
+      payload
+        .count({
+          collection: 'tickets',
+          where: {
+            and: [
+              ...(tenantFilter ? [tenantFilter] : []),
+              { status: { in: ['submitted', 'reviewing', 'approved'] } },
+            ],
+          },
+          overrideAccess: true,
+        })
+        .catch(() => ({ totalDocs: 0 })),
     ])
 
     stats = {
@@ -193,6 +206,7 @@ export default async function DashboardPage({
       posts: posts.totalDocs,
       bookings: bookings.totalDocs,
       orders: orders.totalDocs,
+      openTickets: openTickets.totalDocs,
     }
 
     if (isPortalManager) {
@@ -388,6 +402,16 @@ export default async function DashboardPage({
           href={isPortalManager ? `${prefix}/dashboard/admin/bookings` : undefined}
           delay={325}
         />
+        {isPortalManager && (
+          <LCARSStatCard
+            label="Open Tickets"
+            value={stats.openTickets}
+            icon={<SupportIcon />}
+            accentColor={stats.openTickets > 0 ? 'var(--lcars-amber)' : 'var(--lcars-green)'}
+            href={`${prefix}/dashboard/tickets`}
+            delay={340}
+          />
+        )}
         {draftCount > 0 && isPortalManager && (
           <LCARSStatCard
             label="Drafts"
@@ -430,7 +454,7 @@ export default async function DashboardPage({
         >
           Quick Actions
         </p>
-        <div className={`grid gap-3 sm:grid-cols-2 ${isPortalManager ? 'lg:grid-cols-5' : 'lg:grid-cols-3'}`}>
+        <div className={`grid gap-3 sm:grid-cols-2 ${isPortalManager ? 'lg:grid-cols-3 xl:grid-cols-6' : 'lg:grid-cols-4'}`}>
           <LCARSQuickAction
             href={`${prefix}/dashboard/spaces`}
             icon={<ChatIcon />}
@@ -462,6 +486,13 @@ export default async function DashboardPage({
                 accentColor="var(--lcars-lavender)"
               />
               <LCARSQuickAction
+                href={`${prefix}/dashboard/tickets`}
+                icon={<SupportIcon />}
+                label="Support Desk"
+                description="Incident queue & tickets"
+                accentColor="var(--lcars-amber)"
+              />
+              <LCARSQuickAction
                 href={`${prefix}/dashboard/admin/settings`}
                 icon={<GearIcon />}
                 label="Settings"
@@ -477,6 +508,13 @@ export default async function DashboardPage({
                 label="Posts"
                 description="Read latest updates"
                 accentColor="var(--lcars-blue)"
+              />
+              <LCARSQuickAction
+                href={`${prefix}/help`}
+                icon={<SupportIcon />}
+                label="Help & Support"
+                description="Submit & track tickets"
+                accentColor="var(--lcars-amber)"
               />
               <LCARSQuickAction
                 href={`${prefix}/dashboard/my-orders`}
@@ -656,6 +694,21 @@ function DraftIcon() {
         strokeLinejoin="round"
         strokeWidth={1.5}
         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+      />
+    </svg>
+  )
+}
+
+function SupportIcon() {
+  return (
+    <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <circle cx="12" cy="12" r="9" strokeWidth={1.5} />
+      <circle cx="12" cy="12" r="3.5" strokeWidth={1.5} />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M14.5 9.5l4-4M9.5 9.5l-4-4M14.5 14.5l4 4M9.5 14.5l-4 4"
       />
     </svg>
   )

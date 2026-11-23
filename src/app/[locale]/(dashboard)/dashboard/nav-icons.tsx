@@ -338,6 +338,16 @@ function ChevronDownIcon() {
   )
 }
 
+function LifebuoyIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <circle cx="12" cy="12" r="9" strokeWidth={1.5} />
+      <circle cx="12" cy="12" r="3.5" strokeWidth={1.5} />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.5 9.5l4-4M9.5 9.5l-4-4M14.5 14.5l4 4M9.5 14.5l-4 4" />
+    </svg>
+  )
+}
+
 /** Icon lookup table keyed by NavIconKey */
 export const NAV_ICONS: Record<string, React.ComponentType> = {
   home: HomeIcon,
@@ -379,6 +389,7 @@ export const NAV_ICONS: Record<string, React.ComponentType> = {
   anchor: AnchorIcon,
   history: HistoryIcon,
   'chevron-down': ChevronDownIcon,
+  lifebuoy: LifebuoyIcon,
 }
 
 export type NavIconKey = keyof typeof NAV_ICONS

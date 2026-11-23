@@ -176,7 +176,13 @@ export async function Header({ tenant }: Props) {
         }),
       ])
 
-      hasEpisodes = videoPostsCountRes.totalDocs > 0
+      const isPlatformTenant =
+        (tenant as { type?: string; slug?: string } | null)?.type === 'platform' ||
+        tenant?.slug === 'platform'
+
+      // Platform portal uses clean Patreon-style top nav without auto-injecting Episodes
+      // just because an announcement post embeds a YouTube video.
+      hasEpisodes = isPlatformTenant ? false : videoPostsCountRes.totalDocs > 0
       hasPosts = totalPostsRes.totalDocs > videoPostsCountRes.totalDocs
 
       const storedNavItems = (header as { navItems?: Array<{ children?: unknown[] }> }).navItems || []
@@ -308,6 +314,8 @@ export async function Header({ tenant }: Props) {
       ).map((e) => ({ slug: e.slug, title: e.title, image: thumb(e.coverImage) }))
 
       let navItems = injectPagesUnderHome((header as { navItems?: unknown[] }).navItems || [], pageList, {
+        // Avoid duplicating pages already promoted onto the top nav or child dropdowns.
+        excludeTopLevel: true,
         // The membership page is lifted to its own primary item below, so keep
         // it out of the Home dropdown rather than listing it twice.
         excludeSlugs: [

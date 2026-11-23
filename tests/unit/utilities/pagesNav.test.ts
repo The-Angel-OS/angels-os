@@ -136,4 +136,26 @@ describe('pagesNav.injectPagesUnderHome', () => {
       JSON.stringify(injectPagesUnderHome(NAV, pages.map((p) => ({ ...p, parent: null })))),
     )
   })
+
+  it('excludes pages already present as top-level links or children when excludeTopLevel is true', () => {
+    const nav = [
+      item('Home', '/'),
+      item('For Creators', '/how-it-works', {
+        children: [{ link: { type: 'custom', label: 'Examples', url: '/examples' } }],
+      }),
+      item('Pricing', '/pricing'),
+    ]
+    const out = injectPagesUnderHome(
+      nav,
+      [
+        { slug: 'how-it-works', title: 'How It Works' },
+        { slug: 'examples', title: 'Examples' },
+        { slug: 'pricing', title: 'Pricing' },
+        { slug: 'about', title: 'About' },
+      ],
+      { excludeTopLevel: true },
+    )
+    const home = out.find((i) => i.link.url === '/')
+    expect(home.children.map((c: { link: { url: string } }) => c.link.url)).toEqual(['/about'])
+  })
 })

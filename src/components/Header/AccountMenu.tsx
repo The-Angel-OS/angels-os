@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRef, useState } from 'react'
-import { ChevronDown, LayoutDashboard, LogOut, UserRound } from 'lucide-react'
+import { ChevronDown, LayoutDashboard, LifeBuoy, LogOut, UserRound } from 'lucide-react'
 import { ThemeToggle } from '@/providers/Theme/ThemeToggle'
 import { PortalSwitcher, type PortalInfo } from '@/components/PortalSwitcher'
 
@@ -105,6 +105,15 @@ export function AccountMenu({
           >
             <UserRound className="h-4 w-4" />
             Account
+          </Link>
+          <Link
+            href="/help"
+            role="menuitem"
+            className={itemClass}
+            onClick={() => setOpen(false)}
+          >
+            <LifeBuoy className="h-4 w-4" />
+            Help &amp; Support
           </Link>
           {(portals.length > 1 || canEditContent) && (
             <>

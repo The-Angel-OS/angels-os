@@ -1,0 +1,178 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="100%" height="100%">
+  <defs>
+    <radialGradient id="tableGlow" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#1f1d36" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#0c0a17" stop-opacity="1"/>
+    </radialGradient>
+
+    <!-- Hoodie shadows and gradients -->
+    <linearGradient id="hoodieGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2a2e39"/>
+      <stop offset="50%" stop-color="#191c24"/>
+      <stop offset="100%" stop-color="#11131a"/>
+    </linearGradient>
+
+    <linearGradient id="hoodieFold" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3a3f4d" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.6"/>
+    </linearGradient>
+
+    <!-- Vinyl record shine -->
+    <linearGradient id="vinylShine" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#374151" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#111827" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#4b5563" stop-opacity="0.8"/>
+    </linearGradient>
+
+    <!-- Cap gradient -->
+    <linearGradient id="capGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1f2937"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+
+    <!-- Mug gradient -->
+    <linearGradient id="mugGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#18181b"/>
+      <stop offset="40%" stop-color="#27272a"/>
+      <stop offset="70%" stop-color="#3f3f46"/>
+      <stop offset="100%" stop-color="#18181b"/>
+    </linearGradient>
+
+    <!-- Badge gradients -->
+    <linearGradient id="badgeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+
+    <!-- Drop shadow filter -->
+    <filter id="merchShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <!-- Background surface -->
+  <rect width="1200" height="800" fill="url(#tableGlow)"/>
+
+  <!-- Subtle ambient studio spotlight circle -->
+  <circle cx="600" cy="400" r="380" fill="#6366f1" fill-opacity="0.08" filter="blur(60px)"/>
+  <circle cx="350" cy="350" r="240" fill="#ec4899" fill-opacity="0.06" filter="blur(50px)"/>
+
+  <!-- ==================== ITEM 1: VINYL RECORD & JACKET ==================== -->
+  <g transform="translate(140, 200)" filter="url(#merchShadow)">
+    <!-- Vinyl Sleeve / Jacket -->
+    <rect x="0" y="0" width="340" height="340" rx="12" fill="#18181b" stroke="#3f3f46" stroke-width="2"/>
+    <!-- Artwork on jacket -->
+    <rect x="16" y="16" width="308" height="308" rx="8" fill="#09090b"/>
+    <circle cx="170" cy="170" r="110" fill="none" stroke="#ec4899" stroke-width="3" stroke-opacity="0.6"/>
+    <circle cx="170" cy="170" r="70" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-opacity="0.7"/>
+    <path d="M 90 230 C 130 150, 210 150, 250 230" fill="none" stroke="#38bdf8" stroke-width="4"/>
+    <text x="170" y="100" font-family="system-ui, sans-serif" font-weight="800" font-size="16" fill="#f43f5e" text-anchor="middle" letter-spacing="3">ORIGINAL SOUNDTRACK</text>
+    <text x="170" y="125" font-family="system-ui, sans-serif" font-weight="600" font-size="12" fill="#94a3b8" text-anchor="middle" letter-spacing="2">VOL. 01 — ARCHIVE EDITION</text>
+
+    <!-- Vinyl Record peaking out -->
+    <g transform="translate(190, 20)">
+      <circle cx="150" cy="150" r="140" fill="url(#vinylShine)"/>
+      <!-- Grooves -->
+      <circle cx="150" cy="150" r="130" fill="none" stroke="#4b5563" stroke-width="1" stroke-opacity="0.3"/>
+      <circle cx="150" cy="150" r="115" fill="none" stroke="#4b5563" stroke-width="1" stroke-opacity="0.4"/>
+      <circle cx="150" cy="150" r="100" fill="none" stroke="#4b5563" stroke-width="1" stroke-opacity="0.3"/>
+      <circle cx="150" cy="150" r="85" fill="none" stroke="#4b5563" stroke-width="1" stroke-opacity="0.4"/>
+      <circle cx="150" cy="150" r="70" fill="none" stroke="#4b5563" stroke-width="1" stroke-opacity="0.3"/>
+      <!-- Center label -->
+      <circle cx="150" cy="150" r="48" fill="#f59e0b"/>
+      <circle cx="150" cy="150" r="8" fill="#18181b"/>
+      <text x="150" y="142" font-family="system-ui, sans-serif" font-weight="700" font-size="8" fill="#18181b" text-anchor="middle">33 RPM</text>
+      <text x="150" y="162" font-family="system-ui, sans-serif" font-weight="700" font-size="7" fill="#18181b" text-anchor="middle">SIDE A</text>
+    </g>
+  </g>
+
+  <!-- ==================== ITEM 2: CREATOR HEAVYWEIGHT HOODIE ==================== -->
+  <g transform="translate(520, 110)" filter="url(#merchShadow)">
+    <!-- Base hoodie body shape -->
+    <path d="M 120 120 
+             C 170 80, 310 80, 360 120 
+             L 450 200 L 410 260 L 370 230 
+             L 370 560 
+             C 370 575, 355 585, 340 585 
+             L 140 585 
+             C 125 585, 110 575, 110 560 
+             L 110 230 L 70 260 L 30 200 Z" 
+          fill="url(#hoodieGrad)"/>
+
+    <!-- Hoodie sleeves / folds -->
+    <path d="M 110 230 L 70 260 L 30 200 L 120 120 L 140 210 Z" fill="url(#hoodieFold)"/>
+    <path d="M 370 230 L 410 260 L 450 200 L 360 120 L 340 210 Z" fill="url(#hoodieFold)"/>
+
+    <!-- Hood collar & opening -->
+    <ellipse cx="240" cy="130" rx="65" ry="35" fill="#0f1117" stroke="#374151" stroke-width="2"/>
+    <path d="M 195 135 C 210 165, 270 165, 285 135" fill="none" stroke="#252a36" stroke-width="4"/>
+
+    <!-- Drawstrings -->
+    <path d="M 215 155 Q 210 230 218 260" stroke="#f1f5f9" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <rect x="215" y="260" width="6" height="14" rx="3" fill="#cbd5e1"/>
+    <path d="M 265 155 Q 270 230 262 260" stroke="#f1f5f9" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <rect x="259" y="260" width="6" height="14" rx="3" fill="#cbd5e1"/>
+
+    <!-- Front Kangaroo Pocket -->
+    <path d="M 150 420 L 330 420 L 350 540 L 130 540 Z" fill="#15171f" stroke="#2a2e3d" stroke-width="2"/>
+
+    <!-- Ribbed Bottom Hem & Cuffs -->
+    <rect x="110" y="565" width="260" height="20" rx="3" fill="#151820" stroke="#2d3342" stroke-width="1.5"/>
+
+    <!-- Creator Custom Chest Logo / Graphic -->
+    <g transform="translate(240, 270)">
+      <circle cx="0" cy="0" r="38" fill="url(#badgeGrad)"/>
+      <path d="M -16 -10 L 0 -22 L 16 -10 L 16 14 L 0 24 L -16 14 Z" fill="#ffffff" fill-opacity="0.9"/>
+      <circle cx="0" cy="0" r="6" fill="#ec4899"/>
+      <text x="0" y="55" font-family="system-ui, sans-serif" font-weight="800" font-size="11" fill="#f8fafc" text-anchor="middle" letter-spacing="3">UNIVERSE ARCHIVE</text>
+      <text x="0" y="70" font-family="system-ui, sans-serif" font-weight="600" font-size="8" fill="#94a3b8" text-anchor="middle" letter-spacing="1.5">PRINT-ON-DEMAND · 420 GSM</text>
+    </g>
+  </g>
+
+  <!-- ==================== ITEM 3: EMBROIDERED DAD HAT ==================== -->
+  <g transform="translate(860, 160)" filter="url(#merchShadow)">
+    <!-- Cap crown -->
+    <path d="M 30 110 C 30 30, 190 20, 210 110 Z" fill="url(#capGrad)" stroke="#374151" stroke-width="2"/>
+    <!-- Visor / Brim -->
+    <path d="M 15 110 C 15 100, 215 100, 235 110 C 270 145, 10 155, 15 110 Z" fill="#090d16" stroke="#1e293b" stroke-width="2"/>
+    <!-- Top Button -->
+    <ellipse cx="120" cy="30" rx="10" ry="6" fill="#374151"/>
+    <!-- Eyelets -->
+    <circle cx="75" cy="55" r="3" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+    <circle cx="165" cy="55" r="3" fill="#0f172a" stroke="#475569" stroke-width="1"/>
+    <!-- Embroidered Patch -->
+    <rect x="85" y="65" width="70" height="32" rx="6" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5"/>
+    <text x="120" y="85" font-family="system-ui, sans-serif" font-weight="800" font-size="10" fill="#fbbf24" text-anchor="middle" letter-spacing="1">ARCHIVE</text>
+  </g>
+
+  <!-- ==================== ITEM 4: MATTE BLACK CERAMIC MUG ==================== -->
+  <g transform="translate(880, 420)" filter="url(#merchShadow)">
+    <!-- Handle -->
+    <path d="M 140 40 C 200 40, 200 120, 140 120" fill="none" stroke="#27272a" stroke-width="16" stroke-linecap="round"/>
+    <path d="M 140 40 C 200 40, 200 120, 140 120" fill="none" stroke="#18181b" stroke-width="10" stroke-linecap="round"/>
+    <!-- Mug Body -->
+    <rect x="20" y="20" width="130" height="150" rx="10" fill="url(#mugGrad)" stroke="#3f3f46" stroke-width="2"/>
+    <ellipse cx="85" cy="22" rx="65" ry="12" fill="#18181b" stroke="#52525b" stroke-width="2"/>
+    <!-- Laser engraved emblem -->
+    <circle cx="85" cy="95" r="24" fill="none" stroke="#a1a1aa" stroke-width="1.5"/>
+    <path d="M 75 95 L 85 80 L 95 95 L 85 110 Z" fill="#a1a1aa"/>
+    <text x="85" y="130" font-family="system-ui, sans-serif" font-weight="700" font-size="8" fill="#d4d4d8" text-anchor="middle" letter-spacing="1">100% CERAMIC</text>
+  </g>
+
+  <!-- ==================== FLOATING PRICE & SPECS BADGES ==================== -->
+  <!-- Hoodie Badge -->
+  <g transform="translate(420, 620)" filter="url(#merchShadow)">
+    <rect x="0" y="0" width="220" height="64" rx="12" fill="#0f172a" stroke="#334155" stroke-width="1.5"/>
+    <text x="18" y="26" font-family="system-ui, sans-serif" font-weight="800" font-size="13" fill="#f8fafc">Heavyweight Cotton Hoodie</text>
+    <text x="18" y="46" font-family="system-ui, sans-serif" font-weight="700" font-size="15" fill="#38bdf8">$58.00</text>
+    <rect x="85" y="34" width="118" height="20" rx="4" fill="#8b5cf6" fill-opacity="0.2"/>
+    <text x="144" y="48" font-family="system-ui, sans-serif" font-weight="600" font-size="10" fill="#c084fc" text-anchor="middle">Members Pay $48</text>
+  </g>
+
+  <!-- POD Zero Inventory Pill -->
+  <g transform="translate(80, 80)" filter="url(#merchShadow)">
+    <rect x="0" y="0" width="310" height="42" rx="21" fill="#18181b" stroke="#ec4899" stroke-width="1.5"/>
+    <circle cx="21" cy="21" r="7" fill="#10b981"/>
+    <text x="38" y="26" font-family="system-ui, sans-serif" font-weight="700" font-size="12" fill="#f1f5f9">PRINT-ON-DEMAND · ZERO UPFRONT COST</text>
+  </g>
+</svg>

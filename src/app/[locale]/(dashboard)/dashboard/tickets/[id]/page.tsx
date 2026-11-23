@@ -1,26 +1,27 @@
+import { headers } from 'next/headers'
 import { setRequestLocale } from 'next-intl/server'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 import { requirePortalManager } from '@/utilities/requirePortalManager'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
-import { TicketStatusControls } from './TicketStatusControls'
+import {
+  formatIncidentId,
+  TICKET_PRIORITY_BADGE,
+  TICKET_PRIORITY_LABELS,
+  TICKET_STATUS_BADGE,
+  TICKET_STATUS_LABELS,
+  TICKET_TYPE_LABELS,
+} from '@/utilities/ticketHelpers'
+import { TicketStatusControls, type AssigneeOption } from './TicketStatusControls'
 
 export const dynamic = 'force-dynamic'
 
-const TYPE_LABEL: Record<string, string> = {
-  warranty: 'Warranty claim',
-  support: 'Support request',
-  return: 'Return',
-  question: 'Question',
-}
-
 /**
- * One ticket. The attachments are the point for a warranty claim — you cannot
- * judge a cracked belt from a description — so they render large rather than as
- * a list of filenames.
+ * ServiceNow-Lite Incident Detail Workbench — /dashboard/tickets/[id]
  */
 export default async function TicketDetailPage({
   params,
@@ -32,6 +33,8 @@ export default async function TicketDetailPage({
   await requirePortalManager()
 
   const payload = await getPayload({ config: configPromise })
+  const { user } = await payload.auth({ headers: await headers() })
+  const isSuperAdmin = Boolean(user && checkRole(ADMIN_ROLES, user))
   const { tenantId } = await resolveTenantFromHeaders()
 
   let doc: Record<string, unknown> | null = null
@@ -47,17 +50,79 @@ export default async function TicketDetailPage({
   }
   if (!doc) notFound()
 
-  // The page gate is not the data gate: requirePortalManager proves they manage
-  // A portal, not THIS one. @see docs/FOOTGUNS.md §2.2
-  const docTenant =
+  const docTenantObj =
     typeof doc.tenant === 'object' && doc.tenant
-      ? (doc.tenant as { id?: number | string }).id
-      : doc.tenant
-  if (tenantId != null && docTenant != null && String(docTenant) !== String(tenantId)) notFound()
+      ? (doc.tenant as { id?: number | string; name?: string; slug?: string; branding?: { siteName?: string } })
+      : null
+  const docTenantId = docTenantObj ? docTenantObj.id : doc.tenant
+
+  // Enforce tenant boundary for non-super-admins
+  if (!isSuperAdmin && tenantId != null && docTenantId != null && String(docTenantId) !== String(tenantId)) {
+    notFound()
+  }
+
+  // Build assignable staff list (active tenant managers on ticket's tenant + super_admins)
+  const assigneeMap = new Map<string, AssigneeOption>()
+  try {
+    if (docTenantId != null) {
+      const members = await payload.find({
+        collection: 'tenant-memberships',
+        where: {
+          and: [
+            { tenant: { equals: docTenantId } },
+            { status: { equals: 'active' } },
+            { role: { in: ['tenant_admin', 'tenant_manager'] } },
+          ],
+        },
+        limit: 50,
+        depth: 1,
+        overrideAccess: true,
+      })
+      for (const m of members.docs || []) {
+        const u = (m as { user?: unknown }).user
+        if (u && typeof u === 'object') {
+          const uObj = u as { id?: number | string; name?: string; email?: string }
+          if (uObj.id != null) {
+            assigneeMap.set(String(uObj.id), {
+              id: String(uObj.id),
+              label: uObj.name || uObj.email || `User #${uObj.id}`,
+            })
+          }
+        }
+      }
+    }
+    if (isSuperAdmin && user?.id != null) {
+      const uObj = user as { id: number | string; name?: string | null; email?: string | null }
+      assigneeMap.set(String(uObj.id), {
+        id: String(uObj.id),
+        label: uObj.name || uObj.email || `Admin #${uObj.id}`,
+      })
+    }
+  } catch {
+    /* non-fatal — dropdown falls back to Unassigned / current assignee */
+  }
 
   const requester = doc.requester as { name?: string; email?: string } | undefined
+  const assigneeObj =
+    typeof doc.assignee === 'object' && doc.assignee
+      ? (doc.assignee as { id?: number | string; name?: string; email?: string })
+      : null
+  const currentAssigneeId = assigneeObj?.id != null ? String(assigneeObj.id) : doc.assignee ? String(doc.assignee) : null
+  if (assigneeObj?.id != null && !assigneeMap.has(String(assigneeObj.id))) {
+    assigneeMap.set(String(assigneeObj.id), {
+      id: String(assigneeObj.id),
+      label: assigneeObj.name || assigneeObj.email || `User #${assigneeObj.id}`,
+    })
+  }
+
   const product = doc.product as { title?: string } | undefined
-  const attachments = (doc.attachments as Array<{ file?: { url?: string; mimeType?: string; filename?: string } }>) || []
+  const attachments =
+    (doc.attachments as Array<{ file?: { url?: string; mimeType?: string; filename?: string } }>) || []
+
+  const showPurchase =
+    doc.type === 'warranty' ||
+    doc.type === 'return' ||
+    Boolean(product?.title || doc.orderNumber || doc.purchaseDate || doc.sellerName)
 
   const field = (label: string, value?: string | null) =>
     value ? (
@@ -67,41 +132,79 @@ export default async function TicketDetailPage({
       </div>
     ) : null
 
-  return (
-    <div className="container max-w-4xl py-8">
-      <Link
-        href={`/${locale}/dashboard/tickets`}
-        className="text-sm text-muted-foreground hover:text-foreground"
-      >
-        ← All tickets
-      </Link>
+  const prio = String(doc.priority ?? 'normal')
+  const st = String(doc.status ?? 'submitted')
+  const portalName = docTenantObj?.branding?.siteName || docTenantObj?.name || docTenantObj?.slug
 
-      <div className="mt-4 mb-6">
-        <div className="text-xs uppercase tracking-wider text-muted-foreground">
-          {TYPE_LABEL[String(doc.type)] ?? String(doc.type)} · #{String(doc.id)}
+  return (
+    <div className="container max-w-4xl py-8 space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Link
+          href={`/${locale}/dashboard/tickets`}
+          className="text-sm text-muted-foreground hover:text-foreground"
+        >
+          ← Back to Incident Queue
+        </Link>
+        <Link
+          href={`/${locale}/dashboard/spaces`}
+          className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          Discuss in Spaces ↗
+        </Link>
+      </div>
+
+      {/* Incident Header */}
+      <div className="rounded-xl border border-border bg-card p-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-md bg-primary/10 px-2.5 py-0.5 font-mono text-xs font-bold text-primary">
+            {formatIncidentId(doc.id as number | string)}
+          </span>
+          <span
+            className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium ${TICKET_STATUS_BADGE[st] ?? 'bg-muted border-border'}`}
+          >
+            {TICKET_STATUS_LABELS[st] ?? st}
+          </span>
+          <span
+            className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs ${TICKET_PRIORITY_BADGE[prio] ?? TICKET_PRIORITY_BADGE.normal}`}
+          >
+            {TICKET_PRIORITY_LABELS[prio] ?? prio}
+          </span>
+          <span className="text-xs uppercase tracking-wider text-muted-foreground">
+            {TICKET_TYPE_LABELS[String(doc.type)] ?? String(doc.type)}
+            {portalName ? ` · ${portalName}` : ''}
+          </span>
         </div>
-        <h1 className="mt-1 text-2xl font-bold">{String(doc.subject)}</h1>
+
+        <h1 className="mt-3 text-2xl font-bold">{String(doc.subject)}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Raised by {requester?.name || requester?.email || 'a customer'} on{' '}
-          {new Date(String(doc.createdAt)).toLocaleDateString()}
+          Raised by <span className="font-medium text-foreground">{requester?.name || requester?.email || 'a customer'}</span>{' '}
+          {requester?.email && requester?.name ? `(${requester.email}) ` : ''}
+          on {new Date(String(doc.createdAt)).toLocaleString()}
         </p>
       </div>
 
+      {/* Workbench Controls (State, Priority, Assignee, Resolution, Work Notes) */}
       <TicketStatusControls
         ticketId={String(doc.id)}
-        status={String(doc.status)}
-        priority={String(doc.priority ?? 'normal')}
+        status={st}
+        priority={prio}
+        assigneeId={currentAssigneeId}
+        currentUserId={user?.id != null ? String(user.id) : null}
+        assignees={Array.from(assigneeMap.values())}
+        initialResolution={typeof doc.resolution === 'string' ? doc.resolution : ''}
+        initialInternalNotes={typeof doc.internalNotes === 'string' ? doc.internalNotes : ''}
       />
 
-      <section className="mt-6 rounded-lg border border-border p-5">
-        <h2 className="mb-2 text-sm font-semibold">What they reported</h2>
+      {/* Reported Incident Description */}
+      <section className="rounded-xl border border-border bg-card p-5">
+        <h2 className="mb-2 text-sm font-semibold">Incident Description</h2>
         <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
           {String(doc.description || '—')}
         </p>
       </section>
 
       {attachments.length > 0 && (
-        <section className="mt-6">
+        <section>
           <h2 className="mb-3 text-sm font-semibold">
             Evidence · {attachments.length} file{attachments.length === 1 ? '' : 's'}
           </h2>
@@ -113,8 +216,6 @@ export default async function TicketDetailPage({
               return (
                 <div key={i} className="overflow-hidden rounded-lg border border-border bg-black">
                   {isVideo ? (
-                    // controls, no autoplay — you scrub through a fault report,
-                    // you don't watch it loop.
                     <video src={f.url} controls playsInline preload="metadata" className="w-full" />
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -129,35 +230,18 @@ export default async function TicketDetailPage({
         </section>
       )}
 
-      <section className="mt-6 rounded-lg border border-border p-5">
-        <h2 className="mb-3 text-sm font-semibold">Purchase</h2>
-        <dl className="grid gap-4 sm:grid-cols-2">
-          {field('Product', product?.title)}
-          {field('Order number', doc.orderNumber as string)}
-          {field(
-            'Date of purchase',
-            doc.purchaseDate ? new Date(String(doc.purchaseDate)).toLocaleDateString() : null,
-          )}
-          {field('Seller', doc.sellerName as string)}
-        </dl>
-      </section>
-
-      {(doc.resolution as string) && (
-        <section className="mt-6 rounded-lg border border-border p-5">
-          <h2 className="mb-2 text-sm font-semibold">Resolution</h2>
-          <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-            {String(doc.resolution)}
-          </p>
-        </section>
-      )}
-
-      {(doc.internalNotes as string) && (
-        <section className="mt-6 rounded-lg border border-amber-500/30 bg-amber-500/5 p-5">
-          <h2 className="mb-2 text-sm font-semibold">Internal notes</h2>
-          <p className="mb-2 text-xs text-muted-foreground">Never shown to the requester.</p>
-          <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-            {String(doc.internalNotes)}
-          </p>
+      {showPurchase && (
+        <section className="rounded-xl border border-border bg-card p-5">
+          <h2 className="mb-3 text-sm font-semibold">Order &amp; Product Context</h2>
+          <dl className="grid gap-4 sm:grid-cols-2">
+            {field('Product', product?.title)}
+            {field('Order number', doc.orderNumber as string)}
+            {field(
+              'Date of purchase',
+              doc.purchaseDate ? new Date(String(doc.purchaseDate)).toLocaleDateString() : null,
+            )}
+            {field('Seller', doc.sellerName as string)}
+          </dl>
         </section>
       )}
     </div>

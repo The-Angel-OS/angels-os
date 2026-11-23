@@ -1,9 +1,19 @@
 'use client'
 
-import React, { useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/providers/Auth'
+import {
+  formatIncidentId,
+  TICKET_PRIORITY_BADGE,
+  TICKET_PRIORITY_LABELS,
+  TICKET_STATUS_BADGE,
+  TICKET_STATUS_LABELS,
+  TICKET_TYPE_LABELS,
+  type RequesterTicketView,
+} from '@/utilities/ticketHelpers'
 
 type TicketType = 'warranty' | 'return' | 'support' | 'question'
 
@@ -18,32 +28,19 @@ export type TicketFormProps = {
 const DEFAULT_HEADING: Record<TicketType, string> = {
   warranty: 'Make a warranty claim',
   return: 'Request a return',
-  support: 'Get support',
+  support: 'Submit a support ticket',
   question: 'Ask a question',
 }
 
 const DEFAULT_SUBMIT: Record<TicketType, string> = {
   warranty: 'Submit claim',
   return: 'Request return',
-  support: 'Send request',
+  support: 'Submit incident ticket',
   question: 'Send question',
 }
 
 type Attachment = { mediaId: number | string; name: string; url: string }
 
-/**
- * Upload-only file control.
- *
- * The dashboard's media control offers "Choose existing" beside "Upload". That
- * affordance must NOT exist here: a customer filing a claim is signed in but is
- * NOT a member of the seller's tenant, and a picker would invite them to browse
- * the tenant's media library. So this control has one button, and the only
- * images it can ever show are the ones this person just uploaded.
- *
- * ponytail: no drag-and-drop, no reordering, no client-side image compression.
- * Add them when someone actually complains — the job here is "photograph the
- * fault and send it", and a file input does that on every phone.
- */
 function UploadOnly({
   attachments,
   onChange,
@@ -65,7 +62,6 @@ function UploadOnly({
       for (const file of Array.from(files)) {
         const fd = new FormData()
         fd.append('file', file)
-        // Media.alt is required, and Payload reads non-file fields from _payload.
         const alt = file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim() || 'Attachment'
         fd.append('_payload', JSON.stringify({ alt }))
         const res = await fetch('/api/media', { method: 'POST', body: fd, credentials: 'include' })
@@ -85,9 +81,9 @@ function UploadOnly({
 
   return (
     <div>
-      <label className="mb-1 block text-sm font-medium">Photos or video of the issue</label>
+      <label className="mb-1 block text-sm font-medium">Screenshots, photos, or video (optional)</label>
       <p className="mb-2 text-xs text-muted-foreground">
-        A clear photo of the fault settles most claims without a phone call.
+        Attach a screenshot or photo to help our team resolve your request faster.
       </p>
 
       {attachments.length > 0 && (
@@ -129,7 +125,7 @@ function UploadOnly({
         disabled={disabled || uploading}
         onClick={() => inputRef.current?.click()}
       >
-        {uploading ? 'Uploading…' : attachments.length ? 'Add another' : 'Add a photo'}
+        {uploading ? 'Uploading…' : attachments.length ? 'Add another file' : 'Attach photo / screenshot'}
       </Button>
       {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
     </div>
@@ -143,9 +139,10 @@ export const TicketFormBlockComponent: React.FC<TicketFormProps> = ({
   showOrderFields,
   confirmation,
 }) => {
-  const ticketType: TicketType = (type as TicketType) || 'warranty'
-  const showOrder = showOrderFields !== false && ticketType !== 'question'
+  const { user } = useAuth()
+  const initialType: TicketType = (type as TicketType) || 'support'
 
+  const [selectedType, setSelectedType] = useState<TicketType>(initialType)
   const [subject, setSubject] = useState('')
   const [description, setDescription] = useState('')
   const [orderNumber, setOrderNumber] = useState('')
@@ -155,7 +152,39 @@ export const TicketFormBlockComponent: React.FC<TicketFormProps> = ({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [needsAuth, setNeedsAuth] = useState(false)
-  const [done, setDone] = useState<string | null>(null)
+  const [doneRef, setDoneRef] = useState<{ id: string; incidentNumber: string } | null>(null)
+
+  const [myTickets, setMyTickets] = useState<RequesterTicketView[]>([])
+  const [loadingTickets, setLoadingTickets] = useState(false)
+
+  const fetchMyTickets = useCallback(async () => {
+    if (!user?.id) {
+      setMyTickets([])
+      return
+    }
+    setLoadingTickets(true)
+    try {
+      const res = await fetch('/api/tickets-ops/mine', { credentials: 'include' })
+      if (!res.ok) return
+      const data = await res.json().catch(() => ({}))
+      if (Array.isArray(data?.tickets)) {
+        setMyTickets(data.tickets)
+      }
+    } catch {
+      /* fail soft */
+    } finally {
+      setLoadingTickets(false)
+    }
+  }, [user?.id])
+
+  useEffect(() => {
+    void fetchMyTickets()
+  }, [fetchMyTickets])
+
+  const showOrder =
+    selectedType === 'warranty' ||
+    selectedType === 'return' ||
+    (showOrderFields === true && selectedType === initialType && initialType !== 'question')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -168,7 +197,7 @@ export const TicketFormBlockComponent: React.FC<TicketFormProps> = ({
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          type: ticketType,
+          type: selectedType,
           subject,
           description,
           ...(showOrder ? { orderNumber, purchaseDate, sellerName } : {}),
@@ -181,7 +210,13 @@ export const TicketFormBlockComponent: React.FC<TicketFormProps> = ({
         return
       }
       if (!res.ok) throw new Error(data?.message || 'Could not submit — please try again.')
-      setDone(data?.reference ? String(data.reference) : '')
+      const refId = data?.reference ? String(data.reference) : ''
+      const inc = data?.incidentNumber || (refId ? formatIncidentId(refId) : '')
+      setDoneRef({ id: refId, incidentNumber: inc })
+      setSubject('')
+      setDescription('')
+      setAttachments([])
+      void fetchMyTickets()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not submit — please try again.')
     } finally {
@@ -189,108 +224,224 @@ export const TicketFormBlockComponent: React.FC<TicketFormProps> = ({
     }
   }
 
-  if (done !== null) {
-    return (
-      <section className="container my-16">
-        <div className="mx-auto max-w-xl rounded-xl border border-border bg-card p-8 text-center">
-          <h2 className="mb-3 text-2xl font-bold">Received</h2>
-          <p className="text-muted-foreground">
-            {confirmation ||
-              'Thanks — this is with the team. You’ll get a reply on this claim, and you can check it any time from your account.'}
-          </p>
-          {done && (
-            <p className="mt-4 text-sm">
-              Reference <span className="font-mono font-medium">#{done}</span>
-            </p>
-          )}
-        </div>
-      </section>
-    )
-  }
-
-  const field = 'w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary'
-  const path = typeof window !== 'undefined' ? window.location.pathname : '/'
+  const field =
+    'w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary'
+  const path = typeof window !== 'undefined' ? window.location.pathname : '/help'
 
   return (
-    <section className="container my-16">
-      <div className="mx-auto max-w-xl">
-        <h2 className="mb-2 text-2xl font-bold">{heading || DEFAULT_HEADING[ticketType]}</h2>
-        {intro && <p className="mb-6 text-muted-foreground">{intro}</p>}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="mb-1 block text-sm font-medium">Subject</label>
-            <input
-              className={field}
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              required
-              maxLength={140}
-              placeholder={ticketType === 'warranty' ? 'Belt stopped heating on one side' : 'Short summary'}
-            />
+    <section className="container my-14 space-y-14">
+      <div className="mx-auto max-w-2xl rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-sm">
+        {doneRef ? (
+          <div className="py-6 text-center">
+            {doneRef.incidentNumber && (
+              <span className="inline-block rounded-md bg-primary/10 px-3 py-1 font-mono text-sm font-bold text-primary">
+                {doneRef.incidentNumber}
+              </span>
+            )}
+            <h2 className="mt-3 mb-2 text-2xl font-bold">Ticket Logged</h2>
+            <p className="text-sm text-muted-foreground">
+              {confirmation ||
+                'Thanks — your ticket is in the queue. Track its live status and resolution below anytime.'}
+            </p>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <Button type="button" variant="outline" onClick={() => setDoneRef(null)}>
+                Submit Another Ticket
+              </Button>
+            </div>
           </div>
+        ) : (
+          <>
+            <h2 className="mb-2 text-2xl font-bold">{heading || DEFAULT_HEADING[selectedType]}</h2>
+            {intro && <p className="mb-6 text-sm text-muted-foreground">{intro}</p>}
 
-          <div>
-            <label className="mb-1 block text-sm font-medium">What happened</label>
-            <textarea
-              className={`${field} min-h-32`}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              required
-              maxLength={5000}
-              placeholder="In your own words — when it started, what you were doing, what it does now."
-            />
-          </div>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="mb-1 block text-sm font-medium">Category</label>
+                <select
+                  className={field}
+                  value={selectedType}
+                  onChange={(e) => setSelectedType(e.target.value as TicketType)}
+                  disabled={submitting}
+                >
+                  <option value="support">Support / Technical Incident</option>
+                  <option value="question">General Question</option>
+                  <option value="warranty">Warranty Claim</option>
+                  <option value="return">Return Request</option>
+                </select>
+              </div>
 
-          {showOrder && (
-            <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-1 block text-sm font-medium">Order number</label>
-                <input className={field} value={orderNumber} onChange={(e) => setOrderNumber(e.target.value)} />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">Purchase date</label>
-                <input type="date" className={field} value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="mb-1 block text-sm font-medium">Where you bought it</label>
+                <label className="mb-1 block text-sm font-medium">Subject</label>
                 <input
                   className={field}
-                  value={sellerName}
-                  onChange={(e) => setSellerName(e.target.value)}
-                  placeholder="Direct, Amazon, a clinic, a distributor…"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  required
+                  maxLength={140}
+                  placeholder={
+                    selectedType === 'warranty'
+                      ? 'Belt stopped heating on one side'
+                      : 'Short summary of what you need help with'
+                  }
                 />
               </div>
-            </div>
-          )}
 
-          <UploadOnly attachments={attachments} onChange={setAttachments} disabled={submitting} />
-
-          {needsAuth && (
-            <div className="rounded-md border border-border bg-muted/40 p-4 text-sm">
-              <p className="mb-3">
-                Please sign in so this claim is attached to you — that’s how you track it and how we
-                reply.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Button asChild size="sm">
-                  <Link href={`/login?redirect=${encodeURIComponent(path)}`}>Sign in</Link>
-                </Button>
-                <Button asChild size="sm" variant="outline">
-                  <Link href={`/create-account?redirect=${encodeURIComponent(path)}`}>
-                    Create an account
-                  </Link>
-                </Button>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Details</label>
+                <textarea
+                  className={`${field} min-h-32`}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  required
+                  maxLength={5000}
+                  placeholder="Describe what happened, the portal/page URL affected, or your question in your own words."
+                />
               </div>
-            </div>
+
+              {showOrder && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">Order number</label>
+                    <input
+                      className={field}
+                      value={orderNumber}
+                      onChange={(e) => setOrderNumber(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">Purchase date</label>
+                    <input
+                      type="date"
+                      className={field}
+                      value={purchaseDate}
+                      onChange={(e) => setPurchaseDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-sm font-medium">Where you bought it</label>
+                    <input
+                      className={field}
+                      value={sellerName}
+                      onChange={(e) => setSellerName(e.target.value)}
+                      placeholder="Direct, Amazon, a clinic, a distributor…"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <UploadOnly attachments={attachments} onChange={setAttachments} disabled={submitting} />
+
+              {needsAuth && (
+                <div className="rounded-md border border-border bg-muted/40 p-4 text-sm">
+                  <p className="mb-3">
+                    Please sign in so this ticket is attached to your account — that’s how you track
+                    live status and receive replies.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button asChild size="sm">
+                      <Link href={`/login?redirect=${encodeURIComponent(path)}`}>Sign in</Link>
+                    </Button>
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/create-account?redirect=${encodeURIComponent(path)}`}>
+                        Create an account
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {error && <p className="text-sm text-destructive">{error}</p>}
+
+              <Button type="submit" size="lg" disabled={submitting}>
+                {submitting ? 'Sending…' : DEFAULT_SUBMIT[selectedType]}
+              </Button>
+            </form>
+          </>
+        )}
+      </div>
+
+      {/* Requester's Own Ticket Tracker */}
+      <div id="my-tickets" className="mx-auto max-w-3xl scroll-mt-20">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h3 className="text-xl font-bold">My Submitted Tickets</h3>
+            <p className="text-xs text-muted-foreground">
+              Live status and team resolutions for support requests raised from your account.
+            </p>
+          </div>
+          {user && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void fetchMyTickets()}
+              disabled={loadingTickets}
+            >
+              {loadingTickets ? 'Refreshing…' : 'Refresh'}
+            </Button>
           )}
+        </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+        {!user ? (
+          <div className="rounded-xl border border-dashed border-border bg-card/40 p-6 text-center text-sm text-muted-foreground">
+            <Link href={`/login?redirect=${encodeURIComponent('/help#my-tickets')}`} className="font-semibold text-primary underline">
+              Sign in
+            </Link>{' '}
+            to view your open and resolved support tickets.
+          </div>
+        ) : loadingTickets && myTickets.length === 0 ? (
+          <div className="rounded-xl border border-border bg-card/40 p-6 text-center text-sm text-muted-foreground">
+            Loading your tickets…
+          </div>
+        ) : myTickets.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border bg-card/40 p-6 text-center text-sm text-muted-foreground">
+            You haven&apos;t submitted any support tickets yet.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {myTickets.map((t) => (
+              <div key={String(t.id)} className="rounded-xl border border-border bg-card p-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded bg-primary/10 px-2 py-0.5 font-mono text-xs font-bold text-primary">
+                      {t.incidentNumber}
+                    </span>
+                    <span
+                      className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${TICKET_STATUS_BADGE[t.status] ?? 'bg-muted border-border'}`}
+                    >
+                      {TICKET_STATUS_LABELS[t.status] ?? t.status}
+                    </span>
+                    <span
+                      className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] ${TICKET_PRIORITY_BADGE[t.priority] ?? TICKET_PRIORITY_BADGE.normal}`}
+                    >
+                      {TICKET_PRIORITY_LABELS[t.priority] ?? t.priority}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {TICKET_TYPE_LABELS[t.type] ?? t.type}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {t.createdAt ? new Date(t.createdAt).toLocaleDateString() : ''}
+                  </span>
+                </div>
 
-          <Button type="submit" size="lg" disabled={submitting}>
-            {submitting ? 'Sending…' : DEFAULT_SUBMIT[ticketType]}
-          </Button>
-        </form>
+                <h4 className="mt-2 font-semibold text-foreground">{t.subject}</h4>
+                <p className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground line-clamp-3">
+                  {t.description}
+                </p>
+
+                {t.resolution && (
+                  <div className="mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                      Team Resolution
+                    </div>
+                    <p className="mt-1 whitespace-pre-wrap text-xs text-foreground">{t.resolution}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )

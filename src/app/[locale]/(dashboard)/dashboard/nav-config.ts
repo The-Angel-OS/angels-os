@@ -233,6 +233,40 @@ export const NAV_SECTIONS: NavSectionConfig[] = [
     ],
   },
 
+  // ── SUPPORT ──
+  {
+    key: 'support',
+    label: 'SUPPORT',
+    collapsible: true,
+    visible: authenticated,
+    items: [
+      {
+        key: 'tickets',
+        label: 'Incident Queue',
+        icon: 'lifebuoy',
+        href: (p) => `${p}/dashboard/tickets`,
+        isActive: active('/dashboard/tickets'),
+        visible: portalManager,
+      },
+      {
+        key: 'my-tickets',
+        label: 'My Tickets',
+        icon: 'clipboard',
+        href: (p) => `${p}/help#my-tickets`,
+        isActive: () => false,
+        visible: authenticated,
+      },
+      {
+        key: 'help-center',
+        label: 'Help Center',
+        icon: 'book-open',
+        href: (p) => `${p}/help`,
+        isActive: () => false,
+        visible: always,
+      },
+    ],
+  },
+
   // ── SETTINGS ──
   {
     key: 'settings',

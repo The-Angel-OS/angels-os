@@ -30,6 +30,12 @@ import { UAPGlobeAtlas } from '@/components/UAPGlobeAtlas'
 import { NDEGlobeAtlas } from '@/components/NDEGlobeAtlas'
 import { GlobeAtlasBlockComponent } from '@/blocks/GlobeAtlas/Component'
 import { TranscriptBlockComponent } from '@/blocks/Transcript/Component'
+import { FourPillarsMonetization } from '@/components/home/FourPillarsMonetization'
+import { CreatorStorefrontSection } from '@/components/home/CreatorStorefrontSection'
+import { FeeCalculator } from '@/components/home/FeeCalculator'
+import { LeoAiSection } from '@/components/home/LeoAiSection'
+import { PricingLadderSection } from '@/components/home/PricingLadderSection'
+import { CreatorCtaBanner } from '@/components/home/CreatorCtaBanner'
 import { toKebabCase } from '@/utilities/toKebabCase'
 import React, { Fragment } from 'react'
 
@@ -145,6 +151,44 @@ export const RenderBlocks: React.FC<{
                 <NDEGlobeAtlas />
               </div>
             )
+          }
+
+          // Sprint F Creator Platform Zero-Migration Directives:
+          if (
+            blockType === 'content' &&
+            (normalizedName === 'four-pillars' || normalizedName === 'creator-pillars')
+          ) {
+            return <FourPillarsMonetization key={index} />
+          }
+          if (
+            (blockType === 'content' || blockType === 'productPanel') &&
+            (normalizedName === 'creator-storefront' || normalizedName === 'creator-merch')
+          ) {
+            return <CreatorStorefrontSection key={index} />
+          }
+          if (
+            blockType === 'content' &&
+            (normalizedName === 'fee-calculator' || normalizedName === 'earnings-calculator')
+          ) {
+            return <FeeCalculator key={index} />
+          }
+          if (
+            blockType === 'content' &&
+            (normalizedName === 'leo-rag-spotlight' || normalizedName === 'leo-ai-spotlight')
+          ) {
+            return <LeoAiSection key={index} />
+          }
+          if (
+            blockType === 'content' &&
+            (normalizedName === 'pricing-ladder' || normalizedName === 'creator-pricing')
+          ) {
+            return <PricingLadderSection key={index} />
+          }
+          if (
+            (blockType === 'cta' || blockType === 'content') &&
+            (normalizedName === 'creator-onboarding-cta' || normalizedName === 'creator-cta')
+          ) {
+            return <CreatorCtaBanner key={index} />
           }
 
           if (blockType && blockType in blockComponents) {

@@ -146,6 +146,8 @@ import { renamePortalSlugHandler } from '@/endpoints/rename-portal-slug'
 import { guardianAngelCheckoutHandler } from '@/endpoints/guardian-angel-checkout'
 import { ensureGuardianAngelColumnHandler } from '@/endpoints/ensure-guardian-angel-column'
 import { ensurePortalPlanCreatorHandler } from '@/endpoints/ensure-portal-plan-creator'
+import { provisionPlatformHomeHandler } from '@/endpoints/provision-platform-home'
+import { selfProvisionPortalHandler } from '@/endpoints/self-provision-portal'
 import { personalAgendaHandler } from '@/endpoints/personal-agenda'
 import { dailyBreadProgressHandler } from '@/endpoints/daily-bread-progress'
 import { dispatchRouteHandler } from '@/endpoints/dispatch-route'
@@ -187,7 +189,7 @@ import { churchTemplateHandler } from '@/endpoints/church-template'
 import { fitnessTemplateHandler } from '@/endpoints/fitness-template'
 import { marketVendorTemplateHandler } from '@/endpoints/market-vendor-template'
 import { linkMarketHandler } from '@/endpoints/link-market'
-import { ticketSubmitHandler } from '@/endpoints/tickets-ops'
+import { ticketSubmitHandler, ticketMineHandler, ticketUpdateHandler } from '@/endpoints/tickets-ops'
 import { nodeRegisterHandler, nodeListHandler, nodeTelemetryHandler, nodeChatPostHandler, nodeChatGetHandler, nodeMediaHandler, nodeMediaListHandler, nodeFilesPostHandler, nodeFilesGetHandler, nodeFileProxyHandler, nodeBrowseHandler, aiBrokerResolveHandler, nodeUsageHandler, nodeDispatchHandler } from '@/endpoints/node-ops'
 import { policyPagesHandler } from '@/endpoints/policy-pages'
 import { pagesFromSpecHandler } from '@/endpoints/pages-from-spec'
@@ -738,6 +740,8 @@ export default buildConfig({
     { path: '/works-ops/daily', method: 'get', handler: worksDailyHandler },
     // Hippocampus — nightly log consolidation (keep unresolved pain, forget the rest).
     { path: '/tickets-ops/submit', method: 'post', handler: ticketSubmitHandler },
+    { path: '/tickets-ops/mine', method: 'get', handler: ticketMineHandler },
+    { path: '/tickets-ops/update', method: 'post', handler: ticketUpdateHandler },
     // Watchdog: a LEO placeholder whose turn died becomes a message that says so.
     { path: '/message-ops/heal-stalled', method: 'get', handler: healStalledMessagesHandler },
     { path: '/message-ops/heal-stalled', method: 'post', handler: healStalledMessagesHandler },
@@ -1196,6 +1200,23 @@ export default buildConfig({
       path: '/provision-ops/ensure-portal-plan-creator',
       method: 'post',
       handler: ensurePortalPlanCreatorHandler,
+    },
+    // Sprint F: Provision/Sync Patreon-Style Creator Platform Home Page (keeps hero intact)
+    {
+      path: '/provision-ops/platform-home',
+      method: 'get',
+      handler: provisionPlatformHomeHandler,
+    },
+    {
+      path: '/provision-ops/platform-home',
+      method: 'post',
+      handler: provisionPlatformHomeHandler,
+    },
+    // Self-serve creator portal onboarding (/start -> POST /api/portal-ops/self-provision)
+    {
+      path: '/portal-ops/self-provision',
+      method: 'post',
+      handler: selfProvisionPortalHandler,
     },
     // Personal planner: the caller's merged bookings+events+quests timeline.
     {

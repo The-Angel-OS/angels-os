@@ -606,11 +606,17 @@ export function HeaderClient({ canEditContent: canEditContentProp = false, heade
               </>
             ) : (
               <>
-                <Link href="/login" className="headerAuthLink hidden md:inline text-sm transition">
-                  Login
+                <Link
+                  href="/login"
+                  className="headerAuthLink hidden md:inline text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Log in
                 </Link>
-                <Link href="/create-account" className="headerSignUpLink hidden md:inline text-sm font-medium transition">
-                  Sign Up
+                <Link
+                  href="/start"
+                  className="headerSignUpLink hidden md:inline-flex items-center rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition hover:opacity-90"
+                >
+                  Get Started
                 </Link>
               </>
             )}

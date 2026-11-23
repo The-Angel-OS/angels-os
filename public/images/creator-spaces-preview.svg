@@ -1,0 +1,141 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 650" width="100%" height="100%">
+  <defs>
+    <linearGradient id="spacesFrame" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#18181b"/>
+      <stop offset="100%" stop-color="#09090b"/>
+    </linearGradient>
+
+    <linearGradient id="activeChannel" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.1"/>
+    </linearGradient>
+
+    <linearGradient id="userGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f43f5e"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+
+    <filter id="spacesShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#000000" flood-opacity="0.7"/>
+    </filter>
+  </defs>
+
+  <!-- App Window Container -->
+  <g filter="url(#spacesShadow)">
+    <rect x="20" y="20" width="960" height="610" rx="16" fill="url(#spacesFrame)" stroke="#27272a" stroke-width="2"/>
+
+    <!-- Window Top Header Bar -->
+    <rect x="20" y="20" width="960" height="50" rx="16" fill="#141417"/>
+    <path d="M 20 54 L 980 54" stroke="#27272a" stroke-width="1"/>
+
+    <!-- Window control dots -->
+    <circle cx="50" cy="45" r="6" fill="#ef4444"/>
+    <circle cx="70" cy="45" r="6" fill="#f59e0b"/>
+    <circle cx="90" cy="45" r="6" fill="#10b981"/>
+
+    <!-- Portal Title in top bar -->
+    <text x="500" y="49" font-family="system-ui, sans-serif" font-weight="700" font-size="13" fill="#e4e4e7" text-anchor="middle">Spaces — Clearwater Cruisin' Community Hub</text>
+    <rect x="850" y="34" width="90" height="24" rx="12" fill="#10b981" fill-opacity="0.15"/>
+    <circle cx="865" cy="46" r="4" fill="#10b981"/>
+    <text x="876" y="50" font-family="system-ui, sans-serif" font-weight="600" font-size="11" fill="#34d399">142 Online</text>
+
+    <!-- LEFT SIDEBAR: CHANNELS (width 260px) -->
+    <rect x="20" y="55" width="240" height="575" fill="#0f0f12"/>
+    <line x1="260" y1="55" x2="260" y2="630" stroke="#27272a" stroke-width="1"/>
+
+    <!-- Category 1: GENERAL -->
+    <text x="45" y="90" font-family="system-ui, sans-serif" font-weight="800" font-size="11" fill="#71717a" letter-spacing="1">WELCOME &amp; INFO</text>
+    <g transform="translate(35, 105)">
+      <text x="25" y="20" font-family="system-ui, sans-serif" font-weight="600" font-size="13" fill="#a1a1aa"># announcements</text>
+      <text x="5" y="20" font-family="system-ui, sans-serif" font-weight="700" font-size="14" fill="#71717a">📢</text>
+    </g>
+    <g transform="translate(35, 140)">
+      <text x="25" y="20" font-family="system-ui, sans-serif" font-weight="600" font-size="13" fill="#a1a1aa"># start-here</text>
+      <text x="5" y="20" font-family="system-ui, sans-serif" font-weight="700" font-size="14" fill="#71717a">👋</text>
+    </g>
+
+    <!-- Category 2: MEMBER EXCLUSIVE (Active) -->
+    <text x="45" y="205" font-family="system-ui, sans-serif" font-weight="800" font-size="11" fill="#f59e0b" letter-spacing="1">⭐ PATRON ONLY CHANNELS</text>
+    
+    <!-- Active Channel highlight -->
+    <rect x="30" y="222" width="220" height="36" rx="8" fill="url(#activeChannel)" stroke="#3b82f6" stroke-width="1"/>
+    <g transform="translate(35, 230)">
+      <text x="25" y="19" font-family="system-ui, sans-serif" font-weight="700" font-size="13" fill="#60a5fa"># back-stage-chat</text>
+      <text x="5" y="19" font-family="system-ui, sans-serif" font-weight="700" font-size="14" fill="#60a5fa">🔒</text>
+      <rect x="180" y="5" width="24" height="18" rx="9" fill="#ef4444"/>
+      <text x="192" y="18" font-family="system-ui, sans-serif" font-weight="800" font-size="10" fill="#ffffff" text-anchor="middle">4</text>
+    </g>
+
+    <g transform="translate(35, 270)">
+      <text x="25" y="20" font-family="system-ui, sans-serif" font-weight="600" font-size="13" fill="#d4d4d8"># raw-footage-drops</text>
+      <text x="5" y="20" font-family="system-ui, sans-serif" font-weight="700" font-size="14" fill="#a1a1aa">🎬</text>
+    </g>
+
+    <g transform="translate(35, 310)">
+      <text x="25" y="20" font-family="system-ui, sans-serif" font-weight="600" font-size="13" fill="#d4d4d8"># gear-and-bikes</text>
+      <text x="5" y="20" font-family="system-ui, sans-serif" font-weight="700" font-size="14" fill="#a1a1aa">🚲</text>
+    </g>
+
+    <!-- Category 3: LIVE AUDIO / VIDEO SPACES -->
+    <text x="45" y="380" font-family="system-ui, sans-serif" font-weight="800" font-size="11" fill="#10b981" letter-spacing="1">🎙️ VOICE &amp; LIVE HANGOUTS</text>
+    <g transform="translate(35, 400)">
+      <rect x="0" y="0" width="220" height="42" rx="8" fill="#14532d" fill-opacity="0.3" stroke="#22c55e" stroke-width="1"/>
+      <circle cx="18" cy="21" r="5" fill="#22c55e"/>
+      <text x="32" y="25" font-family="system-ui, sans-serif" font-weight="700" font-size="13" fill="#4ade80">Studio Backstage Audio</text>
+      <text x="185" y="25" font-family="system-ui, sans-serif" font-weight="600" font-size="11" fill="#86efac">12</text>
+    </g>
+
+    <!-- User Profile Bar in bottom left of sidebar -->
+    <rect x="20" y="565" width="240" height="65" fill="#141418"/>
+    <circle cx="55" cy="597" r="18" fill="url(#userGlow)"/>
+    <text x="55" y="602" font-family="system-ui, sans-serif" font-weight="800" font-size="12" fill="#ffffff" text-anchor="middle">KC</text>
+    <text x="85" y="593" font-family="system-ui, sans-serif" font-weight="700" font-size="13" fill="#f4f4f5">Kenneth C.</text>
+    <text x="85" y="609" font-family="system-ui, sans-serif" font-weight="500" font-size="11" fill="#a1a1aa">Founder Tier</text>
+
+    <!-- RIGHT MAIN CHAT AREA (width 720px) -->
+    <!-- Message 1: Creator Announcement -->
+    <g transform="translate(290, 80)">
+      <circle cx="24" cy="24" r="20" fill="#f59e0b"/>
+      <text x="24" y="30" font-family="system-ui, sans-serif" font-weight="800" font-size="14" fill="#000000" text-anchor="middle">CW</text>
+      <text x="60" y="20" font-family="system-ui, sans-serif" font-weight="700" font-size="14" fill="#ffffff">David (Clearwater Cruisin')</text>
+      <rect x="245" y="7" width="60" height="18" rx="4" fill="#f59e0b"/>
+      <text x="275" y="19" font-family="system-ui, sans-serif" font-weight="800" font-size="9" fill="#000000" text-anchor="middle">CREATOR</text>
+      <text x="320" y="20" font-family="system-ui, sans-serif" font-weight="500" font-size="11" fill="#71717a">Today at 11:20 AM</text>
+      <text x="60" y="46" font-family="system-ui, sans-serif" font-weight="400" font-size="13" fill="#e4e4e7">Just dropped the unedited sunrise ride raw audio for all members! New POD merch is also live in the store with member discounts.</text>
+    </g>
+
+    <line x1="280" y1="150" x2="960" y2="150" stroke="#27272a" stroke-width="1"/>
+
+    <!-- Message 2: Fan reply -->
+    <g transform="translate(290, 175)">
+      <circle cx="24" cy="24" r="20" fill="#3b82f6"/>
+      <text x="24" y="30" font-family="system-ui, sans-serif" font-weight="800" font-size="14" fill="#ffffff" text-anchor="middle">MR</text>
+      <text x="60" y="20" font-family="system-ui, sans-serif" font-weight="700" font-size="14" fill="#ffffff">Marcus Reid</text>
+      <rect x="155" y="7" width="55" height="18" rx="4" fill="#3b82f6" fill-opacity="0.3"/>
+      <text x="182" y="19" font-family="system-ui, sans-serif" font-weight="700" font-size="9" fill="#93c5fd" text-anchor="middle">MEMBER</text>
+      <text x="225" y="20" font-family="system-ui, sans-serif" font-weight="500" font-size="11" fill="#71717a">11:24 AM</text>
+      <text x="60" y="46" font-family="system-ui, sans-serif" font-weight="400" font-size="13" fill="#e4e4e7">The audio quality on the binaural ride was incredible. Just ordered the heavyweight hoodie using my member discount!</text>
+    </g>
+
+    <!-- Message 3: LEO Assistant reply -->
+    <g transform="translate(290, 260)">
+      <rect x="0" y="0" width="670" height="90" rx="10" fill="#1e1b4b" fill-opacity="0.4" stroke="#6366f1" stroke-width="1"/>
+      <circle cx="34" cy="34" r="18" fill="#6366f1"/>
+      <text x="34" y="39" font-family="system-ui, sans-serif" font-weight="800" font-size="11" fill="#ffffff" text-anchor="middle">LEO</text>
+      <text x="68" y="28" font-family="system-ui, sans-serif" font-weight="700" font-size="14" fill="#a5b4fc">LEO Creator Assistant</text>
+      <rect x="235" y="16" width="48" height="16" rx="4" fill="#6366f1"/>
+      <text x="259" y="27" font-family="system-ui, sans-serif" font-weight="800" font-size="9" fill="#ffffff" text-anchor="middle">BOT</text>
+      <text x="68" y="52" font-family="system-ui, sans-serif" font-weight="400" font-size="13" fill="#c7d2fe">Order #CC-8421 confirmed and automatically routed to Printful for production. Estimated dispatch: 48h.</text>
+      <rect x="68" y="62" width="140" height="18" rx="4" fill="#4338ca" fill-opacity="0.5"/>
+      <text x="138" y="75" font-family="system-ui, sans-serif" font-weight="600" font-size="10" fill="#e0e7ff" text-anchor="middle">📦 POD Engine: in_production</text>
+    </g>
+
+    <!-- Chat Message Input Box (Bottom) -->
+    <g transform="translate(290, 560)">
+      <rect x="0" y="0" width="670" height="48" rx="10" fill="#18181b" stroke="#3f3f46" stroke-width="1.5"/>
+      <text x="20" y="29" font-family="system-ui, sans-serif" font-size="13" fill="#71717a">Message #back-stage-chat... (Markdown &amp; emojis supported)</text>
+      <rect x="600" y="8" width="56" height="32" rx="6" fill="#3b82f6"/>
+      <text x="628" y="28" font-family="system-ui, sans-serif" font-weight="700" font-size="12" fill="#ffffff" text-anchor="middle">Send</text>
+    </g>
+  </g>
+</svg>

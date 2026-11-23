@@ -84,11 +84,25 @@ const byNavOrder = (a: PageLite, b: PageLite): number => {
 export function injectPagesUnderHome(
   navItems: NavItem[],
   pages: PageLite[],
-  opts: { max?: number; excludeSlugs?: string[] } = {},
+  opts: { max?: number; excludeSlugs?: string[]; excludeTopLevel?: boolean } = {},
 ): NavItem[] {
   const max = opts.max ?? 12
   const exclude = new Set(opts.excludeSlugs ?? ['home'])
   const items = Array.isArray(navItems) ? navItems : []
+
+  // Collect URLs already present in top-level items (or their authored children)
+  // so callers setting `excludeTopLevel: true` never duplicate top-bar routes inside Home ▾.
+  const topLevelUrls = new Set(
+    items.map((i: NavItem) => i?.link?.url).filter((u: unknown): u is string => typeof u === 'string'),
+  )
+  const existingMenuUrls = new Set<string>(topLevelUrls)
+  for (const item of items) {
+    if (Array.isArray(item?.children)) {
+      for (const child of item.children) {
+        if (typeof child?.link?.url === 'string') existingMenuUrls.add(child.link.url)
+      }
+    }
+  }
 
   const eligible = (Array.isArray(pages) ? pages : [])
     .filter((p): p is PageLite & { slug: string } => Boolean(p?.slug) && !exclude.has(p.slug as string))
@@ -103,9 +117,6 @@ export function injectPagesUnderHome(
 
   // A parent only takes children if it is ALREADY a top-level item. Nesting
   // under something the visitor cannot see is how a page goes missing.
-  const topLevelUrls = new Set(
-    items.map((i: NavItem) => i?.link?.url).filter((u: unknown): u is string => typeof u === 'string'),
-  )
   const urlForParent = (p: PageLite): string | null => {
     const pid = parentIdOf(p)
     if (!pid) return null
@@ -123,7 +134,7 @@ export function injectPagesUnderHome(
       const list = nested.get(url) ?? []
       list.push(pageToChild(p))
       nested.set(url, list)
-    } else {
+    } else if (!opts.excludeTopLevel || !existingMenuUrls.has(`/${p.slug}`)) {
       underHome.push(pageToChild(p))
     }
   }

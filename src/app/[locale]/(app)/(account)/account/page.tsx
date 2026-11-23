@@ -19,6 +19,7 @@ export default async function AccountPage() {
   const { user } = await payload.auth({ headers })
 
   let orders: Order[] | null = null
+  let ticketCount = 0
 
   if (!user) {
     redirect(
@@ -27,20 +28,30 @@ export default async function AccountPage() {
   }
 
   try {
-    const ordersResult = await payload.find({
-      collection: 'orders',
-      limit: 5,
-      user,
-      overrideAccess: false,
-      pagination: false,
-      where: {
-        customer: {
-          equals: user?.id,
+    const [ordersResult, ticketResult] = await Promise.all([
+      payload.find({
+        collection: 'orders',
+        limit: 5,
+        user,
+        overrideAccess: false,
+        pagination: false,
+        where: {
+          customer: {
+            equals: user?.id,
+          },
         },
-      },
-    })
+      }),
+      payload
+        .count({
+          collection: 'tickets',
+          where: { requester: { equals: user.id } },
+          overrideAccess: true,
+        })
+        .catch(() => ({ totalDocs: 0 })),
+    ])
 
     orders = ordersResult?.docs || []
+    ticketCount = ticketResult?.totalDocs || 0
   } catch (error) {
     // when deploying this template on Payload Cloud, this page needs to build before the APIs are live
     // so swallow the error here and simply render the page with fallback data where necessary
@@ -96,6 +107,20 @@ export default async function AccountPage() {
         <Button asChild variant="default">
           <Link href="/orders">View all orders</Link>
         </Button>
+      </div>
+
+      <div className="border p-8 rounded-lg bg-card text-card-foreground">
+        <h2 className="text-3xl font-medium mb-4">Support Tickets</h2>
+        <p className="text-muted-foreground mb-6">
+          {ticketCount > 0
+            ? `You have ${ticketCount} submitted support ${ticketCount === 1 ? 'ticket' : 'tickets'} tracked in the Help Center.`
+            : 'Need help with a portal, order, custom domain, or warranty claim? Open a tracked incident ticket anytime.'}
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <Button asChild variant="default">
+            <Link href="/help#my-tickets">Open Help Desk / Track Tickets</Link>
+          </Button>
+        </div>
       </div>
     </>
   )

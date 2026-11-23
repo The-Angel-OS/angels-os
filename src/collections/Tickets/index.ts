@@ -1,6 +1,7 @@
-import type { Access, CollectionConfig, Where } from 'payload'
+import type { Access, CollectionConfig, FieldAccess, Where } from 'payload'
 
 import { checkRole, ADMIN_ROLES } from '@/access/utilities'
+import { getUserTenantRoles } from '@/access/getUserTenantRoles'
 import { escalateNewTicket } from './hooks/escalateNewTicket'
 
 /**
@@ -80,6 +81,31 @@ const ticketWrite: Access = async ({ req }) => {
 
   if (!tenantIds.length) return false
   return { tenant: { in: tenantIds } } as Where
+}
+
+/** Staff-only field access: platform admins OR active tenant_admin/tenant_manager
+ *  on the ticket's tenant may read/edit internal notes; requesters never see them. */
+const staffInternalNotesAccess: FieldAccess = async ({ req: { user }, doc }) => {
+  if (!user?.id) return false
+  if (checkRole(ADMIN_ROLES, user)) return true
+  const rawTenant = (doc as { tenant?: unknown } | undefined)?.tenant
+  const tenantId =
+    rawTenant && typeof rawTenant === 'object' ? (rawTenant as { id?: unknown }).id : rawTenant
+  if (tenantId == null) return false
+  try {
+    const roles = await getUserTenantRoles(user.id)
+    return roles.some((m) => {
+      const mTenant =
+        m.tenant && typeof m.tenant === 'object' ? (m.tenant as { id?: unknown }).id : m.tenant
+      return (
+        String(mTenant) === String(tenantId) &&
+        (m.role === 'tenant_admin' || m.role === 'tenant_manager') &&
+        (m as { status?: string }).status === 'active'
+      )
+    })
+  } catch {
+    return false
+  }
 }
 
 export const Tickets: CollectionConfig = {
@@ -217,7 +243,8 @@ export const Tickets: CollectionConfig = {
       access: {
         // Staff-only: the whole point of an internal note is that the requester
         // cannot read it. Field access, not admin.hidden — hiding is cosmetic.
-        read: ({ req: { user } }) => Boolean(user && checkRole(ADMIN_ROLES, user)),
+        read: staffInternalNotesAccess,
+        update: staffInternalNotesAccess,
       },
       admin: { description: 'Never shown to the requester.' },
     },
