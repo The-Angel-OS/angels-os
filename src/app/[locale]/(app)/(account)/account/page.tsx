@@ -118,7 +118,7 @@ export default async function AccountPage() {
         </p>
         <div className="flex flex-wrap gap-3">
           <Button asChild variant="default">
-            <Link href="/help#my-tickets">Open Help Desk / Track Tickets</Link>
+            <Link href="/dashboard/support#my-tickets">Open Help Desk / Track Tickets</Link>
           </Button>
         </div>
       </div>

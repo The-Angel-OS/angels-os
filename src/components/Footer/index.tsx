@@ -112,7 +112,7 @@ export async function Footer({ tenant }: Props) {
               </a>
               <span className="hidden text-neutral-300 dark:text-neutral-600 md:inline">|</span>
               <Link
-                href="/help"
+                href="/dashboard/support"
                 className="text-neutral-600 hover:text-black dark:text-neutral-400 dark:hover:text-white transition-colors"
               >
                 Help &amp; Tickets

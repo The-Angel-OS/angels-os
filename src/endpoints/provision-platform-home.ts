@@ -406,7 +406,7 @@ function buildHomeLayout(mediaIds: Record<string, number | string | null>) {
         {
           question: 'How do I get support or track an incident ticket?',
           answer:
-            'Visit our Help Center (/help) anytime to open a tracked incident ticket (INC- reference number) or inspect the live status and resolution of all your previous tickets. Portal owners can also manage incoming support queues directly from Dashboard → Support → Incident Queue.',
+            'Open Dashboard → Support → Help & Support (/dashboard/support) anytime to open a tracked incident ticket (INC- reference number) or inspect the live status and resolution of all your previous tickets. Portal owners can also manage incoming support queues directly from Dashboard → Support → Incident Queue.',
         },
       ],
     },
@@ -433,8 +433,8 @@ function buildHomeLayout(mediaIds: Record<string, number | string | null>) {
         {
           link: {
             type: 'custom',
-            label: 'Need Help? Open a Ticket',
-            url: '/help',
+            label: 'Explore Pricing',
+            url: '/pricing',
             appearance: 'outline',
           },
         },
@@ -637,7 +637,6 @@ export const provisionPlatformHomeHandler: PayloadHandler = async (req) => {
         },
         linkItem('Pricing', '/pricing'),
         linkItem('Posts', '/posts'),
-        linkItem('Help', '/help'),
       ]
 
       if (headerRes.docs?.[0]) {
@@ -651,8 +650,8 @@ export const provisionPlatformHomeHandler: PayloadHandler = async (req) => {
       }
 
       await setNavOverrides(payload, platformTenantId, {
-        hidden: ['/', '/plans', '/episodes', '/shop', '/federation/discover', '/contact'],
-        pinned: ['/how-it-works', '/pricing', '/posts', '/help'],
+        hidden: ['/', '/plans', '/episodes', '/shop', '/federation/discover', '/contact', '/help'],
+        pinned: ['/how-it-works', '/pricing', '/posts'],
         maxInline: 0,
         hideMore: true,
       })
@@ -673,7 +672,7 @@ export const provisionPlatformHomeHandler: PayloadHandler = async (req) => {
               linkItem('Start Your Portal', '/start'),
               linkItem('Pricing', '/pricing'),
               linkItem('Posts', '/posts'),
-              linkItem('Help & Support', '/help'),
+              linkItem('Help & Support', '/dashboard/support'),
               linkItem('Dashboard', '/dashboard'),
               linkItem('Privacy Policy', '/privacy-policy'),
             ] as never,
@@ -684,116 +683,10 @@ export const provisionPlatformHomeHandler: PayloadHandler = async (req) => {
       }
     }
 
-    // 5. Provision Public `/help` Support Center & ServiceNow-Lite Ticket Desk
+    // 5. Retire legacy brochure `/help` CMS page (Help & Support lives at `/dashboard/support`)
     let helpPageId: number | string | null = null
-    let helpPageAction: 'created' | 'updated' | 'skipped' = 'skipped'
+    let helpPageAction: 'unpublished' | 'absent' | 'skipped' = 'skipped'
     if (shouldSyncHelp) {
-      const helpPageData = {
-        title: 'Help & Support',
-        slug: 'help',
-        _status: 'published' as const,
-        showInNav: false,
-        access: 'public' as const,
-        tenant: platformTenantId as never,
-        hero: {
-          type: 'lowImpact' as const,
-          richText: createLexicalContent([
-            createHeadingNode('Help Center & Support Desk', 'h1'),
-            createParagraphNode(
-              'Submit an incident or support ticket, track your open requests in real time, or ask LEO in the chat bubble for instant answers 24/7.',
-            ),
-          ]),
-        },
-        layout: [
-          {
-            blockType: 'content',
-            columns: [
-              {
-                size: 'oneThird',
-                richText: createLexicalContent([
-                  createHeadingNode('Tracked Incident Queue', 'h3'),
-                  createParagraphNode(
-                    'Every request receives an INC- reference number, priority level, assignee tracking, and live status updates from Submitted to Resolved.',
-                  ),
-                ]),
-              },
-              {
-                size: 'oneThird',
-                richText: createLexicalContent([
-                  createHeadingNode('Ask LEO 24/7', 'h3'),
-                  createParagraphNode(
-                    'Open the LEO assistant in any workspace or portal page for instant help with domains, Square/PayPal payouts, Print-on-Demand, or YouTube sync.',
-                  ),
-                ]),
-              },
-              {
-                size: 'oneThird',
-                richText: createLexicalContent([
-                  createHeadingNode('Creator Studio Guide', 'h3'),
-                  createParagraphNode(
-                    'Browse step-by-step documentation and platform onboarding tutorials in the Learn center inside your dashboard.',
-                  ),
-                ]),
-                enableLink: true,
-                link: {
-                  type: 'custom',
-                  label: 'Open Learn Center →',
-                  url: '/dashboard/learn',
-                  appearance: 'outline',
-                },
-              },
-            ],
-          },
-          {
-            blockType: 'ticketForm',
-            type: 'support',
-            heading: 'Submit a Support Ticket',
-            intro:
-              'Report a technical issue, request custom domain or payout assistance, or file a product/order claim. Every ticket receives a tracked INC reference number.',
-            showOrderFields: false,
-            confirmation:
-              'Your incident ticket has been logged with the Angel OS support team. Track its live status and resolution below anytime.',
-          },
-          {
-            blockType: 'faq',
-            heading: 'Support & Troubleshooting FAQ',
-            openFirst: true,
-            items: [
-              {
-                question: 'How fast does the Angel OS support team respond to incident tickets?',
-                answer:
-                  'Tickets flagged High or Urgent are escalated immediately to the platform operations team via the AI Bus and Spaces escalation hooks. Normal support requests typically receive a response within one business day.',
-              },
-              {
-                question: 'Where can I check the status of tickets I already submitted?',
-                answer:
-                  'Sign in and scroll right below the ticket form on this page under "My Submitted Tickets", or visit Dashboard → Support → My Tickets.',
-              },
-              {
-                question: 'How do I connect my custom domain (e.g. mydomain.com)?',
-                answer:
-                  'Upgrade to the $10/mo Creator plan, open Dashboard → Settings → Domain & Menu, enter your domain name, and point one CNAME record to spacesangels.com. If DNS verification stalls, open a Support ticket with your domain name.',
-              },
-              {
-                question: 'How do Square and PayPal payouts settle to my bank?',
-                answer:
-                  'Connect your Square or PayPal account under Dashboard → Settings → Payments & Payouts. Customer checkouts settle directly into your merchant account with automatic platform fee calculation.',
-              },
-              {
-                question: 'Where do portal owners manage incoming customer tickets?',
-                answer:
-                  'Open Dashboard → Support → Incident Queue to filter open incidents, assign owners, record internal work notes, and publish customer-visible resolutions.',
-              },
-            ],
-          },
-        ],
-        meta: {
-          title: 'Help Center & Support Tickets — Angel OS',
-          description:
-            'Submit and track Angel OS support incidents, warranty claims, and creator storefront questions.',
-        },
-      }
-
       const existingHelp = await payload.find({
         collection: 'pages',
         where: { and: [{ slug: { equals: 'help' } }, { tenant: { equals: platformTenantId } }] },
@@ -806,18 +699,15 @@ export const provisionPlatformHomeHandler: PayloadHandler = async (req) => {
         await payload.update({
           collection: 'pages',
           id: helpPageId,
-          data: helpPageData as never,
+          data: {
+            _status: 'draft',
+            showInNav: false,
+          } as never,
           overrideAccess: true,
         })
-        helpPageAction = 'updated'
+        helpPageAction = 'unpublished'
       } else {
-        const createdHelp = await payload.create({
-          collection: 'pages',
-          data: helpPageData as never,
-          overrideAccess: true,
-        })
-        helpPageId = createdHelp.id
-        helpPageAction = 'created'
+        helpPageAction = 'absent'
       }
     }
 
@@ -825,8 +715,8 @@ export const provisionPlatformHomeHandler: PayloadHandler = async (req) => {
     try {
       revalidatePath('/')
       revalidatePath('/en')
-      revalidatePath('/help')
-      revalidatePath('/en/help')
+      revalidatePath('/dashboard/support')
+      revalidatePath('/en/dashboard/support')
     } catch {
       /* non-fatal outside Next request cache */
     }

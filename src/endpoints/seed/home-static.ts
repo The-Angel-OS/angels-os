@@ -228,7 +228,7 @@ export const homeStaticData: () => RequiredDataFromCollectionSlug<'pages'> = () 
           {
             question: 'How do I get support or track an incident ticket?',
             answer:
-              'Visit our Help Center (/help) anytime to open a tracked incident ticket (INC- reference number) or inspect the live status and resolution of all your previous tickets. Portal owners can also manage incoming support queues directly from Dashboard → Support → Incident Queue.',
+              'Visit Dashboard → Support → Help & Support (/dashboard/support) anytime to open a tracked incident ticket (INC- reference number) or inspect the live status and resolution of all your previous tickets. Portal owners can also manage incoming support queues directly from Dashboard → Support → Incident Queue.',
           },
         ],
       },
@@ -255,8 +255,8 @@ export const homeStaticData: () => RequiredDataFromCollectionSlug<'pages'> = () 
           {
             link: {
               type: 'custom',
-              label: 'Need Help? Open a Ticket',
-              url: '/help',
+              label: 'Explore Live Shop',
+              url: '/shop',
               appearance: 'outline',
             },
           },

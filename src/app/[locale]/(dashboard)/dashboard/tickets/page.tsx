@@ -214,10 +214,10 @@ export default async function TicketsPage({
             </div>
           )}
           <Link
-            href={`/${locale}/help`}
+            href={`/${locale}/dashboard/support`}
             className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
           >
-            Public Help Center ↗
+            Help &amp; My Tickets
           </Link>
           <NewIncidentButton />
         </div>

@@ -107,7 +107,7 @@ export function AccountMenu({
             Account
           </Link>
           <Link
-            href="/help"
+            href="/dashboard/support"
             role="menuitem"
             className={itemClass}
             onClick={() => setOpen(false)}

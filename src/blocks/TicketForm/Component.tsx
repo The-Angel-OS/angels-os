@@ -226,10 +226,10 @@ export const TicketFormBlockComponent: React.FC<TicketFormProps> = ({
 
   const field =
     'w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary'
-  const path = typeof window !== 'undefined' ? window.location.pathname : '/help'
+  const path = typeof window !== 'undefined' ? window.location.pathname : '/dashboard/support'
 
   return (
-    <section className="container my-14 space-y-14">
+    <section className="mx-auto max-w-4xl px-4 py-6 space-y-12">
       <div className="mx-auto max-w-2xl rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-sm">
         {doneRef ? (
           <div className="py-6 text-center">
@@ -384,7 +384,7 @@ export const TicketFormBlockComponent: React.FC<TicketFormProps> = ({
 
         {!user ? (
           <div className="rounded-xl border border-dashed border-border bg-card/40 p-6 text-center text-sm text-muted-foreground">
-            <Link href={`/login?redirect=${encodeURIComponent('/help#my-tickets')}`} className="font-semibold text-primary underline">
+            <Link href={`/login?redirect=${encodeURIComponent('/dashboard/support#my-tickets')}`} className="font-semibold text-primary underline">
               Sign in
             </Link>{' '}
             to view your open and resolved support tickets.

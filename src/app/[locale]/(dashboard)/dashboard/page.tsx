@@ -510,7 +510,7 @@ export default async function DashboardPage({
                 accentColor="var(--lcars-blue)"
               />
               <LCARSQuickAction
-                href={`${prefix}/help`}
+                href={`${prefix}/dashboard/support`}
                 icon={<SupportIcon />}
                 label="Help & Support"
                 description="Submit & track tickets"
