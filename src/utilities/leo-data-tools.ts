@@ -45,6 +45,7 @@ import { getMembershipPlans, upsertMembershipPlan, removeMembershipPlan, type Me
 import { BookingEngine } from './bookingEngine'
 import { fetchDefaultSpaceId } from './fetchDefaultSpaceId'
 import { computeEmbedUrl } from './computeEmbedUrl'
+import { searchTranscriptChunks } from './transcriptRag'
 // NOTE: provisionPortal is imported lazily inside its handlers (handleProvisionTenant
 // / handleResearchAndProvision) to avoid a module-load cycle: provisionPortal pulls
 // in payload.config, which registers the MCP plugin, which generates tools FROM this
@@ -10640,14 +10641,55 @@ async function handleQueryKnowledge(
       }).slice(0, limit)
     }
 
-    if (results.docs.length === 0) {
-      return `No knowledge found matching "${query}". Try uploading and analyzing images or documents first, then they become searchable.`
+    // Query live Postgres transcript chunks (tsvector GIN)
+    let transcriptResults: Array<{
+      postTitle: string
+      postSlug: string
+      snippet: string
+      timestampUrl: string | null
+      startSec: number | null
+    }> = []
+    try {
+      const chunks = await searchTranscriptChunks(payload, {
+        query,
+        tenantId: ctx.tenantId,
+        limit,
+      })
+      transcriptResults = chunks.map((c) => ({
+        postTitle: c.postTitle,
+        postSlug: c.postSlug,
+        snippet: c.snippet,
+        timestampUrl: c.timestampUrl,
+        startSec: c.startSec,
+      }))
+    } catch (chunkErr) {
+      console.warn('[query_knowledge] searchTranscriptChunks failed non-fatally:', chunkErr)
     }
 
+    if (results.docs.length === 0 && transcriptResults.length === 0) {
+      return `No knowledge found matching "${query}". Try uploading media or querying published posts and transcripts.`
+    }
+
+    const totalFound = results.docs.length + transcriptResults.length
     const lines: string[] = [
-      `Found ${results.docs.length} result(s) for "${query}":`,
+      `Found ${totalFound} knowledge result(s) for "${query}":`,
       '',
     ]
+
+    if (transcriptResults.length > 0) {
+      lines.push('### Published Transcripts & Video Sections:')
+      for (const t of transcriptResults) {
+        lines.push(`**${t.postTitle}**`)
+        if (t.postSlug) lines.push(`  Post: /posts/${t.postSlug}`)
+        if (t.timestampUrl) lines.push(`  Timestamp Link: ${t.timestampUrl}`)
+        if (t.snippet) lines.push(`  Snippet: "${t.snippet}"`)
+        lines.push('')
+      }
+    }
+
+    if (results.docs.length > 0) {
+      lines.push('### Extracted Media & Document Knowledge:')
+    }
 
     for (const doc of results.docs as unknown as Array<Record<string, unknown>>) {
       const media = doc.media as Record<string, unknown> | undefined

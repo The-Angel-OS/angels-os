@@ -81,18 +81,18 @@ export function allReadOnly(names: string[]): boolean {
  * gateway (full tools) on the deep-think rounds anyway.
  */
 export const CORE_TOOL_NAMES = new Set<string>([
-  // Querying (read)
-  'query_products', 'query_posts', 'query_site_content', 'query_spaces', 'query_bookings',
-  'query_events', 'query_orders', 'query_knowledge', 'query_navigation',
-  'query_federation', 'lookup_scripture', 'open_passage',
-  // Booking
-  'check_available_slots', 'create_booking',
-  // Content
-  'create_post', 'create_post_from_media', 'create_page', 'update_page', 'update_post',
-  // Comms + media
-  'send_message', 'list_contacts', 'message_contact', 'save_contact', 'capture_lead', 'invite_member', 'generate_image',
-  // Context
-  'get_enterprise_stage', 'my_place',
+  // Content & Pages (6)
+  'query_posts', 'create_post', 'update_post', 'query_site_content', 'create_page', 'update_page',
+  // Media & Visuals (5)
+  'query_media', 'generate_image', 'improve_image', 'replace_image', 'analyze_image',
+  // Monetize & Commerce (6)
+  'query_products', 'create_product', 'update_product', 'query_orders', 'add_to_cart', 'view_cart',
+  // Bookings & Appointments (5)
+  'check_available_slots', 'create_booking', 'query_bookings', 'cancel_booking', 'reschedule_booking',
+  // Audience & Memberships (4)
+  'list_contacts', 'save_contact', 'list_membership_plans', 'invite_member',
+  // Knowledge & Live RAG (2)
+  'search_geo_archive', 'query_knowledge',
 ])
 
 /**

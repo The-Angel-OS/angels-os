@@ -13,6 +13,7 @@ import mlbArchive from '@/data/mlb-archive.json'
 import curatedLayersData from '@/data/curated-atlas-layers.json'
 import uapArchiveData from '@/data/uap-archive.json'
 import ndeArchiveData from '@/data/nde-archive.json'
+import { searchTranscriptChunks } from '@/utilities/transcriptRag'
 
 export interface GeoArchiveSearchInput {
   query?: string
@@ -66,6 +67,7 @@ export async function searchGeoArchive(
   const results: Array<{
     type:
       | 'episode'
+      | 'transcript_chunk'
       | 'landmark'
       | 'star_fort'
       | 'train_station'
@@ -88,6 +90,30 @@ export async function searchGeoArchive(
     summary: string
     keyClaims?: string[]
   }> = []
+
+  // ── 0. Search Live Postgres Transcript Chunks ─────────────────────────────
+  if (category === 'all' || category === 'episodes') {
+    try {
+      const liveChunks = await searchTranscriptChunks(payload, {
+        query,
+        tenantId,
+        limit,
+      })
+      for (const chunk of liveChunks) {
+        results.push({
+          type: 'transcript_chunk',
+          score: Math.min(250, 120 + Math.round(chunk.rank * 100)),
+          title: chunk.postTitle || `Post #${chunk.postId}`,
+          url: chunk.postSlug ? `/posts/${chunk.postSlug}` : undefined,
+          videoUrl: chunk.timestampUrl || undefined,
+          summary: chunk.snippet || '',
+          keyClaims: chunk.startSec !== null ? [`Timestamp: ${chunk.startSec}s - ${chunk.endSec || chunk.startSec}s`] : undefined,
+        })
+      }
+    } catch (chunkErr) {
+      console.warn('[searchGeoArchive] Live transcript chunk search failed non-fatally:', chunkErr)
+    }
+  }
 
   // ── 1. Search Episodes ─────────────────────────────────────────────────────
   if (category === 'all' || category === 'episodes') {

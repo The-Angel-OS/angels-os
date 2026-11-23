@@ -30,7 +30,7 @@ export function standingMeets(held: Standing, required: Standing): boolean {
 /** Public reads — the same facts the website shows a visitor who never logs in. */
 const ANONYMOUS: string[] = [
   'query_products', 'query_posts', 'query_events', 'query_site_content', 'query_navigation',
-  'query_knowledge', 'recommend_products', 'suggest_products',
+  'query_knowledge', 'search_geo_archive', 'recommend_products', 'suggest_products',
   'check_available_slots', 'query_availability', 'list_availability',
   'list_membership_plans', 'get_theme_settings', 'get_page_hero',
   'lookup_scripture', 'get_daily_bread', 'open_passage',
