@@ -12,7 +12,7 @@ import { ConnectorsAdmin } from '@/app/[locale]/(dashboard)/dashboard/account/in
 import { PlanPanel } from '@/app/[locale]/(dashboard)/dashboard/plan/PlanPanel'
 import {
   RevenueChart,
-  JusticeFundChart,
+  PlatformFeeChart,
   type TimeSeriesPoint,
 } from '@/components/charts/DashboardCharts'
 import { HEADING_FONTS, BODY_FONTS } from '@/config/brandingOptions'
@@ -130,8 +130,6 @@ export interface PaymentsTabPayload {
     environment: 'sandbox' | 'production'
   }>
   isSuperAdmin: boolean
-  justiceFundTotalCents: number
-  justiceFundTransactionCount: number
   recentTransactions: Array<{
     id: number | string
     amount: number
@@ -149,7 +147,7 @@ export interface PaymentsTabPayload {
     customerEmail: string
   }>
   revenueData: TimeSeriesPoint[]
-  justiceFundData: TimeSeriesPoint[]
+  platformFeeData: TimeSeriesPoint[]
 }
 
 export interface SettingsHubProps {
@@ -1447,8 +1445,6 @@ export function SettingsHub({
               squareConnectedAt={paymentsData.squareConnectedAt}
               availableProviders={paymentsData.availableProviders}
               isSuperAdmin={paymentsData.isSuperAdmin}
-              justiceFundTotalCents={paymentsData.justiceFundTotalCents}
-              justiceFundTransactionCount={paymentsData.justiceFundTransactionCount}
               recentTransactions={paymentsData.recentTransactions}
               platformFeePercent={paymentsData.platformFeePercent}
             />
@@ -1465,7 +1461,7 @@ export function SettingsHub({
             />
             <div className="grid gap-4 md:grid-cols-2">
               <RevenueChart data={paymentsData.revenueData} />
-              {isSuperAdmin && <JusticeFundChart data={paymentsData.justiceFundData} />}
+              {isSuperAdmin && <PlatformFeeChart data={paymentsData.platformFeeData} />}
             </div>
           </div>
         )}

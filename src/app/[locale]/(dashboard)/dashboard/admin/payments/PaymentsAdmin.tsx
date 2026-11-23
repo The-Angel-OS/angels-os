@@ -55,8 +55,6 @@ interface PaymentsAdminProps {
   squareConnectedAt: string | null
   availableProviders: ProviderBadge[]
   isSuperAdmin: boolean
-  justiceFundTotalCents: number
-  justiceFundTransactionCount: number
   recentTransactions?: RecentTransaction[]
   /** The CONFIGURED platform rate as a percent, e.g. 5. Never hardcode it here. */
   platformFeePercent: number
@@ -75,12 +73,11 @@ export function PaymentsAdmin({
   squareConnectedAt,
   availableProviders,
   isSuperAdmin,
-  justiceFundTotalCents,
-  justiceFundTransactionCount,
   recentTransactions = [],
   platformFeePercent,
   embedded = false,
 }: PaymentsAdminProps) {
+  const fmtPct = (n: number) => Number(n.toFixed(2)).toString()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -328,7 +325,9 @@ export function PaymentsAdmin({
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Connect your own Square account so card sales, booking deposits, and donations go straight to your Square balance automatically, less the {platformFeePercent.toFixed(2)}% platform share. Until connected, platform rails handle payments on your behalf.
+              {platformFeePercent === 0
+                ? 'Connect your own Square account so card sales, booking deposits, and donations go straight to your Square balance automatically with 0% platform fee (standard Square processing fees still apply). Until connected, platform rails handle payments on your behalf.'
+                : `Connect your own Square account so card sales, booking deposits, and donations go straight to your Square balance automatically, less the ${fmtPct(platformFeePercent)}% platform fee. Until connected, platform rails handle payments on your behalf.`}
             </p>
             <button
               type="button"
@@ -430,44 +429,26 @@ export function PaymentsAdmin({
       <div className="rounded-lg border border-border bg-card p-6 space-y-4">
         <h2 className="text-lg font-semibold">How payments split</h2>
         <p className="text-sm text-muted-foreground">
-          You keep {(100 - platformFeePercent).toFixed(2)}% of every payment. The platform keeps{' '}
-          {platformFeePercent.toFixed(2)}% of money it helps you move — nothing when nothing sells.
+          {platformFeePercent === 0
+            ? 'You keep 100% of every payment. Your current plan includes a 0% platform fee.'
+            : `You keep ${fmtPct(100 - platformFeePercent)}% of every payment. The platform keeps ${fmtPct(platformFeePercent)}% of money it helps you move (capped at $9.99 per transaction) — nothing when nothing sells.`}
         </p>
         <div className="space-y-3">
           {[
-            { label: 'You (the provider)', pct: 100 - platformFeePercent, color: 'bg-emerald-500' },
+            { label: 'Creator (you)', pct: 100 - platformFeePercent, color: 'bg-emerald-500' },
             { label: 'Platform — hosting, AI, support', pct: platformFeePercent, color: 'bg-blue-500' },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-3">
-              <div className="w-24 text-right text-sm font-medium">{item.pct.toFixed(2)}%</div>
+              <div className="w-24 text-right text-sm font-medium">{fmtPct(item.pct)}%</div>
               <div className="flex-1 h-4 rounded-full bg-muted overflow-hidden">
                 <div
                   className={`h-full rounded-full ${item.color}`}
                   style={{ width: `${item.pct}%` }}
                 />
               </div>
-              <div className="w-48 text-sm text-muted-foreground">{item.label}</div>
+              <div className="w-56 text-sm text-muted-foreground">{item.label}</div>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* Justice Fund */}
-      <div className="rounded-lg border border-border bg-card p-6 space-y-4">
-        <h2 className="text-lg font-semibold">Justice Fund</h2>
-        <p className="text-sm text-muted-foreground">
-          5% of every transaction goes to the Justice Fund — supporting community programs, guild
-          development, and equity initiatives.
-        </p>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="rounded-lg bg-muted/50 p-4">
-            <p className="text-sm text-muted-foreground">Total Allocated</p>
-            <p className="text-2xl font-bold">{formatCents(justiceFundTotalCents)}</p>
-          </div>
-          <div className="rounded-lg bg-muted/50 p-4">
-            <p className="text-sm text-muted-foreground">Transactions</p>
-            <p className="text-2xl font-bold">{justiceFundTransactionCount}</p>
-          </div>
         </div>
       </div>
 

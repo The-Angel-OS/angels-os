@@ -145,6 +145,7 @@ import { solvencyBriefingHandler } from '@/endpoints/solvency-briefing'
 import { renamePortalSlugHandler } from '@/endpoints/rename-portal-slug'
 import { guardianAngelCheckoutHandler } from '@/endpoints/guardian-angel-checkout'
 import { ensureGuardianAngelColumnHandler } from '@/endpoints/ensure-guardian-angel-column'
+import { ensurePortalPlanCreatorHandler } from '@/endpoints/ensure-portal-plan-creator'
 import { personalAgendaHandler } from '@/endpoints/personal-agenda'
 import { dailyBreadProgressHandler } from '@/endpoints/daily-bread-progress'
 import { dispatchRouteHandler } from '@/endpoints/dispatch-route'
@@ -1182,6 +1183,18 @@ export default buildConfig({
       path: '/provision-ops/ensure-guardian-angel-column',
       method: 'get',
       handler: ensureGuardianAngelColumnHandler,
+    },
+    // Phase 1 (schema-safe): add 'creator' to enum_tenants_portal_plan (+ optional /pricing sync)
+    // BEFORE Tenants.portalPlan adds the 'creator' option (Zero-Downtime 2-Deploy Rule).
+    {
+      path: '/provision-ops/ensure-portal-plan-creator',
+      method: 'get',
+      handler: ensurePortalPlanCreatorHandler,
+    },
+    {
+      path: '/provision-ops/ensure-portal-plan-creator',
+      method: 'post',
+      handler: ensurePortalPlanCreatorHandler,
     },
     // Personal planner: the caller's merged bookings+events+quests timeline.
     {

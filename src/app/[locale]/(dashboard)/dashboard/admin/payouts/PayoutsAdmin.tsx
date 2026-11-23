@@ -39,6 +39,8 @@ export function PayoutsAdmin({
   const sellerShare = totalRevenue * (sellerPercent / 100)
   const platformShare = totalRevenue * (platformFeePercent / 100)
 
+  const fmtPct = (n: number) => Number(n.toFixed(2)).toString()
+
   return (
     <div id="payouts" className="space-y-8">
       {/* Header */}
@@ -130,41 +132,49 @@ export function PayoutsAdmin({
         </div>
         <div className="rounded-xl border border-border bg-card p-5">
           <p className="text-sm font-medium text-muted-foreground">
-            Your Net Share ({sellerPercent.toFixed(1).replace(/\.0$/, '')}%)
+            Your Net Share ({fmtPct(sellerPercent)}%)
           </p>
           <p className="mt-1 text-2xl font-bold text-emerald-600">
             ${(sellerShare / 100).toFixed(2)}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            After {platformFeePercent.toFixed(1).replace(/\.0$/, '')}% platform fee
+            {platformFeePercent === 0
+              ? '0% platform fee'
+              : `After ${fmtPct(platformFeePercent)}% platform fee`}
           </p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5">
           <p className="text-sm font-medium text-muted-foreground">
-            Platform Fee ({platformFeePercent.toFixed(1).replace(/\.0$/, '')}%)
+            Platform Fee ({fmtPct(platformFeePercent)}%)
           </p>
           <p className="mt-1 text-2xl font-bold text-blue-600">
             ${(platformShare / 100).toFixed(2)}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Hosting, AI &amp; support
+            {platformFeePercent === 0 ? 'Included on your plan' : 'Hosting, AI & support'}
           </p>
         </div>
       </div>
 
-      {/* Split Breakdown */}
-      <div className="rounded-xl border border-border bg-card p-6">
-        <h2 className="mb-4 text-lg font-semibold">How payments split</h2>
-        <div className="space-y-3">
-          <SplitRow label="Creator (you)" percentage={sellerPercent} color="bg-emerald-500" />
-          <SplitRow label="Platform — hosting, AI, support" percentage={platformFeePercent} color="bg-blue-500" />
+      {/* Split Breakdown (standalone /payouts view only — embedded Settings tab renders this in PaymentsAdmin above) */}
+      {!embedded && (
+        <div className="rounded-xl border border-border bg-card p-6">
+          <h2 className="mb-4 text-lg font-semibold">How payments split</h2>
+          <div className="space-y-3">
+            <SplitRow label="Creator (you)" percentage={sellerPercent} color="bg-emerald-500" />
+            <SplitRow
+              label="Platform — hosting, AI, support"
+              percentage={platformFeePercent}
+              color="bg-blue-500"
+            />
+          </div>
+          <p className="mt-4 text-xs text-muted-foreground">
+            {platformFeePercent === 0
+              ? 'You keep 100% of every payment. Your current plan includes a 0% platform fee.'
+              : `You keep ${fmtPct(sellerPercent)}% of every payment. The platform keeps ${fmtPct(platformFeePercent)}% of money it helps you move — and nothing when nothing sells.`}
+          </p>
         </div>
-        <p className="mt-4 text-xs text-muted-foreground">
-          You keep {sellerPercent.toFixed(1).replace(/\.0$/, '')}% of every payment. The platform keeps{' '}
-          {platformFeePercent.toFixed(1).replace(/\.0$/, '')}% of money it helps you move — and
-          nothing when nothing sells.
-        </p>
-      </div>
+      )}
 
       {/* Recent Orders */}
       <div className="rounded-xl border border-border bg-card p-6">
@@ -263,7 +273,9 @@ function SplitRow({
           />
         </div>
       </div>
-      <span className="w-10 text-right text-sm font-medium">{percentage}%</span>
+      <span className="w-12 text-right text-sm font-medium">
+        {Number(percentage.toFixed(2))}%
+      </span>
     </div>
   )
 }

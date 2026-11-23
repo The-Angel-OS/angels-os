@@ -37,7 +37,7 @@ describe('the plan tables are the one source of pricing', () => {
   })
 
   it('/dashboard/plan renders the map rather than its own numbers', () => {
-    const src = readFileSync('src/app/[locale]/(dashboard)/dashboard/plan/page.tsx', 'utf8')
+    const src = readFileSync('src/app/[locale]/(dashboard)/dashboard/plan/PlanPanel.tsx', 'utf8')
     expect(src).toContain('PLAN_PRICE_CENTS')
     expect(src).not.toContain('$149')
     expect(src).not.toContain('$49/mo')
@@ -47,7 +47,7 @@ describe('the plan tables are the one source of pricing', () => {
     // demo and agency are both real plans that are not one of the three cards.
     // Without this guard findIndex returns -1 and the page tells them they are
     // on Free, then offers an "upgrade" that takes features away.
-    const src = readFileSync('src/app/[locale]/(dashboard)/dashboard/plan/page.tsx', 'utf8')
+    const src = readFileSync('src/app/[locale]/(dashboard)/dashboard/plan/PlanPanel.tsx', 'utf8')
     expect(src).toContain('isUpgrade && !offCard')
     expect(src).toContain('const offCard = isDemo || isAgency')
   })

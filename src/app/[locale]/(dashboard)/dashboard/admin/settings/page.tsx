@@ -42,10 +42,9 @@ export default async function DashboardSettingsPage({
     paymentSettingsRes,
     availableRailsRes,
     platformFeeBpsRes,
-    jfResultRes,
     txResultRes,
     ordersResultRes,
-    jfGrowthRes,
+    platformFeeGrowthRes,
     revDataRes,
     connectorsRes,
     leoUserRes,
@@ -55,13 +54,7 @@ export default async function DashboardSettingsPage({
       ? getTenantPaymentSettings(payload, tenantId)
       : Promise.resolve({} as TenantPaymentSettings),
     getAvailableProviders(payload, tenantId ?? undefined),
-    getPlatformFeeBps(payload),
-    payload.find({
-      collection: 'justice-fund-transactions',
-      where: { and: [tenantFilter, { status: { equals: 'completed' } }] },
-      limit: 0,
-      overrideAccess: true,
-    }),
+    getPlatformFeeBps(payload, tenantId),
     payload.find({
       collection: 'transactions' as any,
       where: tenantFilter,
@@ -120,10 +113,10 @@ export default async function DashboardSettingsPage({
       : { providers: [] }
   const platformFeePercent =
     (platformFeeBpsRes.status === 'fulfilled' ? platformFeeBpsRes.value : 500) / 100
-  const jfResult = jfResultRes.status === 'fulfilled' ? jfResultRes.value : null
   const txResult = txResultRes.status === 'fulfilled' ? txResultRes.value : null
   const ordersResult = ordersResultRes.status === 'fulfilled' ? ordersResultRes.value : null
-  const jfGrowth = jfGrowthRes.status === 'fulfilled' ? jfGrowthRes.value : []
+  const platformFeeGrowth =
+    platformFeeGrowthRes.status === 'fulfilled' ? platformFeeGrowthRes.value : []
   const revData = revDataRes.status === 'fulfilled' ? revDataRes.value : []
   const connectorsDocs =
     connectorsRes.status === 'fulfilled' ? connectorsRes.value?.docs || [] : []
@@ -155,9 +148,6 @@ export default async function DashboardSettingsPage({
       : null
 
   const sq = paymentSettings?.square
-  const justiceFundCount = jfResult?.totalDocs ?? 0
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const justiceFundTotal = (jfResult?.docs ?? []).reduce((sum: number, doc: any) => sum + (doc.amountCents || 0), 0)
 
   const connectors: ConnectorSummary[] = connectorsDocs.map((doc: any) => ({
     id: String(doc.id),
@@ -251,8 +241,6 @@ export default async function DashboardSettingsPage({
             environment: p.environment,
           })),
           isSuperAdmin,
-          justiceFundTotalCents: justiceFundTotal,
-          justiceFundTransactionCount: justiceFundCount,
           recentTransactions: (txResult?.docs ?? []).map((doc: any) => ({
             id: doc.id,
             amount: doc.amount || 0,
@@ -273,7 +261,7 @@ export default async function DashboardSettingsPage({
               '',
           })),
           revenueData: revData,
-          justiceFundData: jfGrowth,
+          platformFeeData: platformFeeGrowth,
         }}
       />
     </Suspense>

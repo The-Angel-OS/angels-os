@@ -11,7 +11,7 @@
  *   - OrderVolumeChart: Bar chart showing orders per day
  *   - FederationActivityChart: Line chart of federation actions
  *   - SplitDonutChart: Donut/pie showing the 95/5 split
- *   - JusticeFundChart: Area chart of cumulative justice fund growth
+ *   - PlatformFeeChart: Area chart of cumulative platform fee growth
  */
 
 import {
@@ -246,20 +246,20 @@ export function SplitDonutChart() {
   )
 }
 
-// ── Justice Fund Growth (Area Chart) ────────────────────────────────────
+// ── Platform Fee Growth (Area Chart) ────────────────────────────────────
 
-export function JusticeFundChart({ data }: { data: TimeSeriesPoint[] }) {
+export function PlatformFeeChart({ data }: { data: TimeSeriesPoint[] }) {
   if (data.length === 0) {
-    return <ChartEmptyState message="Justice Fund allocations will appear after your first transaction" />
+    return <ChartEmptyState message="Platform fee allocations will appear after your first transaction" />
   }
 
   return (
     <div className="rounded-lg border border-border bg-card p-6">
-      <h3 className="mb-4 text-lg font-semibold">Justice Fund Growth</h3>
+      <h3 className="mb-4 text-lg font-semibold">Platform Fee Growth</h3>
       <ResponsiveContainer width="100%" height={220}>
         <AreaChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
           <defs>
-            <linearGradient id="justiceGradient" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="platformFeeGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor={COLORS.amber} stopOpacity={0.3} />
               <stop offset="95%" stopColor={COLORS.amber} stopOpacity={0} />
             </linearGradient>
@@ -285,13 +285,16 @@ export function JusticeFundChart({ data }: { data: TimeSeriesPoint[] }) {
             dataKey="value"
             stroke={COLORS.amber}
             strokeWidth={2}
-            fill="url(#justiceGradient)"
+            fill="url(#platformFeeGradient)"
           />
         </AreaChart>
       </ResponsiveContainer>
     </div>
   )
 }
+
+/** @deprecated Backward-compatible alias for PlatformFeeChart. */
+export const JusticeFundChart = PlatformFeeChart
 
 // ── Empty State ─────────────────────────────────────────────────────────
 
