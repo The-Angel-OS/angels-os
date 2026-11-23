@@ -68,7 +68,7 @@ export interface CheckoutIntentRecord {
   planId?: string
   planName?: string
   interval?: 'month' | 'year'
-  portalPlan?: 'site' | 'business'
+  portalPlan?: 'creator' | 'site' | 'business'
   memberUserId?: number | string
   memberEmail?: string
   memberName?: string

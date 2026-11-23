@@ -102,10 +102,8 @@ export async function getPlatformFeeBps(
       // Only an explicitly stored value counts. Absent means "no opinion, use the
       // node rate" — NOT zero, or a tenant with no row would ride free.
       if (own != null) return normalizeFeeBps(own)
-      // No explicit override → the PLAN decides. This is the pitch: $29 halves
-      // the rate to 2%, $79 removes it. It lived only in the pricing copy, so a
-      // paying portal was still being charged the free rate on every deposit —
-      // we were selling something we did not deliver.
+      // No explicit override → the PLAN decides. Locked Sprint B pricing:
+      // Starter (free)=5%, Creator ($10)=4%, Pro ($29)=1.5%, Studio ($79)=0%.
       const t = await payload
         .findByID({ collection: 'tenants', id: forTenantId, depth: 0, overrideAccess: true })
         .catch(() => null)

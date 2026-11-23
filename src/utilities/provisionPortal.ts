@@ -69,7 +69,7 @@ export interface ProvisionPortalInput {
    * keep theirs; new ones default to 'free' at the collection). Demo sites pass
    * 'demo' — everything switched on, billed to nobody.
    */
-  portalPlan?: 'free' | 'site' | 'business' | 'demo'
+  portalPlan?: 'free' | 'creator' | 'site' | 'business' | 'demo'
 }
 
 export interface ProvisionPortalResult {

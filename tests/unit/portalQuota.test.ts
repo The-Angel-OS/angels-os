@@ -14,7 +14,17 @@ const payloadWith = (
 describe('portalQuotaFor', () => {
   it('is the most generous plan held, free by default', () => {
     expect(portalQuotaFor([])).toBe(PORTAL_QUOTA.free)
+    expect(portalQuotaFor(['free', 'creator'])).toBe(1)
     expect(portalQuotaFor(['free', 'business', 'site'])).toBe(PORTAL_QUOTA.business)
+  })
+
+  it('ranks Creator above Free even though both start with a 1-portal allowance', async () => {
+    const state = await getPortalQuota(
+      payloadWith([{ portalPlan: 'free' }, { portalPlan: 'creator' }]),
+      7,
+    )
+    expect(state.plan).toBe('creator')
+    expect(state.quota).toBe(PORTAL_QUOTA.creator)
   })
 })
 

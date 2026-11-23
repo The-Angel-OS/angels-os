@@ -153,16 +153,14 @@ export const domainBindingsPostHandler: PayloadHandler = async (req) => {
   let next: DomainBinding[]
 
   if (action === 'add') {
-    // Binding your own address is what separates Free from Site. Checked on ADD
-    // only: a portal that lapses to free keeps the domains it already bound —
-    // taking a live customer's website off its address to enforce a billing
-    // state is a punishment out of all proportion to the miss.
+    // Binding your own address is what separates Starter (free) from Creator ($10/mo).
+    // Checked on ADD only: a portal that lapses to free keeps already-bound domains.
     if (!portalCan(tenant, 'customDomain')) {
       return Response.json(
         {
           error:
-            'Your own domain is part of the Site plan. Move this portal up at /dashboard/plan and the address is yours.',
-          upgradeRequired: 'site',
+            'Your own domain unlocks on the Creator plan ($10/mo). Upgrade in Settings → Plan & Billing (/dashboard/admin/settings?tab=plan) and the address is yours.',
+          upgradeRequired: 'creator',
         },
         { status: 402 },
       )

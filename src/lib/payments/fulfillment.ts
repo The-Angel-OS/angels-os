@@ -197,7 +197,10 @@ async function fulfillPortalPlan(
 
   const live = verified.verified || verified.status === 'active' || verified.status === 'completed'
   const nextPlan =
-    live && (intent.portalPlan === 'site' || intent.portalPlan === 'business')
+    live &&
+    (intent.portalPlan === 'creator' ||
+      intent.portalPlan === 'site' ||
+      intent.portalPlan === 'business')
       ? intent.portalPlan
       : 'free'
 

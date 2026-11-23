@@ -30,8 +30,10 @@ describe('normalizeFeeBps', () => {
 })
 
 describe('feeCents', () => {
-  it('is exact at the default 5%', () => {
-    expect(feeCents(10000, 500)).toBe(500) // $100 → $5.00
+  it('is exact at the default 5% and at the Creator (4%) / Pro (1.5%) plan rates', () => {
+    expect(feeCents(10000, 500)).toBe(500) // $100 → $5.00 (5% Starter)
+    expect(feeCents(10000, 400)).toBe(400) // $100 → $4.00 (4% Creator)
+    expect(feeCents(10000, 150)).toBe(150) // $100 → $1.50 (1.5% Pro)
     expect(feeCents(7500, 500)).toBe(375) // Ron's $75 deposit → $3.75
   })
 

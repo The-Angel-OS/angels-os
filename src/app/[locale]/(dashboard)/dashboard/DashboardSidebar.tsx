@@ -355,7 +355,7 @@ export function DashboardSidebar({
             {!isCollapsed && (
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">Upgrade plan</p>
-                <p className="truncate text-xs text-muted-foreground">You&rsquo;re on Free</p>
+                <p className="truncate text-xs text-muted-foreground">Preview · Creator from $10/mo</p>
               </div>
             )}
           </div>

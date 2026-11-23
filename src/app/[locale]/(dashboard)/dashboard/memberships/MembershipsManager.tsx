@@ -22,6 +22,8 @@ interface MembershipsManagerProps {
   tenantName: string
   tenantSlug: string
   supportPath: string
+  canSellMemberships?: boolean
+  currentPlanLabel?: string
 }
 
 export function MembershipsManager({
@@ -30,6 +32,8 @@ export function MembershipsManager({
   tenantName,
   tenantSlug,
   supportPath,
+  canSellMemberships = true,
+  currentPlanLabel,
 }: MembershipsManagerProps) {
   const [plans, setPlans] = useState<MembershipPlan[]>(initialPlans)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -238,6 +242,26 @@ export function MembershipsManager({
           </button>
         </div>
       </div>
+
+      {!canSellMemberships && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-200 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-medium">
+              Preview mode{currentPlanLabel ? ` (${currentPlanLabel})` : ''}
+            </p>
+            <p className="text-xs opacity-90">
+              You can draft tiers here anytime. Accepting paid recurring memberships unlocks on the{' '}
+              <strong>Creator plan ($10/mo, 4% fee)</strong>.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/admin/settings?tab=plan"
+            className="shrink-0 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Upgrade to Creator ($10/mo) →
+          </Link>
+        </div>
+      )}
 
       {message && (
         <div

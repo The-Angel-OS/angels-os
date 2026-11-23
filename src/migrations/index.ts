@@ -103,6 +103,7 @@ import * as migration_20260821_070000_sync_user_tenants_backfill from './2026082
 import * as migration_20260821_060000_town_square_and_ai_bus from './20260821_060000_town_square_and_ai_bus'
 import * as migration_20260821_050000_tenant_features from './20260821_050000_tenant_features'
 import * as migration_20260820_223000_tenant_portal_plan from './20260820_223000_tenant_portal_plan'
+import * as migration_20261122_213000_portal_plan_creator from './20261122_213000_portal_plan_creator'
 
 export const migrations = [
   {
@@ -624,5 +625,10 @@ export const migrations = [
     up: migration_20260901_210000_pages_version_parent.up,
     down: migration_20260901_210000_pages_version_parent.down,
     name: '20260901_210000_pages_version_parent',
+  },
+  {
+    up: migration_20261122_213000_portal_plan_creator.up,
+    down: migration_20261122_213000_portal_plan_creator.down,
+    name: '20261122_213000_portal_plan_creator',
   },
 ];

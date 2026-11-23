@@ -17,7 +17,13 @@ import React, { useState } from 'react'
  * ponytail: no toast library, no form state machine. A disabled button, an
  * inline error, and a redirect covers every outcome this has.
  */
-export function UpgradeButton({ plan, label }: { plan: 'site' | 'business'; label: string }) {
+export function UpgradeButton({
+  plan,
+  label,
+}: {
+  plan: 'creator' | 'site' | 'business'
+  label: string
+}) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

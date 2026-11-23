@@ -1,8 +1,8 @@
 /**
  * Portal Plan Checkout — POST /api/plan-ops/checkout
  *
- * Upgrades a tenant's portalPlan (`site` or `business`) via Square or PayPal
- * hosted subscription checkout.
+ * Upgrades a tenant's portalPlan (`creator`, `site`, or `business`) via Square
+ * or PayPal hosted subscription checkout.
  */
 import type { PayloadHandler } from 'payload'
 import { ADMIN_ROLES, checkRole } from '@/access/utilities'
@@ -15,7 +15,7 @@ import { PLAN_LABEL, PLAN_PRICE_CENTS, planOf, type PortalPlan } from '@/utiliti
 
 const MANAGER_ROLES = new Set(['tenant_admin', 'tenant_manager'])
 
-export const PURCHASABLE_PLANS = ['site', 'business'] as const
+export const PURCHASABLE_PLANS = ['creator', 'site', 'business'] as const
 export type PurchasablePlan = (typeof PURCHASABLE_PLANS)[number]
 
 export function isPurchasablePlan(v: unknown): v is PurchasablePlan {
@@ -55,7 +55,7 @@ export const portalPlanCheckoutHandler: PayloadHandler = async (req) => {
   const plan = body.plan
   if (!isPurchasablePlan(plan)) {
     return Response.json(
-      { error: `Choose a plan: ${PURCHASABLE_PLANS.join(' or ')}.` },
+      { error: `Choose a plan: ${PURCHASABLE_PLANS.join(', ')}.` },
       { status: 400 },
     )
   }

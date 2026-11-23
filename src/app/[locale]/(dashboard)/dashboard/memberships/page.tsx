@@ -4,6 +4,7 @@ import configPromise from '@payload-config'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { requirePortalManager } from '@/utilities/requirePortalManager'
 import { getMembershipPlans } from '@/utilities/membershipPlans'
+import { PLAN_LABEL, planOf, portalCan } from '@/utilities/portalPlan'
 import { MembershipsManager, type SubscriberRow } from './MembershipsManager'
 
 export const dynamic = 'force-dynamic'
@@ -53,6 +54,8 @@ export default async function DashboardMembershipsPage({
     currentPeriodEnd: doc.currentPeriodEnd || null,
   }))
 
+  const currentPlan = planOf(tenant as { portalPlan?: string | null } | null)
+
   return (
     <MembershipsManager
       initialPlans={plans}
@@ -60,6 +63,11 @@ export default async function DashboardMembershipsPage({
       tenantName={tenant?.branding?.siteName || tenant?.name || 'Your Site'}
       tenantSlug={tenant?.slug || ''}
       supportPath={locale === 'en' ? '/support' : `/${locale}/support`}
+      canSellMemberships={portalCan(
+        tenant as { portalPlan?: string | null } | null,
+        'memberships',
+      )}
+      currentPlanLabel={PLAN_LABEL[currentPlan]}
     />
   )
 }

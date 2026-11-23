@@ -39,6 +39,13 @@ const payload = {
   find: async () => ({ docs: [{ id: PLATFORM_TENANT }] }),
 } as never
 
+function payloadWithTenantPlan(portalPlan: string | null) {
+  return {
+    find: async () => ({ docs: [{ id: PLATFORM_TENANT }] }),
+    findByID: async () => ({ id: CLEARWATER, portalPlan }),
+  } as never
+}
+
 beforeEach(() => settings.clear())
 
 describe('getPlatformFeeBps — per-tenant override', () => {
@@ -78,6 +85,18 @@ describe('getPlatformFeeBps — per-tenant override', () => {
 
   it('falls back to the default when everything is unset', async () => {
     await expect(getPlatformFeeBps(payload, KESSELA)).resolves.toBe(DEFAULT_PLATFORM_FEE_BPS)
+  })
+
+  it('derives the plan rate when no tenant override is stored', async () => {
+    await expect(getPlatformFeeBps(payloadWithTenantPlan('creator'), CLEARWATER)).resolves.toBe(400)
+    await expect(getPlatformFeeBps(payloadWithTenantPlan('site'), CLEARWATER)).resolves.toBe(150)
+    await expect(getPlatformFeeBps(payloadWithTenantPlan('business'), CLEARWATER)).resolves.toBe(0)
+    await expect(getPlatformFeeBps(payloadWithTenantPlan('demo'), CLEARWATER)).resolves.toBe(0)
+  })
+
+  it('honours an explicit tenant override even when a plan fee exists', async () => {
+    settings.set(key(CLEARWATER), 250)
+    await expect(getPlatformFeeBps(payloadWithTenantPlan('creator'), CLEARWATER)).resolves.toBe(250)
   })
 })
 

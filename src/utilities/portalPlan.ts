@@ -1,15 +1,24 @@
 /**
  * What a portal's plan entitles it to.
  *
- * One map, one place. Before this the paywall lived only in the marketing copy
- * on /pricing, so the product happily gave away the $149 features and nobody
- * could tell by reading the code which side of the line anything was on.
+ * One map, one place. Locked 4-tier creator pricing (2026-11-22 Sprint B):
+ *   • Starter (Preview) — `free`     ($0/mo, 5% fee, 1 portal)
+ *   • Creator           — `creator`  ($10/mo | $99/yr, 4% fee, 1 portal)
+ *     Unlocks customDomain, memberships, and customerAssistant (LEO AI + RAG).
+ *   • Pro               — `site`     ($29/mo | $290/yr, 1.5% fee, 3 portals)
+ *     Adds hideFooterCredit (white-label) and crm.
+ *   • Studio            — `business` ($79/mo | $790/yr, 0% fee, 10 portals)
+ *     Adds 0% platform fee + 10-portal quota.
+ *
+ * Existing DB keys (`site`, `business`) are preserved for zero-downtime
+ * backward compatibility with live tenants, while `'creator'` carries the
+ * $10/mo flagship tier.
  *
  * @see src/collections/Tenants/index.ts — `portalPlan`
- * @see /dashboard/plan — the upgrade surface
+ * @see /dashboard/admin/settings?tab=plan — the upgrade surface
  */
 
-export type PortalPlan = 'free' | 'site' | 'business' | 'agency' | 'demo'
+export type PortalPlan = 'free' | 'creator' | 'site' | 'business' | 'agency' | 'demo'
 
 export type PortalCapabilityKey =
   /** Own domain instead of a spacesangels.com address. */
@@ -18,75 +27,46 @@ export type PortalCapabilityKey =
   | 'hideFooterCredit'
   /** Contact list and follow-up sequences. */
   | 'crm'
-  /** The assistant answering customer questions on their behalf. */
+  /** The assistant answering customer questions on their behalf (LEO AI + YouTube RAG). */
   | 'customerAssistant'
   /** Selling memberships / recurring billing to their own customers. */
   | 'memberships'
 
-const BUSINESS: PortalCapabilityKey[] = [
+/** $10/mo Creator — unlocks the creator monetization & AI stack. */
+const CREATOR: PortalCapabilityKey[] = ['customDomain', 'memberships', 'customerAssistant']
+
+/** $29/mo Pro & $79/mo Studio — adds white-label footer removal and CRM. */
+const PRO: PortalCapabilityKey[] = [
   'customDomain',
+  'memberships',
+  'customerAssistant',
   'hideFooterCredit',
   'crm',
-  'customerAssistant',
-  'memberships',
 ]
 
 const CAPABILITIES: Record<PortalPlan, PortalCapabilityKey[]> = {
   free: [],
-  site: ['customDomain', 'hideFooterCredit'],
-  business: BUSINESS,
+  creator: CREATOR,
+  site: PRO,
+  business: PRO,
   /**
-   * Agency — Business, with room for a hundred portals.
-   *
-   * Ken's 260901 ruling. It exists because the allowance, not the feature set,
-   * is what stopped a partner: someone reselling this platform runs fifty sites
-   * for fifty clients, and the ceiling of ten made that conversation impossible
-   * to have. The capabilities are Business's exactly; nothing new is unlocked,
-   * and the whole difference is PORTAL_QUOTA below.
-   *
-   * Note what an agency allowance does NOT do: it is room to HOLD portals, not
-   * a grant of Business to each of them. A client site still carries its own
-   * plan and still pays for its own features. Quota answers "how many", plans
-   * answer "what may each one do", and keeping those separate is why adding
-   * this tier costs one line here instead of a second entitlement system.
+   * Agency — Studio capabilities, with room for a hundred portals.
    */
-  agency: BUSINESS,
+  agency: PRO,
   /**
-   * Everything, billed to nobody.
-   *
-   * A prospect demo with booking switched off sells nothing — the whole pitch
-   * is the thing working before the ask. Our own portals are in the same
-   * position: we do not invoice ourselves.
-   *
-   * Deliberately a PLAN and not an `isDemo` flag that bypasses the gate. A
-   * bypass would be a second answer to "what may this portal do", and the two
-   * would drift; the gate would then be honest in one place and a lie in the
-   * other. As a plan it stays one map, one question, and the day a demo
-   * converts you change a single field.
-   *
-   * Everything EXCEPT hideFooterCredit. A demo site is marketing — the credit
-   * line is the point of building it, and hiding it on the one page a prospect
-   * shows their friends throws away the only distribution the free work buys.
-   * A paying customer buys the credit off; a demo never should.
+   * Everything working EXCEPT hideFooterCredit. A demo portal is marketing —
+   * the footer credit stays visible so prospects know who built it.
    */
-  demo: BUSINESS.filter((c) => c !== 'hideFooterCredit'),
+  demo: PRO.filter((c) => c !== 'hideFooterCredit'),
 }
 
 /**
  * How many portals a person on this plan may hold.
- *
- * Until now anyone signed in could provision unlimited portals — Ken has 17 and
- * nothing stopped an eighteenth, or a script's ten thousandth. A person's
- * allowance is the BEST plan among the portals they already run: paying for one
- * Business portal buys room for the next few, which is the shape every hosting
- * product has and the shape nobody has to explain.
- *
- * ponytail: a map, not a field. A number per plan is the whole rule; a
- * `portalQuota` column would be a second answer to a question this already
- * answers, and the two would drift.
+ * A person's allowance is the BEST plan among the portals they already run.
  */
 export const PORTAL_QUOTA: Record<PortalPlan, number> = {
   free: 1,
+  creator: 1,
   site: 3,
   business: 10,
   agency: 100,
@@ -99,76 +79,70 @@ export function portalQuotaFor(plans: PortalPlan[]): number {
 }
 
 /**
- * What each plan costs, in cents per month. Ken's 260823 ruling.
- *
- * These moved DOWN from $49/$149 to $29/$79 to sit at parity with
- * Wix/Squarespace. Open source, community-based and prayerful is the reason to
- * choose us AT parity — never a discount justification.
+ * Monthly subscription cost per portal, in US cents.
+ * Locked Sprint B pricing: $0 Preview / $10 Creator / $29 Pro / $79 Studio.
  */
 export const PLAN_PRICE_CENTS: Record<PortalPlan, number> = {
   free: 0,
+  creator: 1000,
   site: 2900,
   business: 7900,
   /**
-   * PLACEHOLDER — $299 is Claude's number, not Ken's, and it is deliberately
-   * NOT self-serve: `agency` is absent from PURCHASABLE_PLANS, so nothing can
-   * charge this until a price is agreed. An agency deal is a conversation; the
-   * tier is granted by an admin the way `demo` is. Displayed so the tier is
-   * visible on the pricing surfaces while the number is settled.
+   * PLACEHOLDER — Agency is NOT self-serve (`agency` is absent from
+   * PURCHASABLE_PLANS, so nothing can charge this via card). Granted by admin.
    */
   agency: 29900,
   demo: 0,
 }
 
-/**
- * The booking fee each plan pays, in basis points — the monthly buys down the rate.
- *
- * This is the actual pitch, and it was living only in a handoff document: a free
- * portal pays 5% of each deposit (capped at $9.99), $29 halves it to 2%, $79
- * removes it. For anyone taking deposits, the subscription pays for itself,
- * which is a sentence a tradesman can check with arithmetic.
- *
- * ⚠️ The fee is charged on the DEPOSIT, not the job — `feeCents(deposit, …)` in
- * booking-checkout.ts. 5% of a $50 deposit is $2.50, not 5% of a $600 move, and
- * the $9.99 cap only binds above a ~$200 deposit.
- *
- * A demo pays nothing because a demo is billed to nobody.
- * @see src/utilities/platformFee.ts — where this is resolved, and how a
- *      per-tenant override still wins for special cases.
- */
-export const PLAN_FEE_BPS: Record<PortalPlan, number> = {
-  free: 500,
-  site: 200,
-  business: 0,
-  // An agency brings the platform its customers; taking a cut of their clients'
-  // sales on top of the tier would be charging twice for the same relationship.
+/** Annual billing option per portal, in US cents (~2 months free). */
+export const PLAN_ANNUAL_PRICE_CENTS: Record<PortalPlan, number> = {
+  free: 0,
+  creator: 9900,
+  site: 29000,
+  business: 79000,
   agency: 0,
   demo: 0,
 }
 
-/** Human labels for the upgrade prompt — the same words as /pricing. */
+/**
+ * Platform fee each plan pays in basis points — higher plans buy down the cut.
+ *   • Starter (`free`):   5.0% (`500` bps, capped at $9.99/txn)
+ *   • Creator (`creator`): 4.0% (`400` bps — half of Patreon)
+ *   • Pro (`site`):       1.5% (`150` bps)
+ *   • Studio (`business`): 0.0% (`0` bps)
+ *   • Agency / Demo:       0.0% (`0` bps)
+ *
+ * @see src/utilities/platformFee.ts — where this is resolved (+ per-tenant override support).
+ */
+export const PLAN_FEE_BPS: Record<PortalPlan, number> = {
+  free: 500,
+  creator: 400,
+  site: 150,
+  business: 0,
+  agency: 0,
+  demo: 0,
+}
+
+/** Human labels for upgrade prompts & Settings UI — aligned with /pricing. */
 export const PLAN_LABEL: Record<PortalPlan, string> = {
-  free: 'Free',
-  site: 'Site — $29/mo',
-  business: 'Business — $79/mo',
+  free: 'Starter (Preview) — $0',
+  creator: 'Creator — $10/mo',
+  site: 'Pro — $29/mo',
+  business: 'Studio — $79/mo',
   agency: 'Agency — talk to us',
   demo: 'Demo — not billed',
 }
 
 /** The cheapest plan that includes a capability, for "move to X" prompts. */
 export function planRequiredFor(cap: PortalCapabilityKey): PortalPlan {
+  if (CAPABILITIES.creator.includes(cap)) return 'creator'
   if (CAPABILITIES.site.includes(cap)) return 'site'
   return 'business'
 }
 
 /**
  * The plan a tenant is on, defaulting to free for anything unrecognised.
- *
- * DERIVED from the capability map rather than a hand-written list of literals.
- * The list version silently forgot `agency` the day it was added: TypeScript
- * cannot flag a missing arm of an `||` chain, so an agency portal read back as
- * FREE and its owner was told they had room for one portal instead of a hundred.
- * A plan that exists in the map is a plan this recognises, by construction.
  */
 export function planOf(tenant: { portalPlan?: string | null } | null | undefined): PortalPlan {
   const p = tenant?.portalPlan

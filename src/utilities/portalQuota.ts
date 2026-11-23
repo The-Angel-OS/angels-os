@@ -134,10 +134,11 @@ export async function getPortalQuota(
  */
 const PLAN_RANK: Record<PortalPlan, number> = {
   free: 0,
-  site: 1,
-  business: 2,
-  agency: 3,
-  demo: 4,
+  creator: 1,
+  site: 2,
+  business: 3,
+  agency: 4,
+  demo: 5,
 }
 
 function bestPlan(plans: PortalPlan[]): PortalPlan {
@@ -160,6 +161,6 @@ export async function assertPortalQuota(
 
   throw new Error(
     `You already have ${used} of ${quota} ${quota === 1 ? 'portal' : 'portals'} on your plan. ` +
-      `Upgrade at /dashboard/plan to add another.`,
+      `Upgrade at /dashboard/admin/settings?tab=plan to add another.`,
   )
 }
