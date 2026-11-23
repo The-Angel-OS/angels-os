@@ -182,9 +182,9 @@ export default function AICostsPanel() {
     const id = setInterval(() => setNow(Date.now()), 5000)
     return () => clearInterval(id)
   }, [])
-  // Deep-link to the AI tab of this portal's Settings (same locale prefix).
+  // Deep-link to the LEO & Integrations tab of this portal's Settings (same locale prefix).
   const pathname = usePathname()
-  const settingsHref = `${pathname.replace(/\/ai-costs\/?$/, '')}/admin/settings?tab=ai`
+  const settingsHref = `${pathname.replace(/\/ai-costs\/?$/, '')}/admin/settings?tab=leo`
 
   const fetchData = useCallback(async (window: number) => {
     try {

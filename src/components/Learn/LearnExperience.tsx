@@ -643,7 +643,7 @@ export default function LearnPage({
                 number={7}
                 title="Use your own domain"
                 description="Point your own address at the portal and the platform's name disappears from it entirely. Your site, your domain, your content - exportable whenever you want it."
-                href="/dashboard/settings"
+                href="/dashboard/admin/settings?tab=domains"
                 color={LCARS.purple}
                 icon={<Globe className="w-4 h-4" />}
               />

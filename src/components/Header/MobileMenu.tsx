@@ -31,38 +31,30 @@ interface Props {
   siteName?: string
 }
 
-// Global mission content (the Library + Learn) is served from a static soul
-// manifest, not tenant-scoped — so it should be reachable from EVERY site's
-// mobile menu, even where the desktop nav demotes it to "More" or a storefront
-// suppresses it from the primary chrome. Guarantee these links so there's always
-// a way to reach Works on mobile.
-//
-// DEMOTED is not HIDDEN. This guarantee is against burial, never against the
-// owner: it appends what is missing, and a hidden route is missing precisely
-// BECAUSE it was hidden — so this used to re-add it, making "hide on desktop"
-// the way to force something onto the phone. Celersoft hid /learn and /works
-// and got both, on a consultancy.
-const GUARANTEED_MOBILE_LINKS = [
-  { id: 'm-learn', link: { type: 'custom' as const, label: 'Learn', url: '/learn', newTab: false } },
-  { id: 'm-works', link: { type: 'custom' as const, label: 'Works', url: '/works', newTab: false } },
-]
+// Previously injected /learn and /works into every site's mobile menu.
+// New portals use a clean CMS nav: /learn lives in /dashboard/learn and /works
+// is strictly opt-in via tenant.features.works (composed upstream in HeaderClient).
+const GUARANTEED_MOBILE_LINKS: Array<{
+  id: string
+  link: { type: 'custom'; label: string; url: string; newTab: boolean }
+}> = []
 
 /**
- * Append the guaranteed links that are neither present nor hidden.
- *
- * Exported and pure so the regression has a real test: the bug was a
- * three-word condition, and a test that re-implements the rule would have
- * reproduced the bug rather than caught it.
+ * Filter any hidden URLs out of the mobile menu without force-injecting
+ * legacy /learn or /works links onto portals that do not use them.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function withGuaranteedLinks(menu: any[], hiddenUrls: string[] = []): any[] {
   const base = Array.isArray(menu) ? [...menu] : []
-  const urls = new Set(base.map((i) => (i as { link?: { url?: string | null } }).link?.url))
   const hidden = new Set(hiddenUrls)
+  const filtered = hidden.size
+    ? base.filter((i) => !hidden.has((i as { link?: { url?: string | null } }).link?.url ?? ''))
+    : base
+  const urls = new Set(filtered.map((i) => (i as { link?: { url?: string | null } }).link?.url))
   for (const extra of GUARANTEED_MOBILE_LINKS) {
-    if (!urls.has(extra.link.url) && !hidden.has(extra.link.url)) base.push(extra)
+    if (!urls.has(extra.link.url) && !hidden.has(extra.link.url)) filtered.push(extra)
   }
-  return base
+  return filtered
 }
 
 export function MobileMenu({ menu, pinnedUrls = [], hiddenUrls = [], siteName }: Props) {

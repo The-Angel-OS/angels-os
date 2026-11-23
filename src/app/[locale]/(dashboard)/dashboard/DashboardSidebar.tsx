@@ -42,6 +42,8 @@ interface TenantInfo {
 interface DashboardSidebarProps {
   prefix: string
   isAdmin: boolean
+  isSuperAdmin?: boolean
+  isPortalManager?: boolean
   isBusinessOwner: boolean
   isAuthenticated?: boolean
   userName: string
@@ -60,6 +62,8 @@ interface DashboardSidebarProps {
 export function DashboardSidebar({
   prefix,
   isAdmin: isAdminProp,
+  isSuperAdmin: isSuperAdminProp = false,
+  isPortalManager: isPortalManagerProp = false,
   isBusinessOwner: isBusinessOwnerProp,
   isAuthenticated = true,
   userName,
@@ -80,13 +84,17 @@ export function DashboardSidebar({
   // Read role state from context (always available — DashboardProvider wraps this)
   const dashboard = useDashboard()
   const isAdmin = dashboard.isAdmin || isAdminProp
-  const isBusinessOwner = dashboard.isBusinessOwner || isBusinessOwnerProp
+  const isSuperAdmin = dashboard.isSuperAdmin || isSuperAdminProp
+  const isPortalManager = dashboard.isPortalManager || isPortalManagerProp || isAdmin
+  const isBusinessOwner = dashboard.isBusinessOwner || isBusinessOwnerProp || isPortalManager
 
   // Build visibility context for nav items
   const visCtx: NavVisibilityContext = useMemo(
     () => ({
       isAuthenticated,
       isAdmin,
+      isSuperAdmin,
+      isPortalManager,
       isBusinessOwner,
       wizardComplete,
       permissions: dashboard.userRole?.tenantPermissions || [],
@@ -96,6 +104,8 @@ export function DashboardSidebar({
     [
       isAuthenticated,
       isAdmin,
+      isSuperAdmin,
+      isPortalManager,
       isBusinessOwner,
       wizardComplete,
       dashboard.userRole,
@@ -104,9 +114,17 @@ export function DashboardSidebar({
   )
 
   // ─── Collapsible section state ──────────────────────────────────
-  // Sections default to open. Collapsible sections can be toggled.
+  // Sections default to open unless `defaultCollapsed: true` (e.g. PLATFORM OPS).
   // The section containing the active route auto-expands.
-  const [sectionState, setSectionState] = useState<Record<string, boolean>>({})
+  const [sectionState, setSectionState] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {}
+    for (const s of NAV_SECTIONS) {
+      if (s.collapsible && s.defaultCollapsed) {
+        initial[s.key] = false
+      }
+    }
+    return initial
+  })
 
   const toggleSection = useCallback((key: string) => {
     setSectionState((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -320,13 +338,11 @@ export function DashboardSidebar({
         <ThemeToggle compact={isCollapsed} />
       </div>
 
-      {/* Upgrade — bottom-left, directly above the account row, the same place
-          every tool people already use puts it. Only on Free, and only for
-          someone who could actually authorise it: a staff member who cannot buy
-          anything does not need to be asked to. */}
-      {userName && portalPlan === 'free' && (isAdmin || isBusinessOwner) && (
+      {/* Upgrade — bottom-left, directly above the account row. Only on Free, and
+          only for portal managers who can actually authorize an upgrade. */}
+      {userName && portalPlan === 'free' && isPortalManager && (
         <Link
-          href={`${prefix}/dashboard/plan`}
+          href={`${prefix}/dashboard/admin/settings?tab=plan`}
           className="block shrink-0 border-t border-border px-2 py-2 transition-colors hover:bg-muted/50"
           title="See what the paid plans add"
         >

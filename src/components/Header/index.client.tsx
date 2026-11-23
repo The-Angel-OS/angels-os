@@ -48,10 +48,9 @@ type Props = {
   /** Book is first-class only when the tenant has an enabled bookable service. */
   hasBook?: boolean
   /**
-   * Whether to show the federation "Discovery" link. Driven by the Endeavor's
-   * "Show in Discovery" toggle (endeavor.federation.networkVisible). When
-   * undefined (no Endeavor configured yet) we fall back to the businessType
-   * inference so un-configured community sites don't lose the link.
+   * Whether to show the Discovery link. Driven explicitly by the Endeavor's
+   * "Show in Discovery" toggle (endeavor.federation.networkVisible). Defaults to
+   * false so new creator portals get a clean standard CMS navbar.
    */
   showDiscovery?: boolean
   /**
@@ -176,16 +175,6 @@ const DASHBOARD_NAV_ITEM = {
   },
 }
 
-const LEARN_NAV_ITEM = {
-  id: 'learn',
-  link: {
-    type: 'custom' as const,
-    label: 'Learn',
-    url: '/learn',
-    newTab: false,
-  },
-}
-
 // Resolve an href from a nav item's link, mirroring CMSLink's reference/custom logic.
 function resolveHref(link: { type?: string | null; url?: string | null; reference?: any } | undefined): string {
   if (!link) return '#'
@@ -218,6 +207,7 @@ export function composeNavItems(opts: {
   hasEvents?: boolean
   hasBook?: boolean
   hasProducts?: boolean
+  hasWorks?: boolean
   isStorefront?: boolean
   givingOrg?: boolean
   discoveryEnabled?: boolean
@@ -233,6 +223,7 @@ export function composeNavItems(opts: {
     hasEvents = false,
     hasBook = false,
     hasProducts = false,
+    hasWorks = false,
     isStorefront = false,
     givingOrg = false,
     discoveryEnabled = false,
@@ -264,16 +255,13 @@ export function composeNavItems(opts: {
   if (hasEvents && !urls.has('/events')) items.push(EVENTS_NAV_ITEM)
   if (hasBook && !urls.has('/book')) items.push(BOOK_NAV_ITEM)
   if (hasProducts && !urls.has('/shop') && !urls.has('/products')) items.push(SHOP_NAV_ITEM)
-  // Discovery is its own switch (Endeavor "Show in Discovery" toggle).
+  // Works is strictly opt-in (tenant.features.works + available works).
+  if (hasWorks && !urls.has('/works')) items.push(WORKS_NAV_ITEM)
+  // Discovery is its own opt-in switch (Endeavor "Show in Discovery" toggle).
   if (discoveryEnabled && !urls.has('/federation/discover')) items.push(DISCOVER_NAV_ITEM)
-  // Mission/platform chrome — community endeavors only, never a commercial storefront.
+  // Community-only links (never injected onto a commercial storefront).
   if (!isStorefront) {
-    // Same rule. Giving is top-level for a ministry and absent for everyone
-    // else — it used to sit in More on every community site, soliciting
-    // donations for organizations that do not take them.
     if (givingOrg && !urls.has('/donate')) items.push(donateItem)
-    if (!urls.has('/works')) items.push(WORKS_NAV_ITEM)
-    if (!urls.has('/learn')) items.push(LEARN_NAV_ITEM)
     if (!urls.has('/dashboard/spaces')) items.push(SPACES_NAV_ITEM)
   }
   // Dashboard is always visible — the dashboard layout handles auth redirect.
@@ -339,10 +327,9 @@ export function HeaderClient({ canEditContent: canEditContentProp = false, heade
   // separately below via its own explicit toggle.
   const businessType = (tenant as { businessType?: string } | null | undefined)?.businessType
   const isStorefront = ['service', 'retail', 'professional_services', 'artisan_maker', 'gift_shop'].includes(businessType || '')
-  // The Discovery link is an explicit switch: the Endeavor's "Show in Discovery"
-  // toggle (showDiscovery) wins when set. When it's undefined (no Endeavor yet)
-  // fall back to the old behavior — visible for any non-storefront community site.
-  const discoveryEnabled = showDiscovery ?? !isStorefront
+  // Discovery is strictly opt-in (endeavors.federation.networkVisible === true)
+  // so new creator sites stay clean unless explicitly enabled.
+  const discoveryEnabled = Boolean(showDiscovery)
   // A giving org (church/ministry/nonprofit) gets Giving promoted to top-level; for
   // any other community site the link still exists but stays in More until configured.
   // Label flips to "Giving" for a church/ministry, "Donate" otherwise.
@@ -362,13 +349,14 @@ export function HeaderClient({ canEditContent: canEditContentProp = false, heade
         hasEvents,
         hasBook,
         hasProducts,
+        hasWorks,
         isStorefront,
         givingOrg,
         discoveryEnabled,
         membership,
         donateItem,
       }),
-    [navItems, isStorefront, discoveryEnabled, donateItem, membership, givingOrg, hasEpisodes, hasPosts, hasEvents, hasBook, hasProducts],
+    [navItems, isStorefront, discoveryEnabled, donateItem, membership, givingOrg, hasEpisodes, hasPosts, hasEvents, hasBook, hasProducts, hasWorks],
   )
   const tenantLogoUrl = (tenant?.branding?.logo as Media | null)?.url
   const logoUrl = tenantLogoUrl || defaultLogoUrl

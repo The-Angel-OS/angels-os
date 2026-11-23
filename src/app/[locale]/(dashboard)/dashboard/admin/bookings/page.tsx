@@ -4,6 +4,7 @@ import configPromise from '@payload-config'
 import { BookingsAdmin } from './BookingsAdmin'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { requirePortalManager } from '@/utilities/requirePortalManager'
+import { WorkspaceSubNav } from '../../_components/WorkspaceSubNav'
 
 export const dynamic = 'force-dynamic'
 
@@ -63,11 +64,22 @@ export default async function DashboardBookingsPage({
       (typeof doc.client === 'object' ? doc.client?.name : '') || 'Unknown',
   }))
 
+  const prefix = locale === 'en' ? '' : `/${locale}`
+
   return (
-    <BookingsAdmin
-      availabilitySlots={availabilitySlots}
-      recentBookings={recentBookings}
-      tenantName={tenant?.name || 'Your Enterprise'}
-    />
+    <div>
+      <WorkspaceSubNav
+        tabs={[
+          { label: 'Schedule & Hours', href: `${prefix}/dashboard/admin/bookings`, active: true },
+          { label: 'Appointments', href: `${prefix}/dashboard/appointments` },
+          { label: 'Services', href: `${prefix}/dashboard/services` },
+        ]}
+      />
+      <BookingsAdmin
+        availabilitySlots={availabilitySlots}
+        recentBookings={recentBookings}
+        tenantName={tenant?.branding?.siteName || tenant?.name || 'Your Site'}
+      />
+    </div>
   )
 }

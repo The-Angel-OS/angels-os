@@ -11,14 +11,20 @@
  */
 import type { PayloadHandler } from 'payload'
 import { getMembershipPlans, upsertMembershipPlan, removeMembershipPlan, type MembershipPlan } from '@/utilities/membershipPlans'
+import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
+import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 
 async function resolveTenant(req: Parameters<PayloadHandler>[0], bodySlug?: string) {
   const headerTenant = req.headers?.get('x-tenant-id') || ''
   const slug = headerTenant || (bodySlug && bodySlug !== 'default' ? bodySlug : '')
-  if (!slug) return null
-  const tenants = await req.payload.find({ collection: 'tenants', where: { slug: { equals: slug } }, limit: 1, depth: 0, overrideAccess: true })
-  const t = tenants.docs?.[0] as { id: number | string; slug?: string } | undefined
-  return t ? { id: t.id, slug } : null
+  if (slug) {
+    const tenants = await req.payload.find({ collection: 'tenants', where: { slug: { equals: slug } }, limit: 1, depth: 0, overrideAccess: true })
+    const t = tenants.docs?.[0] as { id: number | string; slug?: string } | undefined
+    if (t) return { id: t.id, slug: t.slug || slug }
+  }
+  const { tenant, tenantId } = await resolveTenantFromHeaders()
+  if (tenantId) return { id: tenantId, slug: tenant?.slug || '' }
+  return null
 }
 
 export const membershipPlansHandler: PayloadHandler = async (req) => {
@@ -41,22 +47,29 @@ export const membershipPlansHandler: PayloadHandler = async (req) => {
   const tenant = await resolveTenant(req, typeof body.tenantSlug === 'string' ? body.tenantSlug : undefined)
   if (!tenant) return Response.json({ error: 'tenant could not be resolved' }, { status: 400 })
 
-  // Auth: super_admin, ?key, or an active member of THIS tenant.
+  // Auth: platform admin, ?key, or an active manager/admin of THIS tenant.
   const secret = process.env.CRON_SECRET
   const key = url.searchParams.get('key')
-  const isSuperAdmin = Boolean(user && ((user as { roles?: string[] }).roles || []).includes('super_admin'))
+  const isPlatformAdmin = Boolean(user && checkRole(ADMIN_ROLES, user))
   const keyOk = Boolean(secret && key === secret)
-  let isTenantMember = false
-  if (!isSuperAdmin && !keyOk && user) {
+  let isPortalManager = false
+  if (!isPlatformAdmin && !keyOk && user) {
     const m = await payload.find({
       collection: 'tenant-memberships',
-      where: { and: [{ user: { equals: (user as { id?: number | string }).id } }, { tenant: { equals: tenant.id } }, { status: { equals: 'active' } }] },
+      where: {
+        and: [
+          { user: { equals: (user as { id?: number | string }).id } },
+          { tenant: { equals: tenant.id } },
+          { status: { equals: 'active' } },
+          { role: { in: ['tenant_admin', 'tenant_manager'] } },
+        ],
+      },
       limit: 1, depth: 0, overrideAccess: true,
     })
-    isTenantMember = (m.docs?.length ?? 0) > 0
+    isPortalManager = (m.docs?.length ?? 0) > 0
   }
-  if (!isSuperAdmin && !keyOk && !isTenantMember) {
-    return Response.json({ error: 'super_admin, valid key, or active tenant membership required' }, { status: 403 })
+  if (!isPlatformAdmin && !keyOk && !isPortalManager) {
+    return Response.json({ error: 'Portal manager, super_admin, or valid key required' }, { status: 403 })
   }
 
   // Delete?

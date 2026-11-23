@@ -3,8 +3,8 @@ import type { EarnReadiness } from '@/utilities/earnReadiness'
 
 /**
  * "Ready to Earn" — surfaces the earn-loop readiness (utilities/earnReadiness) so an
- * owner never flies blind on whether their endeavor can take a real dollar. Shows a
- * green all-clear or the FIRST blocker with its next action + a 3-gate checklist.
+ * owner never flies blind on whether their portal can take a real dollar. Shows a
+ * green all-clear or the FIRST blocker with its next action + checklist.
  * Presentational: the dashboard page computes the readiness server-side and passes it.
  */
 export function EarnReadinessCard({ readiness }: { readiness: EarnReadiness }) {
@@ -12,12 +12,18 @@ export function EarnReadinessCard({ readiness }: { readiness: EarnReadiness }) {
 
   const connectGate = !checks.connectRequired || (checks.connectOnboarded && checks.chargesEnabled)
   const gates: Array<{ label: string; done: boolean }> = [
-    ...(checks.connectRequired ? [{ label: 'Stripe Connect', done: connectGate }] : []),
+    ...(checks.connectRequired ? [{ label: 'Square Payouts', done: connectGate }] : []),
     { label: 'Membership plan', done: checks.planCount > 0 },
     { label: 'Webhook secret', done: checks.webhookConfigured },
   ]
 
   const accent = ready ? '#22cc88' : '#f5a623'
+  const fixHref =
+    !checks.providersConfigured || (checks.connectRequired && !connectGate)
+      ? '/dashboard/admin/settings?tab=payments'
+      : checks.planCount === 0
+        ? '/dashboard/memberships'
+        : '/dashboard/admin/settings?tab=payments'
 
   return (
     <div
@@ -38,24 +44,22 @@ export function EarnReadinessCard({ readiness }: { readiness: EarnReadiness }) {
             </div>
             <div className="text-xs text-muted-foreground">
               {ready
-                ? `This endeavor can take a recurring dollar (${billingMode} mode).`
-                : 'Your earn loop is not live yet.'}
+                ? `Your site is ready to accept recurring payments (${billingMode} mode).`
+                : 'Your monetization setup is almost ready.'}
             </div>
           </div>
         </div>
-        {ready && (
-          <Link
-            href="/dashboard/admin/settings?tab=general"
-            className="shrink-0 rounded-md border px-2.5 py-1 text-xs font-medium hover:bg-white/5"
-            style={{ borderColor: `${accent}55`, color: accent }}
-          >
-            Manage plans →
-          </Link>
-        )}
+        <Link
+          href={ready ? '/dashboard/memberships' : fixHref}
+          className="shrink-0 rounded-md border px-2.5 py-1 text-xs font-medium hover:bg-white/5"
+          style={{ borderColor: `${accent}55`, color: accent }}
+        >
+          {ready ? 'Manage plans →' : 'Complete setup →'}
+        </Link>
       </div>
 
       {!ready && (
-        <p className="mt-2 text-xs" style={{ color: '#d8dee9' }}>
+        <p className="mt-2 text-xs text-muted-foreground">
           <span className="font-medium" style={{ color: accent }}>Next:</span> {nextAction}
         </p>
       )}

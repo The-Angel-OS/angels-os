@@ -18,6 +18,8 @@ interface PayoutsAdminProps {
     customerEmail: string
   }>
   tenantName: string
+  platformFeePercent?: number
+  embedded?: boolean
 }
 
 export function PayoutsAdmin({
@@ -28,16 +30,25 @@ export function PayoutsAdmin({
   paypalConfigured,
   recentOrders,
   tenantName,
+  platformFeePercent = 5,
+  embedded = false,
 }: PayoutsAdminProps) {
   const paidOrders = recentOrders.filter((o) => isOrderPaid(o.status))
   const totalRevenue = paidOrders.reduce((sum, o) => sum + (o.total || 0), 0)
+  const sellerPercent = Math.max(0, 100 - platformFeePercent)
+  const sellerShare = totalRevenue * (sellerPercent / 100)
+  const platformShare = totalRevenue * (platformFeePercent / 100)
 
   return (
-    <div className="space-y-8">
+    <div id="payouts" className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">Payouts &amp; Revenue</h1>
-        <p className="text-muted-foreground">
+        {embedded ? (
+          <h2 className="text-lg font-semibold">Payouts &amp; Revenue</h2>
+        ) : (
+          <h1 className="text-2xl font-bold">Payouts &amp; Revenue</h1>
+        )}
+        <p className="text-sm text-muted-foreground">
           Manage your Square payouts, PayPal rail status, and track revenue for {tenantName}.
         </p>
       </div>
@@ -55,11 +66,7 @@ export function PayoutsAdmin({
             </div>
             <h3 className="mb-1 font-semibold">Square Merchant Not Connected</h3>
             <p className="text-sm text-muted-foreground">
-              Connect your Square account for automatic direct payouts. Go to{' '}
-              <Link href="/dashboard/admin/payments" className="text-primary underline">
-                Payments Settings
-              </Link>{' '}
-              to connect Square.
+              Connect your Square account above for automatic direct payouts.
               {paypalConfigured ? ' Platform PayPal / Venmo rail is active as a companion option.' : ''}
             </p>
           </div>
@@ -99,12 +106,14 @@ export function PayoutsAdmin({
               Open Square Dashboard
             </a>
           )}
-          <Link
-            href="/dashboard/admin/payments"
-            className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
-          >
-            Payment Settings
-          </Link>
+          {!embedded && (
+            <Link
+              href="/dashboard/admin/settings?tab=payments"
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
+            >
+              Payment Settings
+            </Link>
+          )}
         </div>
       </div>
 
@@ -120,21 +129,25 @@ export function PayoutsAdmin({
           </p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5">
-          <p className="text-sm font-medium text-muted-foreground">Seller Earnings (60%)</p>
+          <p className="text-sm font-medium text-muted-foreground">
+            Your Net Share ({sellerPercent.toFixed(1).replace(/\.0$/, '')}%)
+          </p>
           <p className="mt-1 text-2xl font-bold text-emerald-600">
-            ${((totalRevenue * 0.6) / 100).toFixed(2)}
+            ${(sellerShare / 100).toFixed(2)}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            After the platform's 5%
+            After {platformFeePercent.toFixed(1).replace(/\.0$/, '')}% platform fee
           </p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5">
-          <p className="text-sm font-medium text-muted-foreground">Justice Fund (5%)</p>
+          <p className="text-sm font-medium text-muted-foreground">
+            Platform Fee ({platformFeePercent.toFixed(1).replace(/\.0$/, '')}%)
+          </p>
           <p className="mt-1 text-2xl font-bold text-blue-600">
-            ${((totalRevenue * 0.05) / 100).toFixed(2)}
+            ${(platformShare / 100).toFixed(2)}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Supporting the community
+            Hosting, AI &amp; support
           </p>
         </div>
       </div>
@@ -143,11 +156,12 @@ export function PayoutsAdmin({
       <div className="rounded-xl border border-border bg-card p-6">
         <h2 className="mb-4 text-lg font-semibold">How payments split</h2>
         <div className="space-y-3">
-          <SplitRow label="Seller (you)" percentage={95} color="bg-emerald-500" />
-          <SplitRow label="Platform — hosting, AI, support" percentage={5} color="bg-blue-500" />
+          <SplitRow label="Creator (you)" percentage={sellerPercent} color="bg-emerald-500" />
+          <SplitRow label="Platform — hosting, AI, support" percentage={platformFeePercent} color="bg-blue-500" />
         </div>
         <p className="mt-4 text-xs text-muted-foreground">
-          You keep 95% of every payment. The platform keeps 5% of money it helps you move — and
+          You keep {sellerPercent.toFixed(1).replace(/\.0$/, '')}% of every payment. The platform keeps{' '}
+          {platformFeePercent.toFixed(1).replace(/\.0$/, '')}% of money it helps you move — and
           nothing when nothing sells.
         </p>
       </div>

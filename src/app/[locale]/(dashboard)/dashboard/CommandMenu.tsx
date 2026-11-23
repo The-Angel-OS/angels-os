@@ -48,11 +48,17 @@ export function CommandMenu({
   const commands = useMemo<CommandItem[]>(() => {
     const out: CommandItem[] = []
 
-    if (visCtx.isAdmin) {
+    const isManager = Boolean(
+      visCtx.isPortalManager ||
+        visCtx.isAdmin ||
+        visCtx.tenantRole === 'tenant_admin' ||
+        visCtx.tenantRole === 'tenant_manager',
+    )
+    if (isManager) {
       out.push({
         id: 'act-resolve-dupes',
         label: 'Resolve duplicate members',
-        hint: 'Team',
+        hint: 'Audience',
         group: 'Actions',
         href: `${prefix}/dashboard/admin/team`,
         keywords: 'duplicate cleanup merge membership',
@@ -64,6 +70,14 @@ export function CommandMenu({
         group: 'Actions',
         href: `${prefix}/dashboard/admin/invitations`,
         keywords: 'invite add member',
+      })
+      out.push({
+        id: 'act-settings',
+        label: 'Portal Settings',
+        hint: 'Settings',
+        group: 'Actions',
+        href: `${prefix}/dashboard/admin/settings`,
+        keywords: 'branding domain payments leo plan',
       })
     }
     out.push({

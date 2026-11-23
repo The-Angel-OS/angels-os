@@ -4,9 +4,8 @@ import { requirePortalManager } from '@/utilities/requirePortalManager'
 export const dynamic = 'force-dynamic'
 
 /**
- * Connectors moved to Account → Integrations so endeavor owners (tenant_admin /
- * tenant_manager), not just super_admins, can self-serve their integrations.
- * This redirect preserves old bookmarks and in-app links.
+ * Legacy /dashboard/admin/connectors route — redirects directly in a single hop
+ * to /dashboard/admin/settings?tab=leo#integrations.
  */
 export default async function LegacyConnectorsRedirect({
   params,
@@ -15,8 +14,6 @@ export default async function LegacyConnectorsRedirect({
 }) {
   const { locale } = await params
   await requirePortalManager()
-  // localePrefix is 'as-needed' (default 'en' has no prefix) — match that so the
-  // English canonical URL doesn't take a second normalization hop.
   const prefix = locale === 'en' ? '' : `/${locale}`
-  redirect(`${prefix}/dashboard/account/integrations`)
+  redirect(`${prefix}/dashboard/admin/settings?tab=leo#integrations`)
 }

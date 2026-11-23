@@ -59,11 +59,9 @@ export interface ProvisionPortalInput {
    */
   isGuardianAngel?: boolean
   /**
-   * Whether this portal's endeavor is listed in the federation Discovery tab.
-   * Business/ministry portals default TRUE (they WANT to be found). Personal
-   * guardian angels pass FALSE — millions of private per-person portals must not
-   * flood Discovery. They're still reachable for cross-portal comms (node bus /
-   * federated identity); "not listed" ≠ "not connected".
+   * Whether this portal's endeavor is listed in the Discovery tab.
+   * Defaults to FALSE so new creator portals launch with a clean standard CMS
+   * navbar without unsolicited network discovery chrome.
    */
   networkVisible?: boolean
   /**
@@ -127,7 +125,7 @@ export async function provisionPortal(
   const description = input.description || `${name} — a sovereign portal enterprise in the Angel OS federation.`
   const missionStatement = input.missionStatement || `Serve, coordinate, and federate as ${name}.`
   const endeavorType = input.endeavorType || 'creator-content'
-  const networkVisible = input.networkVisible !== false // default true; personal angels pass false
+  const networkVisible = input.networkVisible === true // default false so new portals skip Discovery chrome
   const domainAliases = (input.domainAliases || []).map((d) => d.trim().toLowerCase()).filter(Boolean)
 
   const log: string[] = []

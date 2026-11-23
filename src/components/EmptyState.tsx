@@ -121,7 +121,7 @@ export function EmptyOrders() {
       title="Orders will flow in soon"
       description="Once your store is live and customers start purchasing, their orders will appear here. Make sure your products are published and your payment processing is connected."
       actionLabel="Check Payment Settings"
-      actionHref="/dashboard/admin/payments"
+      actionHref="/dashboard/admin/settings?tab=payments"
       leoPrompt="Help me get my store ready for orders"
     />
   )

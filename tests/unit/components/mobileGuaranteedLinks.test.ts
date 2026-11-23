@@ -1,9 +1,7 @@
 /**
- * The mobile sheet guarantees /learn and /works are reachable — but "demoted"
- * is not "hidden", and it used to conflate them. `menu` arrives already
- * filtered by the owner's hidden list, so a hidden route looks exactly like a
- * missing one, and the guarantee re-added precisely what was hidden. Hiding on
- * desktop was the way to FORCE something onto the phone.
+ * The mobile sheet previously force-appended /learn and /works onto every portal.
+ * New creator portals omit both from the brochure nav (/learn lives in the
+ * dashboard; /works is opt-in via tenant.features.works upstream).
  *
  * @see src/components/Header/MobileMenu.tsx
  */
@@ -14,25 +12,19 @@ const item = (url: string) => ({ id: url, link: { type: 'custom', label: url, ur
 const urls = (out: Array<{ link: { url: string } }>) => out.map((i) => i.link.url)
 
 describe('MobileMenu.withGuaranteedLinks', () => {
-  it('appends the mission links when the menu lacks them', () => {
-    expect(urls(withGuaranteedLinks([item('/')]))).toEqual(['/', '/learn', '/works'])
+  it('does not inject /learn or /works onto portals without them', () => {
+    expect(urls(withGuaranteedLinks([item('/')]))).toEqual(['/'])
   })
 
-  it('does not duplicate a link the tenant nav already provides', () => {
-    expect(urls(withGuaranteedLinks([item('/'), item('/works')]))).toEqual(['/', '/works', '/learn'])
+  it('preserves opt-in /works when provided upstream', () => {
+    expect(urls(withGuaranteedLinks([item('/'), item('/works')]))).toEqual(['/', '/works'])
   })
 
-  it('respects the owner hiding them — the regression', () => {
-    // Celersoft: a consultancy that hid /learn and /works on desktop and got
-    // both back on mobile.
-    expect(urls(withGuaranteedLinks([item('/')], ['/learn', '/works']))).toEqual(['/'])
-  })
-
-  it('hides only what was named', () => {
-    expect(urls(withGuaranteedLinks([item('/')], ['/works']))).toEqual(['/', '/learn'])
+  it('still respects the owner hiddenUrls filter', () => {
+    expect(urls(withGuaranteedLinks([item('/'), item('/works')], ['/works']))).toEqual(['/'])
   })
 
   it('survives a missing menu', () => {
-    expect(urls(withGuaranteedLinks(undefined as never))).toEqual(['/learn', '/works'])
+    expect(urls(withGuaranteedLinks(undefined as never))).toEqual([])
   })
 })

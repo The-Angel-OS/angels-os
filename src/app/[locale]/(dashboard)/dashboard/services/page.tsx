@@ -5,6 +5,7 @@ import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { OfferingConfigurator, type FieldDef } from '@/components/OfferingConfigurator'
 import { requirePortalManager } from '@/utilities/requirePortalManager'
 import { seedServicesFromStatic } from '@/utilities/resolveServices'
+import { WorkspaceSubNav } from '../_components/WorkspaceSubNav'
 
 export const dynamic = 'force-dynamic'
 
@@ -83,23 +84,34 @@ export default async function DashboardServicesPage({ params }: { params: Promis
     // Table may not exist yet (pre-rollout) — render the empty configurator.
   }
 
+  const prefix = locale === 'en' ? '' : `/${locale}`
+
   return (
-    <div className="container max-w-3xl py-8">
-      <h1 className="mb-1 text-2xl font-bold">Services</h1>
-      <p className="mb-6 text-sm text-muted-foreground">Bookable services your customers can reserve on the /book page.</p>
-      {tenantId == null ? (
-        <p className="text-sm text-muted-foreground">No tenant context.</p>
-      ) : (
-        <OfferingConfigurator
-          kind="service"
-          collection="services"
-          titleField="label"
-          fields={SERVICE_FIELDS}
-          items={items}
-          tenantId={tenantId}
-          newDefaults={{ bookingType: 'service', pricingModel: 'fixed', billingIncrementMinutes: 15, allowsExtraCosts: true, depositPercent: 20, durationMinutes: 60, enabled: true }}
-        />
-      )}
+    <div>
+      <WorkspaceSubNav
+        tabs={[
+          { label: 'Schedule & Hours', href: `${prefix}/dashboard/admin/bookings` },
+          { label: 'Appointments', href: `${prefix}/dashboard/appointments` },
+          { label: 'Services', href: `${prefix}/dashboard/services`, active: true },
+        ]}
+      />
+      <div className="container max-w-3xl py-2">
+        <h1 className="mb-1 text-2xl font-bold">Services</h1>
+        <p className="mb-6 text-sm text-muted-foreground">Bookable services your customers can reserve on the /book page.</p>
+        {tenantId == null ? (
+          <p className="text-sm text-muted-foreground">No tenant context.</p>
+        ) : (
+          <OfferingConfigurator
+            kind="service"
+            collection="services"
+            titleField="label"
+            fields={SERVICE_FIELDS}
+            items={items}
+            tenantId={tenantId}
+            newDefaults={{ bookingType: 'service', pricingModel: 'fixed', billingIncrementMinutes: 15, allowsExtraCosts: true, depositPercent: 20, durationMinutes: 60, enabled: true }}
+          />
+        )}
+      </div>
     </div>
   )
 }

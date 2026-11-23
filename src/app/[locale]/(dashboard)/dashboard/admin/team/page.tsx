@@ -6,6 +6,7 @@ import config from '@payload-config'
 import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 import { TeamManager } from './TeamManager'
+import { WorkspaceSubNav } from '../../_components/WorkspaceSubNav'
 
 export const dynamic = 'force-dynamic'
 
@@ -90,10 +91,16 @@ export default async function TeamPage({ params }: { params: Promise<{ locale: s
 
   return (
     <div className="mx-auto max-w-5xl">
+      <WorkspaceSubNav
+        tabs={[
+          { label: 'Members & Team', href: `${prefix}/dashboard/admin/team`, active: true },
+          { label: 'Invitations', href: `${prefix}/dashboard/admin/invitations` },
+        ]}
+      />
       <TeamManager
         members={members}
         totalMembers={memberships.totalDocs}
-        tenantName={(tenant as any)?.name || 'Enterprise'}
+        tenantName={(tenant as any)?.name || 'Site'}
       />
     </div>
   )

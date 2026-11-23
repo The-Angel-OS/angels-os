@@ -58,21 +58,32 @@ async function getAuthenticatedAdmin() {
     return { payload, user: null, tenantId: null, error: 'Not authenticated' }
   }
 
-  const isAdmin = checkRole(ADMIN_ROLES, user)
-
-  if (!isAdmin) {
-    return { payload, user, tenantId: null, error: 'Insufficient permissions' }
-  }
-
   // Resolve tenant the SAME way the dashboard layout does — x-tenant-id, then a
-  // host/domain lookup, then DEFAULT_TENANT_SLUG. The previous hand-rolled
-  // `x-tenant-id || 'default'` lacked the domain fallback, so on an apex/
-  // federation host (no subdomain header, e.g. federation.kendev.co) it resolved
-  // a non-existent 'default' tenant → "Tenant not found" → the page's
-  // "Unable to load Endeavor data" dead-end even though an endeavor existed.
+  // host/domain lookup, then DEFAULT_TENANT_SLUG.
   const { tenantId } = await resolveTenantFromHeaders()
   if (!tenantId) {
     return { payload, user, tenantId: null, error: 'Tenant not found' }
+  }
+
+  const isPlatformAdmin = checkRole(ADMIN_ROLES, user)
+  if (!isPlatformAdmin) {
+    const memberships = await payload.find({
+      collection: 'tenant-memberships',
+      where: {
+        and: [
+          { user: { equals: (user as { id: number | string }).id } },
+          { tenant: { equals: tenantId } },
+          { status: { equals: 'active' } },
+          { role: { in: ['tenant_admin', 'tenant_manager'] } },
+        ],
+      },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    if ((memberships.docs?.length ?? 0) === 0) {
+      return { payload, user, tenantId: null, error: 'Insufficient permissions' }
+    }
   }
 
   return { payload, user, tenantId, error: null }

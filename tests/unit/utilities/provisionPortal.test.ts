@@ -97,9 +97,14 @@ describe('provisionPortal', () => {
     // nav + pages
     expect(createDefaultTenantNavigation).toHaveBeenCalledWith(payload, 7)
     expect(createDefaultTenantPages).toHaveBeenCalled()
-    // endeavor created (none existed)
+    // endeavor created (none existed) with networkVisible defaulting to false
     expect(payload.create).toHaveBeenCalledWith(
-      expect.objectContaining({ collection: 'endeavors' }),
+      expect.objectContaining({
+        collection: 'endeavors',
+        data: expect.objectContaining({
+          federation: expect.objectContaining({ networkVisible: false }),
+        }),
+      }),
     )
     // baseline spaces
     expect(ensureTenantDefaults).toHaveBeenCalledWith(payload, 7)

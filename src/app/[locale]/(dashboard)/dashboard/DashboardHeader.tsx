@@ -6,9 +6,9 @@ import { useClickOutside } from '@/hooks/useClickOutside'
 import { usePresence } from '@/hooks/usePresence'
 
 /**
- * DashboardHeader — LCARS-styled header bar with user dropdown menu.
+ * DashboardHeader — LCARS-accented header bar with site title and user dropdown menu.
  *
- * Shows "FEDERATION COMMAND CENTER" title with LCARS accent bars
+ * Displays the active portal name (or "Creator Studio") with subtle LCARS accent bars
  * and a user avatar button (upper-right) for Account Settings / Log Out.
  */
 
@@ -17,9 +17,10 @@ interface DashboardHeaderProps {
   userName: string
   userInitials: string
   isAuthenticated?: boolean
+  siteName?: string
 }
 
-export function DashboardHeader({ prefix, userName, userInitials, isAuthenticated = true }: DashboardHeaderProps) {
+export function DashboardHeader({ prefix, userName, userInitials, isAuthenticated = true, siteName }: DashboardHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const closeMenu = useCallback(() => setMenuOpen(false), [])
@@ -43,10 +44,10 @@ export function DashboardHeader({ prefix, userName, userInitials, isAuthenticate
           style={{ background: 'var(--lcars-amber)' }}
         />
         <h1
-          className="text-xs font-mono font-semibold uppercase tracking-[0.15em]"
+          className="text-xs font-mono font-semibold uppercase tracking-[0.15em] truncate"
           style={{ color: 'var(--lcars-amber)' }}
         >
-          Federation Command Center
+          {siteName || 'Creator Studio'}
         </h1>
         {/* Decorative segments */}
         <div className="hidden md:flex items-center gap-1 ml-2">

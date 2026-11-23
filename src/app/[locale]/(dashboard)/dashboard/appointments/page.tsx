@@ -5,6 +5,7 @@ import configPromise from '@payload-config'
 import Link from 'next/link'
 import { requirePortalManager } from '@/utilities/requirePortalManager'
 import { AppointmentsView, type CalBooking } from './AppointmentsView'
+import { WorkspaceSubNav } from '../_components/WorkspaceSubNav'
 
 export const dynamic = 'force-dynamic'
 
@@ -75,8 +76,17 @@ export default async function DashboardAppointmentsPage({
     'no-show': 'bg-red-800 text-white',
   }
 
+  const prefix = locale === 'en' ? '' : `/${locale}`
+
   return (
     <div>
+      <WorkspaceSubNav
+        tabs={[
+          { label: 'Schedule & Hours', href: `${prefix}/dashboard/admin/bookings` },
+          { label: 'Appointments', href: `${prefix}/dashboard/appointments`, active: true },
+          { label: 'Services', href: `${prefix}/dashboard/services` },
+        ]}
+      />
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Appointments</h1>

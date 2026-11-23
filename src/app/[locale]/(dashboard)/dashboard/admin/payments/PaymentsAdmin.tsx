@@ -60,6 +60,8 @@ interface PaymentsAdminProps {
   recentTransactions?: RecentTransaction[]
   /** The CONFIGURED platform rate as a percent, e.g. 5. Never hardcode it here. */
   platformFeePercent: number
+  /** True when rendered inside SettingsHub so duplicate page heading is hidden. */
+  embedded?: boolean
 }
 
 export function PaymentsAdmin({
@@ -77,6 +79,7 @@ export function PaymentsAdmin({
   justiceFundTransactionCount,
   recentTransactions = [],
   platformFeePercent,
+  embedded = false,
 }: PaymentsAdminProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -197,8 +200,12 @@ export function PaymentsAdmin({
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold">Payments</h1>
-        <p className="text-muted-foreground mt-1">
+        {embedded ? (
+          <h2 className="text-lg font-semibold">Payments &amp; Checkout Rails</h2>
+        ) : (
+          <h1 className="text-2xl font-bold">Payments</h1>
+        )}
+        <p className="text-muted-foreground mt-1 text-sm">
           Dual-rail checkout via Square &amp; PayPal for {tenantName} — plus your transparent platform split.
         </p>
       </div>

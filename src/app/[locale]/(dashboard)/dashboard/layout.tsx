@@ -277,11 +277,15 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     }
   }
 
-  // Elevate isBusinessOwner if user has tenant_admin or tenant_manager role
-  // on the current portal — even if their platform role is just 'customer'
+  // Elevate isBusinessOwner / isPortalManager if user has tenant_admin or
+  // tenant_manager role on the current portal — even if their platform role is 'customer'.
   if (userRoleData?.tenantRole === 'tenant_admin' || userRoleData?.tenantRole === 'tenant_manager') {
     isBusinessOwner = true
   }
+  const isPortalManager =
+    isAdmin ||
+    userRoleData?.tenantRole === 'tenant_admin' ||
+    userRoleData?.tenantRole === 'tenant_manager'
 
   // Process DM space + wizard results
   const dmSpaceId = dmResult.status === 'fulfilled' ? dmResult.value : undefined
@@ -318,6 +322,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           <DashboardSidebar
             prefix={prefix}
             isAdmin={isAdmin}
+            isSuperAdmin={isSuperAdmin}
+            isPortalManager={isPortalManager}
             isBusinessOwner={isBusinessOwner}
             isAuthenticated={isAuthenticated}
             userName={userName}
@@ -334,7 +340,13 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           {/* ─── Main Content (center) ─── */}
           <div className="flex flex-1 flex-col overflow-hidden">
             {/* Dashboard Header Bar — title + user info */}
-            <DashboardHeader prefix={prefix} userName={userName} userInitials={userInitials} isAuthenticated={isAuthenticated} />
+            <DashboardHeader
+              prefix={prefix}
+              userName={userName}
+              userInitials={userInitials}
+              isAuthenticated={isAuthenticated}
+              siteName={tenantBranding?.siteName || undefined}
+            />
 
             {/* Page Content — reduced padding on mobile. The widget provider lets
                 any dashboard page wrap cards in <DashboardWidget> (collapse/dismiss);

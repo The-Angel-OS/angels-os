@@ -6,15 +6,22 @@ import { MediaPicker } from './MediaPicker'
 // Endeavor-type options are canonical in spaceProvisioning.ts (with the union) — 53.
 import { ENDEAVOR_TYPE_OPTIONS as ENDEAVOR_TYPES } from '@/utilities/spaceProvisioning'
 
-const HOLON_OPTIONS = [
-  { label: 'Manufacturer', value: 'manufacturer' },
-  { label: 'Retailer', value: 'retailer' },
-  { label: 'Creator', value: 'creator' },
-  { label: 'Community', value: 'community' },
-  { label: 'Guardian Angel', value: 'guardian-angel' },
-]
+export interface EndeavorSetupProps {
+  mode?: 'full' | 'advanced'
+  isSuperAdmin?: boolean
+  siteBranding?: {
+    siteName?: string
+    tagline?: string
+    logo?: MediaValue
+    coverImage?: MediaValue
+  }
+}
 
-export default function EndeavorSetup() {
+export default function EndeavorSetup({
+  mode = 'full',
+  isSuperAdmin = false,
+  siteBranding,
+}: EndeavorSetupProps = {}) {
   const [endeavor, setEndeavor] = useState<EndeavorData | null>(null)
   const [tenantId, setTenantId] = useState<string | number | null>(null)
   const [loading, setLoading] = useState(true)
@@ -122,19 +129,6 @@ export default function EndeavorSetup() {
     })
   }
 
-  // ── Holon toggle ───────────────────────────────────────────────────────────
-
-  function toggleHolon(value: string) {
-    setEndeavor((prev) => {
-      if (!prev) return prev
-      const current = prev.holonTypes || []
-      const next = current.includes(value)
-        ? current.filter((h) => h !== value)
-        : [...current, value]
-      return { ...prev, holonTypes: next }
-    })
-  }
-
   // ── Render ─────────────────────────────────────────────────────────────────
 
   if (loading) {
@@ -159,15 +153,22 @@ export default function EndeavorSetup() {
     )
   }
 
+  const isAdvanced = mode === 'advanced'
+
   return (
     <div className="space-y-6 p-1">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Endeavor Setup</h1>
+          {isAdvanced ? (
+            <h2 className="text-lg font-semibold">Site Profile &amp; Directory Listing</h2>
+          ) : (
+            <h1 className="text-2xl font-bold">Site Profile</h1>
+          )}
           <p className="text-sm text-muted-foreground">
-            Define your Endeavor&apos;s constitutional identity — mission, capabilities, and
-            federation presence
+            {isAdvanced
+              ? 'Extended description, operator details, services offered, and optional directory listing settings.'
+              : 'Define your site profile, mission, capabilities, and region.'}
           </p>
         </div>
         <button
@@ -175,7 +176,7 @@ export default function EndeavorSetup() {
           disabled={saving}
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
-          {saving ? 'Saving...' : 'Save Changes'}
+          {saving ? 'Saving...' : 'Save Profile'}
         </button>
       </div>
 
@@ -192,51 +193,45 @@ export default function EndeavorSetup() {
         </div>
       )}
 
-      {/* Federation Status Bar */}
-      <div className="flex items-center gap-3 rounded-lg border bg-muted/30 px-4 py-3 text-sm">
-        <span className="font-medium">Status:</span>
-        <span className="rounded bg-muted px-2 py-0.5 capitalize">{endeavor.status}</span>
-        {endeavor.federation.federationId && (
+      {/* Identity Section */}
+      <Section title="Profile Details">
+        {isAdvanced ? (
+          <div className="mb-4 rounded-md border border-border bg-muted/30 px-3 py-2.5 text-xs text-muted-foreground">
+            Site Name (<strong className="text-foreground">{siteBranding?.siteName || endeavor.name || 'Unset'}</strong>) and Tagline are synced automatically from{' '}
+            <strong className="text-foreground">Branding &amp; General</strong>.
+          </div>
+        ) : (
           <>
-            <span className="text-muted-foreground">|</span>
-            <span className="font-medium">Federation:</span>
-            <span className="rounded bg-muted px-2 py-0.5 capitalize">
-              {endeavor.federation.ministryStatus}
-            </span>
+            <FormField label="Site Name" required>
+              <input
+                type="text"
+                value={endeavor.name}
+                onChange={(e) => updateField('name', e.target.value)}
+                placeholder="e.g., Clearwater Cruisin' Ministries"
+                className="input-field"
+              />
+            </FormField>
+            <FormField label="Tagline">
+              <input
+                type="text"
+                value={endeavor.tagline}
+                onChange={(e) => updateField('tagline', e.target.value)}
+                placeholder="One-sentence summary"
+                className="input-field"
+              />
+            </FormField>
           </>
         )}
-      </div>
-
-      {/* Identity Section */}
-      <Section title="Identity">
-        <FormField label="Endeavor Name" required>
-          <input
-            type="text"
-            value={endeavor.name}
-            onChange={(e) => updateField('name', e.target.value)}
-            placeholder="e.g., Clearwater Cruisin' Ministries"
-            className="input-field"
-          />
-        </FormField>
-        <FormField label="Tagline">
-          <input
-            type="text"
-            value={endeavor.tagline}
-            onChange={(e) => updateField('tagline', e.target.value)}
-            placeholder="One-sentence mission statement"
-            className="input-field"
-          />
-        </FormField>
         <FormField label="Description">
           <textarea
             value={endeavor.description}
             onChange={(e) => updateField('description', e.target.value)}
             rows={3}
-            placeholder="What does this Endeavor do and stand for?"
+            placeholder="What does your channel, business, or community do?"
             className="input-field"
           />
         </FormField>
-        <FormField label="Endeavor Type" required>
+        <FormField label="Site Type" required>
           <select
             value={endeavor.endeavorType}
             onChange={(e) => updateField('endeavorType', e.target.value)}
@@ -254,42 +249,55 @@ export default function EndeavorSetup() {
             value={endeavor.missionStatement}
             onChange={(e) => updateField('missionStatement', e.target.value)}
             rows={2}
-            placeholder="What does this Endeavor serve?"
+            placeholder="Who does this site serve?"
             className="input-field"
           />
         </FormField>
       </Section>
 
-      {/* Directory listing — the card other sites show when they link to you. */}
-      <Section title="Your directory listing">
-        <p className="mb-4 text-sm text-muted-foreground">
-          <strong>How your business looks when another site lists it</strong> — a card with a
-          wide picture and a small logo on it, like a search result. Set both here; if you
-          leave them empty your card shows no picture at all.
-          <br />
-          These are separate from the logo and cover on your own website, which live in
-          Settings &rarr; General.
-        </p>
-        <div className="grid gap-4 md:grid-cols-2">
-          <ImageField
-            label="Listing picture (wide)"
-            value={endeavor.coverImage ?? null}
-            onChange={(v) => updateField('coverImage', v)}
-            aspect="banner"
-            tenantId={tenantId}
-          />
-          <ImageField
-            label="Listing logo (small, square)"
-            value={endeavor.logo ?? null}
-            onChange={(v) => updateField('logo', v)}
-            aspect="square"
-            tenantId={tenantId}
-          />
+      {/* Custom directory artwork override — collapsed by default so site branding remains single-source-of-truth */}
+      <details className="rounded-lg border bg-card p-5">
+        <summary className="cursor-pointer select-none text-sm font-semibold">
+          Custom Directory Listing Artwork (optional override)
+        </summary>
+        <div className="mt-4 space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Synced from your site branding by default. Override here only if you want a different
+            banner or square badge shown in external directory cards.
+          </p>
+          {siteBranding && (
+            <button
+              type="button"
+              onClick={() => {
+                updateField('coverImage', siteBranding.coverImage ?? null)
+                updateField('logo', siteBranding.logo ?? null)
+              }}
+              className="rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+            >
+              Match site branding
+            </button>
+          )}
+          <div className="grid gap-4 md:grid-cols-2">
+            <ImageField
+              label="Listing picture (wide)"
+              value={endeavor.coverImage ?? null}
+              onChange={(v) => updateField('coverImage', v)}
+              aspect="banner"
+              tenantId={tenantId}
+            />
+            <ImageField
+              label="Listing logo (small, square)"
+              value={endeavor.logo ?? null}
+              onChange={(v) => updateField('logo', v)}
+              aspect="square"
+              tenantId={tenantId}
+            />
+          </div>
         </div>
-      </Section>
+      </details>
 
       {/* Operator Section */}
-      <Section title="Operator">
+      <Section title="Primary Contact / Operator">
         <div className="grid gap-4 md:grid-cols-3">
           <FormField label="Name">
             <input
@@ -314,39 +322,17 @@ export default function EndeavorSetup() {
               type="text"
               value={endeavor.operator.role}
               onChange={(e) => updateOperator('role', e.target.value)}
-              placeholder="e.g., Founder, Chapter Lead"
+              placeholder="e.g., Creator, Founder"
               className="input-field"
             />
           </FormField>
         </div>
       </Section>
 
-      {/* Holon Types */}
-      <Section title="Federation Holon Types">
+      {/* Capabilities / Services Offered */}
+      <Section title="Offerings &amp; Capabilities">
         <p className="mb-3 text-sm text-muted-foreground">
-          Select the roles this Endeavor plays in the federation network.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {HOLON_OPTIONS.map((h) => (
-            <button
-              key={h.value}
-              onClick={() => toggleHolon(h.value)}
-              className={`rounded-full px-3 py-1.5 text-sm transition-colors ${
-                endeavor.holonTypes.includes(h.value)
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              }`}
-            >
-              {h.label}
-            </button>
-          ))}
-        </div>
-      </Section>
-
-      {/* Capabilities */}
-      <Section title="Capabilities">
-        <p className="mb-3 text-sm text-muted-foreground">
-          What can this Endeavor offer to the federation network?
+          List the key skills, topics, or services your site highlights.
         </p>
         {endeavor.capabilities.map((cap, i) => (
           <div key={i} className="mb-3 flex items-start gap-2">
@@ -418,38 +404,40 @@ export default function EndeavorSetup() {
         </div>
       </Section>
 
-      {/* Federation Visibility */}
-      <Section title="Discovery & Federation">
-        <label className="flex items-center gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={endeavor.federation.networkVisible}
-            onChange={(e) =>
-              setEndeavor((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      federation: { ...prev.federation, networkVisible: e.target.checked },
-                    }
-                  : prev,
-              )
-            }
-            className="h-4 w-4 rounded border-gray-300"
-          />
-          <div>
-            <span className="text-sm font-medium">Show in Discovery</span>
-            <p className="text-xs text-muted-foreground">
-              Adds the <strong>Discovery</strong> link to your site header and lists this
-              Endeavor in the Angel OS network catalog so others can find you.
-            </p>
+      {/* Optional Discovery Toggle — collapsed by default so creator sites stay clean */}
+      {(isSuperAdmin || endeavor.federation.networkVisible) && (
+        <details className="rounded-lg border bg-card p-5">
+          <summary className="cursor-pointer select-none text-sm font-semibold">
+            Directory Discovery (optional)
+          </summary>
+          <div className="mt-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={endeavor.federation.networkVisible}
+                onChange={(e) =>
+                  setEndeavor((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          federation: { ...prev.federation, networkVisible: e.target.checked },
+                        }
+                      : prev,
+                  )
+                }
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <div>
+                <span className="text-sm font-medium">Show in Discovery</span>
+                <p className="text-xs text-muted-foreground">
+                  Adds the <strong>Discovery</strong> link to your public site header and lists this
+                  site in the SpacesAngels directory. Leave off for standalone creator sites.
+                </p>
+              </div>
+            </label>
           </div>
-        </label>
-        {endeavor.federation.federationId && (
-          <div className="mt-3 text-xs text-muted-foreground">
-            Federation ID: <code className="bg-muted px-1 rounded">{endeavor.federation.federationId}</code>
-          </div>
-        )}
-      </Section>
+        </details>
+      )}
 
       {/* Inline styles for form fields */}
       <style jsx global>{`

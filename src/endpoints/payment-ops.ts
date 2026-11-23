@@ -634,7 +634,7 @@ export const squareConnectCallbackHandler: PayloadHandler = async (req) => {
   const backWith = (query: string) =>
     new Response(null, {
       status: 302,
-      headers: { Location: `${returnOrigin}/dashboard/admin/payments?${query}` },
+      headers: { Location: `${returnOrigin}/dashboard/admin/settings?tab=payments&${query}` },
     })
 
   if (errParam) {

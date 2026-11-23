@@ -36,9 +36,9 @@ export function useLeoNavigation() {
         // Delay so user sees LEO's response before navigation
         setTimeout(() => {
           router.push(detail.path)
-          // refresh() forces the server layout to re-resolve the (now-active) tenant
-          // even when path === current route.
-          if (detail.activateEndeavor != null) router.refresh()
+          // Refresh server components so mutations made by LEO show immediately
+          // even when navigating to the current route.
+          setTimeout(() => router.refresh(), 150)
         }, 1200)
       }
     }

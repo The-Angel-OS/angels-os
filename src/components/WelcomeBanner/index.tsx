@@ -367,14 +367,14 @@ function getRoleBannerConfig(
             description: 'Add team members to your spaces and assign roles for collaboration.',
           },
           {
-            title: 'Discover the Federation',
-            description: 'Browse other Endeavors, find partners, and grow your network.',
+            title: 'Customize Your Site',
+            description: 'Set your branding, colors, custom domain, and LEO assistant in Settings.',
           },
         ],
         links: [
           { href: '/dashboard/spaces', icon: <ChatIconSmall />, label: 'Spaces' },
           { href: '/shop', icon: <GlobeIcon />, label: 'Visit Shop' },
-          { href: '/dashboard/admin/settings?tab=endeavor', icon: <AdminIcon />, label: 'Endeavor Setup' },
+          { href: '/dashboard/admin/settings?tab=branding', icon: <AdminIcon />, label: 'Site Settings' },
         ],
       }
 

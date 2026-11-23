@@ -6,6 +6,7 @@ import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { ProductManager } from './ProductManager'
 import { requirePortalManager } from '@/utilities/requirePortalManager'
 import { resolvePageSize } from '@/utilities/pageSize'
+import { WorkspaceSubNav } from '../_components/WorkspaceSubNav'
 
 export const dynamic = 'force-dynamic'
 
@@ -66,13 +67,23 @@ export default async function DashboardProductsPage({
     updatedAt: p.updatedAt,
   }))
 
+  const prefix = locale === 'en' ? '' : `/${locale}`
+
   return (
-    <ProductManager
-      products={serializedProducts}
-      totalProducts={products.totalDocs}
-      page={products.page || 1}
-      totalPages={products.totalPages}
-      hasFilter={!!(q || status !== 'all')}
-    />
+    <div>
+      <WorkspaceSubNav
+        tabs={[
+          { label: 'Products', href: `${prefix}/dashboard/products`, active: true },
+          { label: 'Orders', href: `${prefix}/dashboard/orders` },
+        ]}
+      />
+      <ProductManager
+        products={serializedProducts}
+        totalProducts={products.totalDocs}
+        page={products.page || 1}
+        totalPages={products.totalPages}
+        hasFilter={!!(q || status !== 'all')}
+      />
+    </div>
   )
 }

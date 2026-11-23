@@ -20,6 +20,7 @@ interface ConnectorsAdminProps {
   connectors: ConnectorItem[]
   tenantId: string
   tenantName: string
+  embedded?: boolean
 }
 
 // ─── Connector Type Catalog ──────────────────────────────────
@@ -220,7 +221,12 @@ function timeAgo(iso: string | null): string {
 
 // ─── Main Component ──────────────────────────────────────────
 
-export function ConnectorsAdmin({ connectors: initialConnectors, tenantId, tenantName }: ConnectorsAdminProps) {
+export function ConnectorsAdmin({
+  connectors: initialConnectors,
+  tenantId,
+  tenantName,
+  embedded = false,
+}: ConnectorsAdminProps) {
   const [connectors, setConnectors] = useState(initialConnectors)
   const [showAddPanel, setShowAddPanel] = useState(false)
   const [selectedType, setSelectedType] = useState<ConnectorTypeDef | null>(null)
@@ -414,14 +420,17 @@ export function ConnectorsAdmin({ connectors: initialConnectors, tenantId, tenan
   }
 
   return (
-    <div className="space-y-8">
+    <div id="integrations" className="space-y-8">
       {/* ─── Header ─────────────────────────────────────────── */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Integrations</h1>
-          <p className="text-muted-foreground">
-            Manage integrations for {tenantName}. Connect messaging platforms, email,
-            and other services to LEO.
+          {embedded ? (
+            <h2 className="text-lg font-semibold">Connected Channels &amp; Integrations</h2>
+          ) : (
+            <h1 className="text-2xl font-bold">Integrations</h1>
+          )}
+          <p className="text-sm text-muted-foreground">
+            Connect messaging platforms, email, YouTube sync, and webhooks to LEO for {tenantName}.
           </p>
         </div>
         <button
@@ -799,7 +808,7 @@ export function ConnectorsAdmin({ connectors: initialConnectors, tenantId, tenan
             { label: 'Discord Bot', path: '/api/discord/webhook', note: 'Include X-Discord-Secret header' },
             { label: 'Telegram Bot', path: '/api/telegram/webhook', note: 'Set via setWebhook API with secret_token' },
             { label: 'SMS (Twilio)', path: '/api/sms/webhook', note: 'Twilio "A message comes in" webhook (POST)' },
-            { label: 'Email Poll (Cron)', path: '/api/email/poll', note: 'Vercel Cron: */2 * * * *' },
+            { label: 'Email Poll (Cron)', path: '/api/email/poll', note: 'Scheduled polling: */2 * * * *' },
             { label: 'Bridge (Generic)', path: '/api/bridge/inbound', note: 'For Google Chat + custom integrations' },
           ].map((wh) => (
             <div key={wh.path} className="flex items-start gap-3 rounded-lg bg-muted/50 p-3">

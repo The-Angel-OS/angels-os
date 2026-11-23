@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Plus, Settings, Users } from 'lucide-react'
 import { SpaceSelector } from './SpaceSelector'
 import { CreateSpaceDialog } from './CreateSpaceDialog'
@@ -54,6 +54,18 @@ export function SpacesMenuHeader({
   const [membersOpen, setMembersOpen] = useState(false)
 
   const activeSpace = spaces.find((s) => s.id === activeSpaceId)
+
+  useEffect(() => {
+    if (!activeSpace || typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('settings') === '1') {
+      setSettingsOpen(true)
+      params.delete('settings')
+      const qs = params.toString()
+      const nextUrl = `${window.location.pathname}${qs ? `?${qs}` : ''}`
+      window.history.replaceState({}, '', nextUrl)
+    }
+  }, [activeSpace])
 
   const handleSpaceCreated = (newSpaceId: string) => {
     setCreateOpen(false)

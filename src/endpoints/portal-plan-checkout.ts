@@ -118,8 +118,8 @@ export const portalPlanCheckoutHandler: PayloadHandler = async (req) => {
       connectedSquare: null,
       customerEmail: email || undefined,
       customerName: u.name || undefined,
-      returnUrl: `${origin}/dashboard/plan?upgraded=1&ref=${ref}`,
-      cancelUrl: `${origin}/dashboard/plan?cancelled=1`,
+      returnUrl: `${origin}/dashboard/admin/settings?tab=plan&upgraded=1&ref=${ref}`,
+      cancelUrl: `${origin}/dashboard/admin/settings?tab=plan&cancelled=1`,
       intentData: {
         portalPlan: plan,
         planId: `portal_${plan}`,

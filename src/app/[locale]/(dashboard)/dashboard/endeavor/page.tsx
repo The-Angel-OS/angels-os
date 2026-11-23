@@ -1,12 +1,8 @@
 import { redirect } from 'next/navigation'
 
 /**
- * Legacy Endeavor Setup route — /dashboard/endeavor
- *
- * Endeavor Setup now lives as a tab inside the consolidated Settings hub. This
- * route is kept as a permanent redirect so existing links — notably LEO's
- * navDirective('/dashboard/endeavor') tool responses and the OnboardingGuide —
- * continue to land on the right pane.
+ * Legacy /dashboard/endeavor route — redirects into the Advanced tab of the
+ * consolidated Settings Hub.
  */
 export default async function EndeavorPage({
   params,
@@ -15,5 +11,5 @@ export default async function EndeavorPage({
 }) {
   const { locale } = await params
   const prefix = locale === 'en' ? '' : `/${locale}`
-  redirect(`${prefix}/dashboard/admin/settings?tab=endeavor`)
+  redirect(`${prefix}/dashboard/admin/settings?tab=advanced`)
 }

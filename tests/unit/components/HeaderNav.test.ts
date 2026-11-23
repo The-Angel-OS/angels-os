@@ -88,14 +88,20 @@ describe('composeNavItems', () => {
 
   // --- chrome --------------------------------------------------------------
 
-  it('keeps mission chrome off a storefront and on a community site', () => {
+  it('never injects /learn and gates /works behind hasWorks: true', () => {
     const shop = urls(composeNavItems({ navItems: [stored('/')], isStorefront: true }))
     expect(shop).not.toContain('/works')
     expect(shop).not.toContain('/learn')
     expect(shop).not.toContain('/dashboard/spaces')
 
     const community = urls(composeNavItems({ navItems: [stored('/')] }))
-    expect(community).toEqual(expect.arrayContaining(['/works', '/learn', '/dashboard/spaces']))
+    expect(community).not.toContain('/learn')
+    expect(community).not.toContain('/works')
+    expect(community).toContain('/dashboard/spaces')
+
+    const withWorks = urls(composeNavItems({ navItems: [stored('/')], hasWorks: true }))
+    expect(withWorks).toContain('/works')
+    expect(withWorks).not.toContain('/learn')
   })
 
   it('always offers Dashboard — the layout handles the auth redirect', () => {

@@ -6,6 +6,7 @@ import configPromise from '@payload-config'
 import { InvitationsAdmin } from './InvitationsAdmin'
 import { requirePortalManager } from '@/utilities/requirePortalManager'
 import { resolvePageSize } from '@/utilities/pageSize'
+import { WorkspaceSubNav } from '../../_components/WorkspaceSubNav'
 
 export const dynamic = 'force-dynamic'
 
@@ -75,14 +76,24 @@ export default async function DashboardInvitationsPage({
     createdAt: doc.createdAt,
   }))
 
+  const prefix = locale === 'en' ? '' : `/${locale}`
+
   return (
-    <InvitationsAdmin
-      invitations={serialized}
-      totalInvitations={invitations.totalDocs}
-      pendingCount={pendingCount.totalDocs}
-      acceptedCount={acceptedCount.totalDocs}
-      page={invitations.page || 1}
-      totalPages={invitations.totalPages}
-    />
+    <div>
+      <WorkspaceSubNav
+        tabs={[
+          { label: 'Members & Team', href: `${prefix}/dashboard/admin/team` },
+          { label: 'Invitations', href: `${prefix}/dashboard/admin/invitations`, active: true },
+        ]}
+      />
+      <InvitationsAdmin
+        invitations={serialized}
+        totalInvitations={invitations.totalDocs}
+        pendingCount={pendingCount.totalDocs}
+        acceptedCount={acceptedCount.totalDocs}
+        page={invitations.page || 1}
+        totalPages={invitations.totalPages}
+      />
+    </div>
   )
 }

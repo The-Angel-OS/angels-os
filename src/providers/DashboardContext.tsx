@@ -44,9 +44,11 @@ interface DashboardContextValue {
 
   // User roles + permissions
   userRole: DashboardUserRole | null
+  isSuperAdmin: boolean // platformRoles includes 'super_admin'
   isAdmin: boolean // super_admin || admin || archangel
-  isBusinessOwner: boolean // any platform role except customer
+  isBusinessOwner: boolean // portal manager or non-customer platform role
   isTenantAdmin: boolean // tenantRole === 'tenant_admin'
+  isPortalManager: boolean // isAdmin || tenant_admin || tenant_manager
   /** Check if current user has a specific tenant permission (or inherits it from role) */
   canManage: (permission: TenantPermission) => boolean
 }
@@ -57,9 +59,11 @@ const DashboardCtx = createContext<DashboardContextValue>({
   activeSpace: null,
   setActiveSpaceId: () => {},
   userRole: null,
+  isSuperAdmin: false,
   isAdmin: false,
   isBusinessOwner: false,
   isTenantAdmin: false,
+  isPortalManager: false,
   canManage: () => false,
 })
 
@@ -131,12 +135,15 @@ export function DashboardProvider({
   const activeSpace = initialSpaces.find((s) => s.id === activeSpaceId) || null
 
   // Derived booleans
+  const isSuperAdmin = Boolean(userRole?.platformRoles?.includes('super_admin'))
   const isAdmin = Boolean(
     userRole?.platformRoles?.some((r) => r === 'super_admin' || r === 'admin' || r === 'archangel'),
   )
-  const isBusinessOwner =
-    isAdmin || Boolean(userRole?.platformRoles?.some((r) => r !== 'customer'))
   const isTenantAdmin = userRole?.tenantRole === 'tenant_admin'
+  const isTenantManager = userRole?.tenantRole === 'tenant_manager'
+  const isPortalManager = isAdmin || isTenantAdmin || isTenantManager
+  const isBusinessOwner =
+    isPortalManager || Boolean(userRole?.platformRoles?.some((r) => r !== 'customer'))
 
   // Permission checker: explicit permissions + role defaults + super_admin bypass
   const canManage = useCallback(
@@ -169,9 +176,11 @@ export function DashboardProvider({
       activeSpace,
       setActiveSpaceId,
       userRole: userRole || null,
+      isSuperAdmin,
       isAdmin,
       isBusinessOwner,
       isTenantAdmin,
+      isPortalManager,
       canManage,
     }),
     [
@@ -179,9 +188,11 @@ export function DashboardProvider({
       activeSpaceId,
       activeSpace,
       userRole,
+      isSuperAdmin,
       isAdmin,
       isBusinessOwner,
       isTenantAdmin,
+      isPortalManager,
       canManage,
     ],
   )

@@ -64,9 +64,11 @@ const FULL_ENDEAVOR = {
 const { getEndeavor, updateEndeavor } = await import(
   '@/app/[locale]/(dashboard)/dashboard/endeavor/actions'
 )
+const { tenantBySlugCache } = await import('@/utilities/tenantCache')
 
 beforeEach(() => {
   vi.clearAllMocks()
+  tenantBySlugCache.invalidateAll()
   // Default: admin user authenticated
   mockAuth.mockResolvedValue({ user: ADMIN_USER })
   // Default: tenant found
@@ -96,6 +98,19 @@ describe('Endeavor auth enforcement', () => {
     const result = await getEndeavor()
     expect(result.success).toBe(false)
     expect(result.error).toMatch(/Insufficient permissions/)
+  })
+
+  it('allows active tenant_admin / tenant_manager for the resolved tenant', async () => {
+    mockAuth.mockResolvedValueOnce({ user: CUSTOMER_USER })
+    mockFind.mockImplementation(async (args: any) => {
+      if (args.collection === 'tenants') return { docs: [TENANT_DOC] }
+      if (args.collection === 'tenant-memberships') return { docs: [{ id: 9, role: 'tenant_admin', status: 'active' }] }
+      if (args.collection === 'endeavors') return { docs: [FULL_ENDEAVOR] }
+      return { docs: [] }
+    })
+    const result = await getEndeavor()
+    expect(result.success).toBe(true)
+    expect(result.endeavor?.name).toBe('Test Enterprise')
   })
 
   it('rejects when tenant not found', async () => {
