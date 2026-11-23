@@ -30,6 +30,7 @@ import { UAPGlobeAtlas } from '@/components/UAPGlobeAtlas'
 import { NDEGlobeAtlas } from '@/components/NDEGlobeAtlas'
 import { GlobeAtlasBlockComponent } from '@/blocks/GlobeAtlas/Component'
 import { TranscriptBlockComponent } from '@/blocks/Transcript/Component'
+import { UserPortalsBlockComponent } from '@/blocks/UserPortals/Component'
 import { FourPillarsMonetization } from '@/components/home/FourPillarsMonetization'
 import { CreatorStorefrontSection } from '@/components/home/CreatorStorefrontSection'
 import { FeeCalculator } from '@/components/home/FeeCalculator'
@@ -74,6 +75,7 @@ const blockComponents = {
   courseStudio: CourseStudioBlockComponent,
   video: VideoBlockComponent,
   transcript: TranscriptBlockComponent,
+  userPortals: UserPortalsBlockComponent,
   showcase: ShowcaseBlock,
   productPanel: ProductPanelBlock,
 }

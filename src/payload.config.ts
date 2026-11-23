@@ -203,6 +203,18 @@ import { ensurePostsGeoColumnsHandler } from '@/endpoints/ensure-posts-geo-colum
 import { ensureTranscriptBlockTablesHandler } from '@/endpoints/ensure-transcript-block-tables'
 import { ensureArchiveBlockColumnsHandler } from '@/endpoints/ensure-archive-block-columns'
 import { ensureUserPortalsBlockTablesHandler } from '@/endpoints/ensure-user-portals-block-tables'
+import {
+  podDisconnectHandler,
+  podPrintfulCallbackHandler,
+  podPrintfulConnectHandler,
+  podPrintfulWebhookHandler,
+  podPrintifyConnectHandler,
+  podPrintifyWebhookHandler,
+  podSettingsUpdateHandler,
+  podShippingRatesHandler,
+  podStatusHandler,
+  podSyncCatalogHandler,
+} from '@/endpoints/fulfillment-pod-ops'
 import { ingestMlbYoutubeHandler } from '@/endpoints/ingest-mlb-youtube'
 import { provisionClearwaterPortalHandler } from '@/endpoints/provision-clearwater-portal'
 import { ingestClearwaterYoutubeHandler } from '@/endpoints/ingest-clearwater-youtube'
@@ -1801,6 +1813,63 @@ export default buildConfig({
       path: '/payment-ops/setup',
       method: 'post',
       handler: paymentSetupDiagnosticsHandler,
+    },
+
+    // ─── Model A Creator-Owned Print-on-Demand (Printful OAuth / Printify) ──
+    {
+      path: '/fulfillment-ops/pod/status',
+      method: 'get',
+      handler: podStatusHandler,
+    },
+    {
+      path: '/fulfillment-ops/pod/printful/connect',
+      method: 'get',
+      handler: podPrintfulConnectHandler,
+    },
+    {
+      path: '/fulfillment-ops/pod/printful/connect',
+      method: 'post',
+      handler: podPrintfulConnectHandler,
+    },
+    {
+      path: '/fulfillment-ops/pod/printful/callback',
+      method: 'get',
+      handler: podPrintfulCallbackHandler,
+    },
+    {
+      path: '/fulfillment-ops/pod/printify/connect',
+      method: 'post',
+      handler: podPrintifyConnectHandler,
+    },
+    {
+      path: '/fulfillment-ops/pod/disconnect',
+      method: 'post',
+      handler: podDisconnectHandler,
+    },
+    {
+      path: '/fulfillment-ops/pod/settings',
+      method: 'post',
+      handler: podSettingsUpdateHandler,
+    },
+    {
+      path: '/fulfillment-ops/pod/sync',
+      method: 'post',
+      handler: podSyncCatalogHandler,
+    },
+    {
+      path: '/fulfillment-ops/pod/shipping-rates',
+      method: 'post',
+      handler: podShippingRatesHandler,
+    },
+    {
+      path: '/fulfillment-ops/pod/webhooks/printful',
+      method: 'post',
+      handler: podPrintfulWebhookHandler,
+    },
+    {
+      path: '/fulfillment-ops/pod/webhooks/printify',
+      method: 'post',
+      handler: podPrintifyWebhookHandler,
     },
 
     // ─── Retired Stripe Connect Endpoints (410 Gone) ────────────

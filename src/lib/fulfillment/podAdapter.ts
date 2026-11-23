@@ -1,13 +1,13 @@
 /**
- * Print-on-Demand (POD) Vendor Fulfillment Adapter — Sprint D
+ * Print-on-Demand (POD) Vendor Fulfillment Adapter — Sprint D + Model A Live Dispatch
  *
- * Bridges the pure `src/utilities/printOnDemandEngine.ts` into live shop order
- * fulfillment pipelines. Assembles vendor packages for external POD providers
- * (Printful API v2, Printify API v1, or generic webhook/dropship partners)
- * and tracks fulfillment state transitions.
- *
- * @see src/utilities/printOnDemandEngine.ts
- * @see src/collections/Orders/index.ts
+ * Bridges the pure `src/utilities/printOnDemandEngine.ts` and creator-owned
+ * Printful / Printify credentials (`src/lib/fulfillment/config.ts`) into live
+ * shop order fulfillment pipelines:
+ *   - Assembles VendorPackages & pure Printful/Printify payload schemas
+ *   - Dispatches paid orders to a creator's connected Printful/Printify store
+ *   - Persists dispatch tracking metadata into Orders.fulfillment[].selectedConfiguration
+ *   - Gracefully falls back to pure VendorPackage state transition when disconnected
  */
 import type { Payload } from 'payload'
 import {
@@ -20,6 +20,15 @@ import {
   type VendorPackage,
 } from '@/utilities/printOnDemandEngine'
 import { logError } from '@/utilities/logError'
+import { getConnectedPODCredentials, getTenantPODSettings } from './config'
+import { refreshPrintfulTokenIfNeeded, submitPrintfulOrder } from './providers/printful'
+import { submitPrintifyOrder } from './providers/printify'
+import type {
+  PODOrderSubmitItem,
+  PODOrderSubmitResult,
+  PODRecipientAddress,
+  PODSyncVariant,
+} from './types'
 
 export type PODVendorType = 'printful' | 'printify' | 'generic'
 
@@ -80,11 +89,22 @@ export function buildPrintfulOrderPayload(
     external_id: vendorPackage.orderId,
     recipient: {
       name: nameParts,
-      address1: typeof shippingAddress?.line1 === 'string' ? shippingAddress.line1 : typeof shippingAddress?.address1 === 'string' ? shippingAddress.address1 : undefined,
+      address1:
+        typeof shippingAddress?.line1 === 'string'
+          ? shippingAddress.line1
+          : typeof shippingAddress?.address1 === 'string'
+            ? shippingAddress.address1
+            : undefined,
       city: typeof shippingAddress?.city === 'string' ? shippingAddress.city : undefined,
       state_code: typeof shippingAddress?.state === 'string' ? shippingAddress.state : undefined,
-      country_code: typeof shippingAddress?.country === 'string' ? shippingAddress.country : 'US',
-      zip: typeof shippingAddress?.postalCode === 'string' ? shippingAddress.postalCode : typeof shippingAddress?.zip === 'string' ? shippingAddress.zip : undefined,
+      country_code:
+        typeof shippingAddress?.country === 'string' ? shippingAddress.country : 'US',
+      zip:
+        typeof shippingAddress?.postalCode === 'string'
+          ? shippingAddress.postalCode
+          : typeof shippingAddress?.zip === 'string'
+            ? shippingAddress.zip
+            : undefined,
       email: recipient?.email,
     },
     items: vendorPackage.items.map((item) => ({
@@ -119,11 +139,21 @@ export function buildPrintifyOrderPayload(
       first_name: firstName,
       last_name: lastName,
       email: recipient?.email,
-      address1: typeof shippingAddress?.line1 === 'string' ? shippingAddress.line1 : typeof shippingAddress?.address1 === 'string' ? shippingAddress.address1 : undefined,
+      address1:
+        typeof shippingAddress?.line1 === 'string'
+          ? shippingAddress.line1
+          : typeof shippingAddress?.address1 === 'string'
+            ? shippingAddress.address1
+            : undefined,
       city: typeof shippingAddress?.city === 'string' ? shippingAddress.city : undefined,
       country: typeof shippingAddress?.country === 'string' ? shippingAddress.country : 'US',
       region: typeof shippingAddress?.state === 'string' ? shippingAddress.state : undefined,
-      zip: typeof shippingAddress?.postalCode === 'string' ? shippingAddress.postalCode : typeof shippingAddress?.zip === 'string' ? shippingAddress.zip : undefined,
+      zip:
+        typeof shippingAddress?.postalCode === 'string'
+          ? shippingAddress.postalCode
+          : typeof shippingAddress?.zip === 'string'
+            ? shippingAddress.zip
+            : undefined,
     },
     line_items: vendorPackage.items.map((item) => {
       const printAreas: Record<string, string> = {}
@@ -139,9 +169,95 @@ export function buildPrintifyOrderPayload(
   }
 }
 
+function extractRecipientAddress(
+  order: Record<string, any>,
+): PODRecipientAddress | null {
+  const addr = (order.shippingAddress || {}) as Record<string, unknown>
+  const address1 =
+    typeof addr.line1 === 'string'
+      ? addr.line1
+      : typeof addr.addressLine1 === 'string'
+        ? addr.addressLine1
+        : typeof addr.address1 === 'string'
+          ? addr.address1
+          : ''
+  const city = typeof addr.city === 'string' ? addr.city : ''
+  const zip =
+    typeof addr.postalCode === 'string'
+      ? addr.postalCode
+      : typeof addr.zip === 'string'
+        ? addr.zip
+        : ''
+  if (!address1 || !city || !zip) return null
+
+  const first = typeof addr.firstName === 'string' ? addr.firstName : ''
+  const last = typeof addr.lastName === 'string' ? addr.lastName : ''
+  const customerObj = typeof order.customer === 'object' ? order.customer : null
+  const name =
+    (typeof addr.name === 'string' && addr.name.trim()) ||
+    [first, last].filter(Boolean).join(' ').trim() ||
+    customerObj?.name ||
+    'Customer'
+
+  return {
+    name: String(name),
+    email:
+      typeof order.customerEmail === 'string'
+        ? order.customerEmail
+        : typeof customerObj?.email === 'string'
+          ? customerObj.email
+          : undefined,
+    phone: typeof addr.phone === 'string' ? addr.phone : undefined,
+    address1: address1.trim(),
+    ...(typeof addr.line2 === 'string' && addr.line2
+      ? { address2: addr.line2 }
+      : typeof addr.address2 === 'string' && addr.address2
+        ? { address2: addr.address2 }
+        : {}),
+    city: city.trim(),
+    stateCode:
+      typeof addr.state === 'string'
+        ? addr.state
+        : typeof addr.stateCode === 'string'
+          ? addr.stateCode
+          : undefined,
+    countryCode:
+      typeof addr.country === 'string'
+        ? addr.country
+        : typeof addr.countryCode === 'string'
+          ? addr.countryCode
+          : 'US',
+    zip: zip.trim(),
+  }
+}
+
+function matchPODVariant(
+  product: Record<string, any> | null,
+  variantName: string | undefined,
+): PODSyncVariant | undefined {
+  const podMeta = product?.configuratorOptions?.pod as
+    | { variants?: PODSyncVariant[] }
+    | undefined
+  const variants = Array.isArray(podMeta?.variants) ? podMeta.variants : []
+  if (variants.length === 0) return undefined
+  if (variantName) {
+    const lower = variantName.trim().toLowerCase()
+    const exact = variants.find(
+      (v) =>
+        v.name?.toLowerCase() === lower ||
+        v.sku?.toLowerCase() === lower ||
+        `${v.color || ''} ${v.size || ''}`.trim().toLowerCase() === lower,
+    )
+    if (exact) return exact
+  }
+  return variants[0]
+}
+
 /**
- * Inspect an order, identify any Print-on-Demand line items, assemble vendor packages,
- * and advance fulfillment state.
+ * Inspect an order, identify any Print-on-Demand line items (by `designAssets`
+ * OR `product.productionType === 'print_on_demand'`), assemble vendor packages,
+ * dispatch to creator's connected Printful/Printify account when configured,
+ * and persist fulfillment state transitions.
  */
 export async function processOrderPODFulfillment(
   payload: Payload,
@@ -150,6 +266,7 @@ export async function processOrderPODFulfillment(
   processed: boolean
   packageCount: number
   vendorPackages: VendorPackage[]
+  liveDispatch?: PODOrderSubmitResult
 }> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -165,6 +282,9 @@ export async function processOrderPODFulfillment(
     }
 
     const podItems: PODOrderItem[] = []
+    const submitItems: PODOrderSubmitItem[] = []
+    const matchedItemIndices: number[] = []
+    let primaryExternalProductId: string | undefined
     const fulfillmentList = Array.isArray(order.fulfillment) ? [...order.fulfillment] : []
 
     order.items.forEach((item: Record<string, any>, idx: number) => {
@@ -172,7 +292,7 @@ export async function processOrderPODFulfillment(
       const productName = product?.title || `Item #${idx + 1}`
       const variantName = typeof item.variant === 'object' ? item.variant?.title : undefined
 
-      // Check item or corresponding fulfillment routing for designAssets
+      // Check item or corresponding fulfillment routing for designAssets OR print_on_demand product
       const fItem = fulfillmentList.find((f: Record<string, any>) => f.orderItemIndex === idx)
       const rawAssets = Array.isArray(fItem?.designAssets)
         ? fItem.designAssets
@@ -180,7 +300,18 @@ export async function processOrderPODFulfillment(
           ? item.designAssets
           : []
 
-      if (rawAssets.length > 0) {
+      const podConfig = product?.configuratorOptions?.pod as
+        | { provider?: string; externalProductId?: string }
+        | undefined
+      const isCatalogPOD =
+        product?.productionType === 'print_on_demand' || Boolean(podConfig?.externalProductId)
+
+      if (rawAssets.length > 0 || isCatalogPOD) {
+        matchedItemIndices.push(idx)
+        if (!primaryExternalProductId && podConfig?.externalProductId) {
+          primaryExternalProductId = String(podConfig.externalProductId)
+        }
+
         const designAssets: DesignAsset[] = rawAssets.map((asset: Record<string, any>, aIdx: number) => {
           const media = typeof asset.media === 'object' ? asset.media : null
           const surface: ProductSurface = (asset.surface as ProductSurface) || 'front'
@@ -211,13 +342,40 @@ export async function processOrderPODFulfillment(
           }
         })
 
+        const matchedVariant = matchPODVariant(product, variantName)
+        const qty = Number(item.quantity) || 1
+        const priceCents = Number(product?.priceInUSD || 0)
+
         podItems.push({
           productId: Number(product?.id || idx),
           productName,
-          variant: variantName,
-          quantity: Number(item.quantity) || 1,
+          variant: variantName || matchedVariant?.name,
+          quantity: qty,
           designAssets,
-          unitPrice: Number(product?.priceInUSD || 0) / 100,
+          unitPrice: priceCents / 100,
+        })
+
+        submitItems.push({
+          ...(matchedVariant?.syncVariantId != null
+            ? { syncVariantId: matchedVariant.syncVariantId }
+            : {}),
+          ...(matchedVariant?.externalVariantId
+            ? { externalVariantId: matchedVariant.externalVariantId }
+            : {}),
+          ...(matchedVariant?.sku ? { sku: matchedVariant.sku } : {}),
+          name: productName + (variantName ? ` (${variantName})` : ''),
+          quantity: qty,
+          ...(priceCents > 0 ? { retailPriceCents: priceCents } : {}),
+          ...(designAssets.length > 0
+            ? {
+                files: designAssets
+                  .filter((d) => Boolean(d.designFile.url))
+                  .map((d) => ({
+                    type: d.printSpec.surface || 'front',
+                    url: d.designFile.url,
+                  })),
+              }
+            : {}),
         })
       }
     })
@@ -228,32 +386,118 @@ export async function processOrderPODFulfillment(
 
     const podOrder: PODOrder = {
       orderId: String(orderId),
-      customerId: Number(typeof order.customer === 'object' ? order.customer?.id : order.customer || 0),
+      customerId: Number(
+        typeof order.customer === 'object' ? order.customer?.id : order.customer || 0,
+      ),
       items: podItems,
       totalPrice: Number(order.amount || 0) / 100,
       createdAt: String(order.createdAt || new Date().toISOString()),
     }
 
-    // Assemble vendor package
-    const vendorPackage = assembleVendorPackage(
-      podOrder,
-      1,
-      'Angel OS Print Network',
-    )
+    // Attempt live creator-owned POD dispatch if connected & shipping address present
+    let liveDispatch: PODOrderSubmitResult | undefined
+    const orderTenantId =
+      typeof order.tenant === 'object' ? order.tenant?.id : order.tenant
 
-    // Update fulfillment tracking on order if array exists
+    if (orderTenantId != null) {
+      try {
+        const creds = await getConnectedPODCredentials(payload, orderTenantId)
+        const recipient = extractRecipientAddress(order)
+        if (creds && recipient) {
+          const settings = await getTenantPODSettings(payload, orderTenantId)
+          const externalOrderId = `aos-order-${orderId}`
+          const packingSlip =
+            settings.packingSlipMessage || settings.packingSlipPhone || recipient.email
+              ? {
+                  message: settings.packingSlipMessage || undefined,
+                  phone: settings.packingSlipPhone || undefined,
+                  email: recipient.email,
+                }
+              : undefined
+
+          if (creds.provider === 'printful') {
+            const accessToken = await refreshPrintfulTokenIfNeeded(
+              payload,
+              orderTenantId,
+              creds,
+            )
+            liveDispatch = await submitPrintfulOrder(accessToken, creds.storeId, {
+              externalOrderId,
+              recipient,
+              items: submitItems,
+              autoConfirm: settings.autoConfirmOrders === true,
+              packingSlip,
+            })
+          } else if (creds.provider === 'printify' && creds.shopId) {
+            liveDispatch = await submitPrintifyOrder(
+              creds.apiToken,
+              creds.shopId,
+              {
+                externalOrderId,
+                recipient,
+                items: submitItems,
+                autoConfirm: settings.autoConfirmOrders === true,
+                packingSlip,
+              },
+              primaryExternalProductId,
+            )
+          }
+        }
+      } catch (err) {
+        void logError({
+          level: 'warning',
+          source: 'fulfillment/processOrderPODFulfillment/liveDispatch',
+          message: `POD live dispatch error on order ${orderId}: ${err instanceof Error ? err.message : String(err)}`,
+        })
+      }
+    }
+
+    const vendorLabel = liveDispatch
+      ? liveDispatch.provider === 'printful'
+        ? 'Printful'
+        : 'Printify'
+      : 'Angel OS Print Network'
+
+    const vendorPackage = assembleVendorPackage(podOrder, 1, vendorLabel)
+
+    const targetStatus =
+      liveDispatch && !liveDispatch.ok ? 'pending_match' : 'in_production'
+    const dispatchMeta = liveDispatch
+      ? {
+          podProvider: liveDispatch.provider,
+          externalOrderId: liveDispatch.externalOrderId,
+          providerOrderId: liveDispatch.providerOrderId ?? null,
+          podStatus: liveDispatch.status,
+          autoConfirmed: liveDispatch.autoConfirmed,
+          dispatchedAt: new Date().toISOString(),
+          ...(liveDispatch.error ? { error: liveDispatch.error } : {}),
+        }
+      : undefined
+
     let updatedFulfillment = fulfillmentList
     if (updatedFulfillment.length === 0) {
-      updatedFulfillment = podItems.map((_, idx) => ({
-        orderItemIndex: idx,
-        fulfillmentStatus: 'in_production',
+      updatedFulfillment = matchedItemIndices.map((itemIdx) => ({
+        orderItemIndex: itemIdx,
+        fulfillmentStatus: targetStatus,
         matchedAt: new Date().toISOString(),
+        ...(dispatchMeta ? { selectedConfiguration: dispatchMeta } : {}),
       }))
     } else {
       updatedFulfillment = updatedFulfillment.map((f: Record<string, any>) => ({
         ...f,
-        fulfillmentStatus: f.fulfillmentStatus === 'pending_match' ? 'in_production' : f.fulfillmentStatus,
+        fulfillmentStatus:
+          f.fulfillmentStatus === 'pending_match' ? targetStatus : f.fulfillmentStatus,
         matchedAt: f.matchedAt || new Date().toISOString(),
+        ...(dispatchMeta
+          ? {
+              selectedConfiguration: {
+                ...(typeof f.selectedConfiguration === 'object' && f.selectedConfiguration
+                  ? f.selectedConfiguration
+                  : {}),
+                ...dispatchMeta,
+              },
+            }
+          : {}),
       }))
     }
 
@@ -271,6 +515,7 @@ export async function processOrderPODFulfillment(
       processed: true,
       packageCount: 1,
       vendorPackages: [vendorPackage],
+      ...(liveDispatch ? { liveDispatch } : {}),
     }
   } catch (err) {
     void logError({

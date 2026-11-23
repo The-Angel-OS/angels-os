@@ -7,6 +7,7 @@ import { ProductManager } from './ProductManager'
 import { requirePortalManager } from '@/utilities/requirePortalManager'
 import { resolvePageSize } from '@/utilities/pageSize'
 import { WorkspaceSubNav } from '../_components/WorkspaceSubNav'
+import { PODFulfillmentPanel } from '@/components/fulfillment/PODFulfillmentPanel'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,7 +24,7 @@ export default async function DashboardProductsPage({
   await requirePortalManager()
 
   const payload = await getPayload({ config: configPromise })
-  const { tenantFilter } = await resolveTenantFromHeaders()
+  const { tenant, tenantId, tenantFilter } = await resolveTenantFromHeaders()
   const pageSize = resolvePageSize(limitParam)
   const page = Math.max(1, Number(pageParam) || 1)
 
@@ -77,6 +78,25 @@ export default async function DashboardProductsPage({
           { label: 'Orders', href: `${prefix}/dashboard/orders` },
         ]}
       />
+      {tenantId != null && (
+        <details className="mb-6 rounded-lg border border-border bg-card/60 px-4 py-3">
+          <summary className="cursor-pointer select-none text-sm font-medium text-foreground">
+            Print-on-Demand Fulfillment &amp; Merch Catalog Sync (Printful / Printify)
+          </summary>
+          <div className="mt-3">
+            <PODFulfillmentPanel
+              compact
+              tenantId={tenantId}
+              tenantName={
+                ((tenant as { branding?: { siteName?: string }; name?: string } | null)?.branding
+                  ?.siteName ||
+                  (tenant as { name?: string } | null)?.name ||
+                  'your storefront')
+              }
+            />
+          </div>
+        </details>
+      )}
       <ProductManager
         products={serializedProducts}
         totalProducts={products.totalDocs}

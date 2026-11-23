@@ -9,6 +9,7 @@ import EndeavorSetup, {
 import { PaymentsAdmin } from '@/app/[locale]/(dashboard)/dashboard/admin/payments/PaymentsAdmin'
 import { PayoutsAdmin } from '@/app/[locale]/(dashboard)/dashboard/admin/payouts/PayoutsAdmin'
 import { ConnectorsAdmin } from '@/app/[locale]/(dashboard)/dashboard/account/integrations/ConnectorsAdmin'
+import { PODFulfillmentPanel } from '@/components/fulfillment/PODFulfillmentPanel'
 import { PlanPanel } from '@/app/[locale]/(dashboard)/dashboard/plan/PlanPanel'
 import {
   RevenueChart,
@@ -1011,6 +1012,9 @@ function LeoAndIntegrationsTab({
         tenantId={String(tenantId)}
         tenantName={tenantName}
       />
+
+      {/* Section 2b: Print-on-Demand Merch Fulfillment (Printful OAuth & Printify) */}
+      <PODFulfillmentPanel tenantId={tenantId} tenantName={tenantName} />
 
       {/* Section 3: Secondary Collapsed Drawer for BYOK AI Keys */}
       <details className="rounded-lg border border-border bg-card p-6">
