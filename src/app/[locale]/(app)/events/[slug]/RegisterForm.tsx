@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 interface RegisterFormProps {
   eventId: number
@@ -10,6 +11,11 @@ interface RegisterFormProps {
   locationType?: string
   /** Pre-fill from logged-in user — hides name/email fields when provided */
   user?: { name?: string; email?: string } | null
+  pricing?: {
+    isFree?: boolean
+    amount?: number
+    currency?: string
+  } | null
 }
 
 export function RegisterForm({
@@ -19,7 +25,12 @@ export function RegisterForm({
   isLateRegistration,
   locationType,
   user,
+  pricing,
 }: RegisterFormProps) {
+  const searchParams = useSearchParams()
+  const paymentStatus = searchParams.get('payment')
+  const paymentRef = searchParams.get('ref')
+
   const isLoggedIn = !!(user?.name && user?.email)
   const [name, setName] = useState(user?.name || '')
   const [email, setEmail] = useState(user?.email || '')
@@ -28,6 +39,35 @@ export function RegisterForm({
   )
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
+
+  const isPaid = !isWaitlist && !isLateRegistration && Boolean(pricing && !pricing.isFree && (pricing.amount || 0) > 0)
+  const ticketPrice = pricing?.amount ? Number(pricing.amount).toFixed(2) : '0.00'
+  const ticketCurrency = (pricing?.currency || 'USD').toUpperCase()
+
+  useEffect(() => {
+    if (paymentStatus === 'success' && paymentRef) {
+      setStatus('submitting')
+      fetch('/api/payment-ops/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ref: paymentRef }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.ok) {
+            setStatus('success')
+          } else {
+            setStatus('idle')
+          }
+        })
+        .catch(() => {
+          setStatus('idle')
+        })
+    } else if (paymentStatus === 'canceled') {
+      setStatus('error')
+      setErrorMessage('Payment was canceled. You have not been charged.')
+    }
+  }, [paymentStatus, paymentRef])
 
   const showModeSelector =
     locationType === 'hybrid' || locationType === 'virtual'
@@ -40,6 +80,30 @@ export function RegisterForm({
     setErrorMessage('')
 
     try {
+      if (isPaid) {
+        // Paid Event — initiate hosted checkout (Square / PayPal)
+        const res = await fetch('/api/event-ops/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            eventId,
+            name: name.trim(),
+            email: email.trim(),
+            attendanceMode,
+            ticketCount: 1,
+          }),
+        })
+
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok || !data.checkoutUrl) {
+          throw new Error(data?.error || 'Unable to start checkout. Please try again.')
+        }
+
+        window.location.href = data.checkoutUrl
+        return
+      }
+
+      // Free or waitlist registration
       const res = await fetch('/api/event-registrations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -85,7 +149,9 @@ export function RegisterForm({
     ? 'Join Waitlist'
     : isLateRegistration
       ? 'Stay in the Loop'
-      : 'Register'
+      : isPaid
+        ? `Get Ticket — $${ticketPrice}`
+        : 'Register'
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
@@ -93,6 +159,15 @@ export function RegisterForm({
         <p className="text-xs text-muted-foreground">
           This event has ended, but you can register to stay updated about future events like this.
         </p>
+      )}
+
+      {isPaid && (
+        <div className="rounded-md bg-muted/60 border border-border px-3 py-2 flex items-center justify-between">
+          <span className="text-xs font-medium text-foreground">Ticket Price</span>
+          <span className="text-sm font-bold text-foreground">
+            ${ticketPrice} <span className="text-xs font-normal text-muted-foreground">{ticketCurrency}</span>
+          </span>
+        </div>
       )}
 
       {isLoggedIn ? (
@@ -177,7 +252,7 @@ export function RegisterForm({
         disabled={status === 'submitting'}
         className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
       >
-        {status === 'submitting' ? 'Registering...' : buttonLabel}
+        {status === 'submitting' ? (isPaid ? 'Redirecting to checkout...' : 'Registering...') : buttonLabel}
       </button>
     </form>
   )

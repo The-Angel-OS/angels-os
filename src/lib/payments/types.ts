@@ -15,6 +15,7 @@ export type CheckoutKind =
   | 'booking'
   | 'portal_plan'
   | 'guardian_angel'
+  | 'event_ticket'
 
 export interface ConnectedSquareAccount {
   connected: boolean
@@ -65,6 +66,11 @@ export interface CheckoutIntentRecord {
   cartId?: string | number
   orderId?: string | number
   bookingId?: string | number
+  eventId?: string | number
+  registrationId?: string | number
+  ticketCount?: number
+  eventTitle?: string
+  attendanceMode?: string
   planId?: string
   planName?: string
   interval?: 'month' | 'year'
@@ -76,6 +82,8 @@ export interface CheckoutIntentRecord {
   donorEmail?: string
   message?: string
   customerEmail?: string
+  customerName?: string
+  intentData?: Record<string, unknown>
   fulfillmentMethod?: 'ship' | 'pickup'
   shippingAddress?: Record<string, unknown>
   billingAddress?: Record<string, unknown>

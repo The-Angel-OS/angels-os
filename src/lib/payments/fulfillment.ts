@@ -281,6 +281,12 @@ async function fulfillShopOrder(
   const orderId = createdOrder?.id
   if (orderId != null) {
     await markOrderPaidAndDecrementInventory(payload, orderId).catch(() => {})
+    try {
+      const { processOrderPODFulfillment } = await import('@/lib/fulfillment/podAdapter')
+      await processOrderPODFulfillment(payload, orderId)
+    } catch {
+      // Non-fatal POD fulfillment attempt
+    }
   }
 
   // Mark cart purchased so cart UI clears cleanly
@@ -371,6 +377,7 @@ export async function fulfillVerifiedPayment(
   alreadyProcessed?: boolean
   orderId?: number | string
   bookingId?: number | string
+  registrationId?: number | string
 }> {
   const { idempotencyKey, intent, verified } = params
 
@@ -379,7 +386,10 @@ export async function fulfillVerifiedPayment(
   }
 
   const isOneOff =
-    intent.kind === 'donation' || intent.kind === 'order' || intent.kind === 'booking'
+    intent.kind === 'donation' ||
+    intent.kind === 'order' ||
+    intent.kind === 'booking' ||
+    intent.kind === 'event_ticket'
   const effectiveKey = isOneOff ? `oneoff:${intent.ref}` : idempotencyKey
 
   if (isOneOff && intent.status === 'completed') {
@@ -388,6 +398,7 @@ export async function fulfillVerifiedPayment(
       alreadyProcessed: true,
       orderId: intent.orderId,
       bookingId: intent.bookingId,
+      registrationId: intent.registrationId,
     }
   }
 
@@ -402,6 +413,7 @@ export async function fulfillVerifiedPayment(
       alreadyProcessed: true,
       orderId: intent.orderId,
       bookingId: intent.bookingId,
+      registrationId: intent.registrationId,
     }
   }
 
@@ -467,6 +479,90 @@ export async function fulfillVerifiedPayment(
       }
     }
     return { fulfilled: true, bookingId: intent.bookingId }
+  }
+
+  if (intent.kind === 'event_ticket') {
+    let registrationId = intent.registrationId
+    const eventId = intent.eventId
+    const attendeeName = (intent.customerName || intent.memberName || intent.donorName || 'Guest').trim()
+    const attendeeEmail = (intent.customerEmail || intent.memberEmail || verified.payerEmail || '').trim()
+
+    if (registrationId != null) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (payload.update as any)({
+        collection: 'event-registrations',
+        id: registrationId,
+        data: {
+          status: 'registered',
+          metadata: {
+            paid: true,
+            checkoutRef: intent.ref,
+            provider: verified.provider,
+            transactionId: verified.transactionId || verified.externalId,
+            amountCents: verified.amountCents || intent.amountCents,
+            ticketCount: intent.ticketCount || 1,
+            confirmedAt: new Date().toISOString(),
+          },
+        },
+        overrideAccess: true,
+      }).catch((err: unknown) => {
+        void logError({
+          level: 'error',
+          source: 'payments/eventTicketFulfillment',
+          message: `Failed to update event registration ${registrationId}: ${err instanceof Error ? err.message : String(err)}`,
+        })
+      })
+    } else if (eventId != null) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const created = await (payload.create as any)({
+          collection: 'event-registrations',
+          data: {
+            event: Number(eventId),
+            name: attendeeName,
+            email: attendeeEmail,
+            status: 'registered',
+            registrationType: 'pre-event',
+            attendanceMode: (intent.attendanceMode as any) || (intent.intentData?.attendanceMode as any) || 'in-person',
+            metadata: {
+              paid: true,
+              checkoutRef: intent.ref,
+              provider: verified.provider,
+              transactionId: verified.transactionId || verified.externalId,
+              amountCents: verified.amountCents || intent.amountCents,
+              ticketCount: intent.ticketCount || 1,
+              confirmedAt: new Date().toISOString(),
+            },
+          },
+          overrideAccess: true,
+        })
+        registrationId = created?.id
+      } catch (err) {
+        void logError({
+          level: 'error',
+          source: 'payments/eventTicketFulfillment',
+          message: `Failed to create event registration for event ${eventId}: ${err instanceof Error ? err.message : String(err)}`,
+        })
+      }
+    }
+
+    if (registrationId != null) {
+      await updateCheckoutIntent(payload, intent.ref, { registrationId }).catch(() => {})
+    }
+
+    const feeAmt = intent.applicationFeeCents || 0
+    if (feeAmt > 0) {
+      await recordJusticeFundAllocation(payload, {
+        amountCents: feeAmt,
+        sourceTotalCents: verified.amountCents || intent.amountCents,
+        percentage: Number(((feeAmt / Math.max(1, intent.amountCents)) * 100).toFixed(2)),
+        sourceId: `${verified.provider}:${verified.transactionId || verified.externalId}`,
+        description: `Event ticket platform fee (${verified.provider}) for event #${eventId ?? 'unknown'}`,
+        tenantId: intent.tenantId,
+      })
+    }
+
+    return { fulfilled: true, registrationId }
   }
 
   if (intent.kind === 'order') {

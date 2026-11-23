@@ -361,6 +361,7 @@ export const paymentConfirmHandler: PayloadHandler = async (req) => {
       status: 'completed',
       orderId: intent.orderId,
       bookingId: intent.bookingId,
+      registrationId: intent.registrationId,
       amountCents: intent.amountCents,
     })
   }
@@ -406,6 +407,7 @@ export const paymentConfirmHandler: PayloadHandler = async (req) => {
       status: verified.status,
       orderId: fulfilled.orderId ?? intent.orderId,
       bookingId: fulfilled.bookingId ?? intent.bookingId,
+      registrationId: fulfilled.registrationId ?? intent.registrationId,
       amountCents: verified.amountCents || intent.amountCents,
     })
   } catch (err) {

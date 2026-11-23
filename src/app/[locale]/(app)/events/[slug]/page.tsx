@@ -372,6 +372,7 @@ export default async function EventDetailPage({
                 isLateRegistration={!!canLateRegister}
                 locationType={locationType}
                 user={regUser}
+                pricing={event.pricing}
               />
             ) : isAtCapacity && !event.capacity?.waitlistEnabled ? (
               <div className="rounded-md bg-yellow-500/10 p-4 text-center text-sm text-yellow-600 dark:text-yellow-400">

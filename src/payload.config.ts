@@ -245,6 +245,7 @@ import { stripeConnectDisconnectHandler } from '@/endpoints/stripe-connect-disco
 import { stripeWebhooksHandler } from '@/endpoints/stripe-webhooks'
 import { withEventLedger } from '@/utilities/eventLedger'
 import { donationCreateIntentHandler } from '@/endpoints/donation-create-intent'
+import { eventTicketCheckoutHandler } from '@/endpoints/event-checkout'
 import { donationRoutingHandler } from '@/endpoints/donation-routing'
 import { worksSealHandler, worksManifestHandler } from '@/endpoints/works-seal'
 import { federationSimulateHandler } from '@/endpoints/federation-simulate'
@@ -1794,6 +1795,12 @@ export default buildConfig({
       path: '/stripe/webhooks',
       method: 'post',
       handler: withEventLedger('stripe', stripeWebhooksHandler),
+    },
+    // ─── Event Ticket Checkout ────────────────────────────────────
+    {
+      path: '/event-ops/checkout',
+      method: 'post',
+      handler: eventTicketCheckoutHandler,
     },
     // ─── Donations (Sprint 43) ────────────────────────────────────
     {
