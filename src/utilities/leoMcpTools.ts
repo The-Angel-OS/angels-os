@@ -26,6 +26,13 @@ import { z, type ZodRawShape, type ZodTypeAny } from 'zod'
 import type { PayloadRequest } from 'payload'
 import { LEO_TOOLS, executeToolCall, type ToolExecutorContext } from './leo-data-tools'
 import { selectToolsForUser } from './leoToolSelection'
+import {
+  AIRLOCK_GATED_TOOLS,
+  createAirlockApproval,
+  isToolAllowedByScopes,
+  recordExternalAgentActivity,
+  type SovereignMcpContext,
+} from '@/lib/mcp/sovereignAuth'
 
 /** Mirror of @payloadcms/plugin-mcp utils/camelCase.toCamelCase (dashes/underscores/spaces). */
 export const toMcpToolKey = (str: string): string =>
@@ -120,23 +127,37 @@ export function leoMcpToolAccessMap(roles?: string[]): Record<string, true> {
   return map
 }
 
-async function resolveCtx(req: PayloadRequest): Promise<{ ctx: ToolExecutorContext; roles?: string[] }> {
-  const tenantSlug = req.headers?.get?.('x-tenant-id') ?? undefined
-  let tenantId: number | undefined
-  if (tenantSlug) {
-    const tenants = await req.payload.find({
-      collection: 'tenants',
-      where: { slug: { equals: tenantSlug } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    tenantId = tenants.docs?.[0]?.id as number | undefined
+async function resolveCtx(req: PayloadRequest): Promise<{
+  ctx: ToolExecutorContext
+  roles?: string[]
+  sovereign?: SovereignMcpContext
+}> {
+  const user = req.user as
+    | { id?: number; roles?: string[]; __sovereignMcp?: SovereignMcpContext }
+    | null
+    | undefined
+  const sovereign = user?.__sovereignMcp
+
+  // Server-side tenant pinning: when authenticated with a Sovereign Portal API Key
+  // or OAuth 2.1 token, ALWAYS use the token's pinned tenantId and IGNORE x-tenant-id.
+  let tenantId: number | undefined = sovereign?.tenantId
+  if (!tenantId) {
+    const tenantSlug = req.headers?.get?.('x-tenant-id') ?? undefined
+    if (tenantSlug) {
+      const tenants = await req.payload.find({
+        collection: 'tenants',
+        where: { slug: { equals: tenantSlug } },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      tenantId = tenants.docs?.[0]?.id as number | undefined
+    }
   }
-  const user = req.user as { id?: number; roles?: string[] } | null | undefined
   return {
     ctx: { payload: req.payload, tenantId, userId: user?.id, roles: user?.roles },
     roles: user?.roles,
+    sovereign,
   }
 }
 
@@ -166,13 +187,60 @@ export function buildLeoMcpTools(): LeoMcpTool[] {
     description: tool.description || tool.name,
     parameters: jsonSchemaToZodShape(tool.input_schema as never),
     handler: async (args, req) => {
-      const { ctx, roles } = await resolveCtx(req)
+      const { ctx, roles, sovereign } = await resolveCtx(req)
       if (!leoMcpToolAccessMap(roles)[toMcpToolKey(tool.name)]) {
         return {
           content: [{ type: 'text' as const, text: `Error: "${tool.name}" requires elevated privileges.` }],
         }
       }
+      if (sovereign) {
+        if (!isToolAllowedByScopes(tool.name, sovereign.scopes)) {
+          void recordExternalAgentActivity(req.payload, sovereign.tenantId, {
+            keyId: sovereign.keyId,
+            keyName: sovereign.keyName,
+            tool: tool.name,
+            status: 'denied',
+            summary: `Blocked: token scopes (${sovereign.scopes.join(', ')}) do not permit ${tool.name}`,
+          })
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: `Error: Token scopes (${sovereign.scopes.join(', ')}) do not allow "${tool.name}".`,
+              },
+            ],
+          }
+        }
+        if (AIRLOCK_GATED_TOOLS.has(tool.name)) {
+          const host = req.headers?.get?.('x-forwarded-host') || req.headers?.get?.('host') || undefined
+          const { approval, approvalUrl } = await createAirlockApproval(req.payload, {
+            tenantId: sovereign.tenantId,
+            toolName: tool.name,
+            args: args ?? {},
+            keyId: sovereign.keyId,
+            keyName: sovereign.keyName,
+            portalDomain: host,
+          })
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: `Constitutional Airlock: "${tool.name}" is a high-risk action and requires portal-owner approval before execution. Request ID: ${approval.id}. Have the owner review and approve at: ${approvalUrl}`,
+              },
+            ],
+          }
+        }
+      }
       const result = await executeToolCall(tool.name, args ?? {}, ctx)
+      if (sovereign) {
+        void recordExternalAgentActivity(req.payload, sovereign.tenantId, {
+          keyId: sovereign.keyId,
+          keyName: sovereign.keyName,
+          tool: tool.name,
+          status: 'ok',
+          summary: `Executed ${tool.name}`,
+        })
+      }
       return { content: [{ type: 'text' as const, text: result }] }
     },
   }))

@@ -10,6 +10,7 @@ import { PaymentsAdmin } from '@/app/[locale]/(dashboard)/dashboard/admin/paymen
 import { PayoutsAdmin } from '@/app/[locale]/(dashboard)/dashboard/admin/payouts/PayoutsAdmin'
 import { ConnectorsAdmin } from '@/app/[locale]/(dashboard)/dashboard/account/integrations/ConnectorsAdmin'
 import { PODFulfillmentPanel } from '@/components/fulfillment/PODFulfillmentPanel'
+import { SovereignMcpPanel } from '@/components/settings/SovereignMcpPanel'
 import { PlanPanel } from '@/app/[locale]/(dashboard)/dashboard/plan/PlanPanel'
 import {
   RevenueChart,
@@ -1622,6 +1623,7 @@ export function SettingsHub({
                 coverImage: storefront?.coverImage ?? null,
               }}
             />
+            <SovereignMcpPanel canonicalDomain={domains?.canonical || ''} />
             <DeveloperAndAgentPanel
               tenantSlug={domains?.slug || ''}
               canonicalDomain={domains?.canonical || ''}

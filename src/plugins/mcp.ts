@@ -10,6 +10,12 @@ import type { Config } from 'payload'
 import { mcpPlugin } from '@payloadcms/plugin-mcp'
 import { leoProcessMessage } from '@/utilities/leoProcessMessage'
 import { buildLeoMcpTools, leoMcpToolAccessMap, toMcpToolKey, type LeoMcpTool } from '@/utilities/leoMcpTools'
+import {
+  authenticateSovereignBearer,
+  isToolAllowedByScopes,
+  recordExternalAgentActivity,
+  type SovereignMcpContext,
+} from '@/lib/mcp/sovereignAuth'
 
 /**
  * The conversational super-tool. Kept hand-written (it routes to the full
@@ -30,18 +36,21 @@ const leoRespondTool: LeoMcpTool = {
     if (!message || typeof message !== 'string') {
       return { content: [{ type: 'text' as const, text: 'Error: message is required' }] }
     }
-    // Resolve tenant from x-tenant-id header
-    const tenantSlug = req.headers.get('x-tenant-id')
-    let tenantId: number | undefined
-    if (tenantSlug) {
-      const tenants = await req.payload.find({
-        collection: 'tenants',
-        where: { slug: { equals: tenantSlug } },
-        limit: 1,
-        depth: 0,
-        overrideAccess: true,
-      })
-      tenantId = tenants.docs?.[0]?.id as number | undefined
+    // Sovereign tenant-pinned token takes strict precedence: IGNORE client x-tenant-id header
+    const sovereign = (req.user as { __sovereignMcp?: SovereignMcpContext } | undefined)?.__sovereignMcp
+    let tenantId: number | undefined = sovereign?.tenantId
+    if (!tenantId) {
+      const tenantSlug = req.headers.get('x-tenant-id')
+      if (tenantSlug) {
+        const tenants = await req.payload.find({
+          collection: 'tenants',
+          where: { slug: { equals: tenantSlug } },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+        })
+        tenantId = tenants.docs?.[0]?.id as number | undefined
+      }
     }
     const result = await leoProcessMessage({
       message,
@@ -49,6 +58,15 @@ const leoRespondTool: LeoMcpTool = {
       tenantId,
       payload: req.payload,
     })
+    if (sovereign) {
+      void recordExternalAgentActivity(req.payload, sovereign.tenantId, {
+        keyId: sovereign.keyId,
+        keyName: sovereign.keyName,
+        tool: 'leo_respond',
+        status: 'ok',
+        summary: `Conversational query (${message.slice(0, 60)})`,
+      })
+    }
     return { content: [{ type: 'text' as const, text: `[${result.agentName}] ${result.text}` }] }
   },
 }
@@ -72,6 +90,47 @@ const basePlugin = mcpPlugin({
    * programmatic clients (e.g. Merlin / AngelClaw agents).
    */
   overrideAuth: async (req, getDefaultMcpAccessSettings) => {
+    // 0. Check Sovereign Tenant-Pinned Portal API Key / OAuth 2.1 Bearer (`aos_live_...`)
+    const sovereignResult = await authenticateSovereignBearer(
+      req.payload,
+      req.headers?.get?.('authorization'),
+    )
+    if (sovereignResult) {
+      if (!sovereignResult.ok) {
+        throw new Error(sovereignResult.error)
+      }
+      const { ctx, user, roles } = sovereignResult
+      const roleMap = leoMcpToolAccessMap(roles)
+      const scopedTools: Record<string, true> = {}
+      if (isToolAllowedByScopes('leo_respond', ctx.scopes)) {
+        scopedTools.leoRespond = true
+      }
+      for (const t of getMcpTools()) {
+        const key = toMcpToolKey(t.name)
+        if (roleMap[key] && isToolAllowedByScopes(t.name, ctx.scopes)) {
+          scopedTools[key] = true
+        }
+      }
+      const hasContent = ctx.scopes.includes('portal:content') || ctx.scopes.includes('portal:admin')
+      const hasAdmin = ctx.scopes.includes('portal:admin')
+      return {
+        user: {
+          ...user,
+          collection: 'users',
+          _strategy: 'sovereign_mcp',
+          __sovereignMcp: ctx,
+        },
+        collections: {
+          find: true,
+          create: hasContent,
+          update: hasContent,
+          delete: hasAdmin,
+        },
+        globals: { find: true, update: hasAdmin },
+        'payload-mcp-tool': scopedTools,
+      } as any
+    }
+
     // 1. Check if user is already authenticated via session cookies
     if (req.user) {
       const roles = (req.user as { roles?: string[] }).roles

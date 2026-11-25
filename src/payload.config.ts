@@ -216,6 +216,13 @@ import {
   podSyncCatalogHandler,
 } from '@/endpoints/fulfillment-pod-ops'
 import { ingestMlbYoutubeHandler } from '@/endpoints/ingest-mlb-youtube'
+import { youtubePreviewHandler } from '@/endpoints/youtube-preview'
+import {
+  mcpOAuthAuthorizeHandler,
+  mcpOAuthRevokeHandler,
+  mcpOAuthTokenHandler,
+} from '@/endpoints/mcp-oauth'
+import { mcpKeysGetHandler, mcpKeysPostHandler } from '@/endpoints/mcp-key-ops'
 import { provisionClearwaterPortalHandler } from '@/endpoints/provision-clearwater-portal'
 import { ingestClearwaterYoutubeHandler } from '@/endpoints/ingest-clearwater-youtube'
 import { ingestUapSightingHandler } from '@/endpoints/ingest-uap-sighting'
@@ -1225,11 +1232,42 @@ export default buildConfig({
       method: 'post',
       handler: provisionPlatformHomeHandler,
     },
-    // Self-serve creator portal onboarding (/start -> POST /api/portal-ops/self-provision)
+    // Self-serve creator portal onboarding (/start -> POST /api/portal-ops/self-provision & youtube-preview)
     {
       path: '/portal-ops/self-provision',
       method: 'post',
       handler: selfProvisionPortalHandler,
+    },
+    {
+      path: '/portal-ops/youtube-preview',
+      method: 'post',
+      handler: youtubePreviewHandler,
+    },
+    // Sovereign Agent-to-LEO Remote MCP OAuth 2.1 PKCE + Portal API Keys (Sprint E)
+    {
+      path: '/mcp-oauth/authorize',
+      method: 'get',
+      handler: mcpOAuthAuthorizeHandler,
+    },
+    {
+      path: '/mcp-oauth/token',
+      method: 'post',
+      handler: mcpOAuthTokenHandler,
+    },
+    {
+      path: '/mcp-oauth/revoke',
+      method: 'post',
+      handler: mcpOAuthRevokeHandler,
+    },
+    {
+      path: '/mcp-ops/keys',
+      method: 'get',
+      handler: mcpKeysGetHandler,
+    },
+    {
+      path: '/mcp-ops/keys',
+      method: 'post',
+      handler: mcpKeysPostHandler,
     },
     // Personal planner: the caller's merged bookings+events+quests timeline.
     {
