@@ -535,6 +535,69 @@ async function cleanPrivacyPolicyPage(
   return { privacyPageId: doc.id, privacyUpdated: true }
 }
 
+async function ensureUserPortalsOnGetStartedPage(
+  payload: Payload,
+  platformTenantId: number | string,
+): Promise<{
+  getStartedPageId: number | string | null
+  getStartedAction: 'added' | 'already_present' | 'missing'
+}> {
+  const res = await payload.find({
+    collection: 'pages',
+    where: {
+      and: [{ slug: { equals: 'get-started' } }, { tenant: { equals: platformTenantId } }],
+    },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const doc = res.docs?.[0] as unknown as
+    | { id: number | string; layout?: Array<Record<string, unknown>> }
+    | undefined
+  if (!doc) {
+    return { getStartedPageId: null, getStartedAction: 'missing' }
+  }
+
+  const existingLayout = Array.isArray(doc.layout) ? doc.layout : []
+  const alreadyHas = existingLayout.some((b) => b?.blockType === 'userPortals')
+  if (alreadyHas) {
+    return { getStartedPageId: doc.id, getStartedAction: 'already_present' }
+  }
+
+  const userPortalsBlock = {
+    blockType: 'userPortals',
+    blockName: 'user-portals-directory',
+    heading: 'Your Portals',
+    subheading: 'Pick up where you left off across your active sites, creator storefronts, and workspaces.',
+    scope: 'all_for_admin',
+    columns: '3',
+    showQuota: true,
+    showFilters: true,
+    showCreateCard: true,
+    hideWhenAnonymous: true,
+    includePlatformTenant: false,
+  }
+
+  await payload.update({
+    collection: 'pages',
+    id: doc.id,
+    data: {
+      layout: [userPortalsBlock, ...existingLayout] as never,
+      _status: 'published',
+    } as never,
+    overrideAccess: true,
+  })
+
+  try {
+    revalidatePath('/get-started')
+    revalidatePath('/en/get-started')
+  } catch {
+    /* non-fatal outside Next request cache */
+  }
+
+  return { getStartedPageId: doc.id, getStartedAction: 'added' }
+}
+
 function extractHeroHeading(hero: unknown): string | null {
   try {
     const rich = (hero as { richText?: { root?: { children?: Array<{ children?: Array<{ text?: string }> }> } } })
@@ -570,6 +633,8 @@ export const provisionPlatformHomeHandler: PayloadHandler = async (req) => {
   const shouldSyncHelp = url.searchParams.get('syncHelp') !== '0'
   const onlyPrivacy = url.searchParams.get('onlyPrivacy') === '1'
   const shouldSyncPrivacy = onlyPrivacy || url.searchParams.get('syncPrivacy') === '1'
+  const onlyGetStarted = url.searchParams.get('onlyGetStarted') === '1'
+  const shouldSyncGetStarted = onlyGetStarted || url.searchParams.get('syncGetStarted') === '1'
 
   try {
     // 1. Resolve Platform Tenant (ID 1 or slug 'platform')
@@ -597,6 +662,23 @@ export const provisionPlatformHomeHandler: PayloadHandler = async (req) => {
           ok: true,
           privacyPageId,
           privacyUpdated,
+          tenantId: platformTenantId,
+          timestamp: new Date().toISOString(),
+        })
+      }
+    }
+
+    let getStartedPageId: number | string | null = null
+    let getStartedAction: 'added' | 'already_present' | 'missing' | 'skipped' = 'skipped'
+    if (shouldSyncGetStarted) {
+      const gs = await ensureUserPortalsOnGetStartedPage(payload, platformTenantId)
+      getStartedPageId = gs.getStartedPageId
+      getStartedAction = gs.getStartedAction
+      if (onlyGetStarted) {
+        return Response.json({
+          ok: true,
+          getStartedPageId,
+          getStartedAction,
           tenantId: platformTenantId,
           timestamp: new Date().toISOString(),
         })
@@ -834,6 +916,8 @@ export const provisionPlatformHomeHandler: PayloadHandler = async (req) => {
       helpPageAction,
       privacyPageId,
       privacyUpdated,
+      getStartedPageId,
+      getStartedAction,
       timestamp: new Date().toISOString(),
     })
   } catch (err: unknown) {

@@ -511,10 +511,49 @@ function DomainsPanel({
   const [domain, setDomain] = useState(initial.domain)
   const [bindings, setBindings] = useState(initial.aliases)
   const [canonical, setCanonical] = useState(initial.canonical)
+  const [cnameTarget, setCnameTarget] = useState('core.spacesangels.com')
+  const [cfConfigured, setCfConfigured] = useState(false)
+  const [statuses, setStatuses] = useState<
+    Record<
+      string,
+      {
+        status: string
+        sslStatus: string
+        cnameTarget: string
+        ownershipVerification?: { type?: string; name?: string; value?: string }
+        sslValidationRecords?: Array<{
+          txtName?: string
+          txtValue?: string
+          httpUrl?: string
+        }>
+        verificationErrors?: string[]
+        error?: string
+      }
+    >
+  >({})
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [needsUpgrade, setNeedsUpgrade] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  useEffect(() => {
+    if (initial.aliases.length === 0) return
+    let cancelled = false
+    fetch('/api/domain-ops/bindings', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return
+        if (data.cnameTarget) setCnameTarget(data.cnameTarget)
+        if (typeof data.cloudflareConfigured === 'boolean') {
+          setCfConfigured(data.cloudflareConfigured)
+        }
+        if (data.statuses) setStatuses(data.statuses)
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [initial.aliases.length])
 
   const send = useCallback(async (action: string, value: string, okText: string) => {
     setBusy(true)
@@ -538,7 +577,12 @@ function DomainsPanel({
       setDomain(data.domain)
       setBindings(data.bindings)
       setCanonical(data.canonical)
-      setInput('')
+      if (data.cnameTarget) setCnameTarget(data.cnameTarget)
+      if (typeof data.cloudflareConfigured === 'boolean') {
+        setCfConfigured(data.cloudflareConfigured)
+      }
+      if (data.statuses) setStatuses(data.statuses)
+      if (action === 'add') setInput('')
       setMessage({ type: 'success', text: okText })
     } catch {
       setMessage({ type: 'error', text: 'Could not reach the server.' })
@@ -558,7 +602,7 @@ function DomainsPanel({
         <div>
           <h2 className="text-lg font-semibold">Domains &amp; URL</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Hostnames that serve this site and your canonical public link.
+            Hostnames that serve this site, automated SSL status, and your canonical public link.
           </p>
         </div>
         <code className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
@@ -567,42 +611,121 @@ function DomainsPanel({
       </div>
 
       <ul className="space-y-2 text-sm">
-        {rows.map((r) => (
-          <li key={r.domain} className="flex items-center gap-2 rounded-md border border-border/60 bg-muted/20 px-3 py-2">
-            <a
-              href={`https://${r.domain}`}
-              target="_blank"
-              rel="noreferrer"
-              className="text-primary hover:underline break-all font-medium"
+        {rows.map((r) => {
+          const st = r.removable ? statuses[r.domain.toLowerCase()] : undefined
+          const isSslActive = st?.status === 'active' && st?.sslStatus === 'active'
+          return (
+            <li
+              key={r.domain}
+              className="rounded-md border border-border/60 bg-muted/20 px-3 py-2 space-y-2"
             >
-              {r.domain}
-            </a>
-            {r.domain === canonical ? (
-              <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
-                canonical
-              </span>
-            ) : (
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => send('set-primary', r.domain, `${r.domain} is now your canonical URL.`)}
-                className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
-              >
-                make canonical
-              </button>
-            )}
-            {r.removable && (
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => send('remove', r.domain, `${r.domain} removed.`)}
-                className="ml-auto text-xs text-muted-foreground hover:text-red-600 disabled:opacity-50"
-              >
-                remove
-              </button>
-            )}
-          </li>
-        ))}
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href={`https://${r.domain}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-primary hover:underline break-all font-medium"
+                >
+                  {r.domain}
+                </a>
+                {r.domain === canonical ? (
+                  <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
+                    canonical
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() =>
+                      send('set-primary', r.domain, `${r.domain} is now your canonical URL.`)
+                    }
+                    className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                  >
+                    make canonical
+                  </button>
+                )}
+
+                {r.removable && (
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      isSslActive
+                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                        : st?.status === 'dns_manual'
+                          ? 'bg-muted text-muted-foreground'
+                          : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                    }`}
+                  >
+                    {isSslActive
+                      ? 'SSL Active'
+                      : st?.status === 'dns_manual'
+                        ? 'DNS Setup Needed'
+                        : st?.sslStatus
+                          ? `SSL: ${st.sslStatus.replace(/_/g, ' ')}`
+                          : 'Pending DNS'}
+                  </span>
+                )}
+
+                {r.removable && (
+                  <div className="ml-auto flex items-center gap-3">
+                    {cfConfigured && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() =>
+                          send('verify', r.domain, `Refreshed DNS & SSL status for ${r.domain}.`)
+                        }
+                        className="text-xs text-primary hover:underline disabled:opacity-50"
+                      >
+                        Verify DNS
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => send('remove', r.domain, `${r.domain} removed.`)}
+                      className="text-xs text-muted-foreground hover:text-red-600 disabled:opacity-50"
+                    >
+                      remove
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {r.removable && !isSslActive && (
+                <div className="rounded border border-border/70 bg-background/80 p-2.5 text-xs space-y-1">
+                  <p className="text-muted-foreground">
+                    Add a <strong className="text-foreground">CNAME</strong> record at your DNS
+                    provider pointing <code className="rounded bg-muted px-1">{r.domain}</code>{' '}
+                    &rarr; <code className="rounded bg-muted px-1">{st?.cnameTarget || cnameTarget}</code>
+                  </p>
+                  {st?.ownershipVerification?.name && st?.ownershipVerification?.value && (
+                    <p className="text-muted-foreground">
+                      Ownership TXT:{' '}
+                      <code className="break-all rounded bg-muted px-1">
+                        {st.ownershipVerification.name}
+                      </code>{' '}
+                      = <code className="break-all rounded bg-muted px-1">{st.ownershipVerification.value}</code>
+                    </p>
+                  )}
+                  {st?.sslValidationRecords?.[0]?.txtName && st?.sslValidationRecords?.[0]?.txtValue && (
+                    <p className="text-muted-foreground">
+                      SSL TXT:{' '}
+                      <code className="break-all rounded bg-muted px-1">
+                        {st.sslValidationRecords[0].txtName}
+                      </code>{' '}
+                      = <code className="break-all rounded bg-muted px-1">{st.sslValidationRecords[0].txtValue}</code>
+                    </p>
+                  )}
+                  {st?.verificationErrors && st.verificationErrors.length > 0 && (
+                    <p className="text-amber-700 dark:text-amber-300">
+                      {st.verificationErrors[0]}
+                    </p>
+                  )}
+                </div>
+              )}
+            </li>
+          )
+        })}
       </ul>
 
       <form

@@ -23,6 +23,16 @@ import { resolveTenantFromHeaders } from '@/utilities/resolveTenantFromHeaders'
 import { checkRole, ADMIN_ROLES } from '@/access/utilities'
 import { getUserTenantRoles } from '@/access/getUserTenantRoles'
 import { portalCan } from '@/utilities/portalPlan'
+import {
+  deleteCustomHostnameByName,
+  getCachedHostnameStatus,
+  getCloudflareCnameTarget,
+  getCustomHostnameByName,
+  isCloudflareSaaSConfigured,
+  provisionCustomHostname,
+  saveCachedHostnameStatus,
+  type NormalizedCustomHostnameStatus,
+} from '@/lib/domains/cloudflareSaaS'
 
 const MANAGER_ROLES = new Set(['tenant_admin', 'tenant_manager'])
 
@@ -113,7 +123,10 @@ async function loadTenant(
   return doc as unknown as TenantRow
 }
 
-function shape(tenant: TenantRow) {
+function shape(
+  tenant: TenantRow,
+  statuses?: Record<string, NormalizedCustomHostnameStatus>,
+) {
   const bindings = (tenant.domains || [])
     .filter((d) => Boolean(d?.domain))
     .map((d) => ({ domain: String(d.domain), isPrimary: Boolean(d.isPrimary) }))
@@ -124,14 +137,55 @@ function shape(tenant: TenantRow) {
     domain: tenant.domain || '',
     bindings,
     canonical: bindings.find((b) => b.isPrimary)?.domain || tenant.domain || '',
+    cloudflareConfigured: isCloudflareSaaSConfigured(),
+    cnameTarget: getCloudflareCnameTarget(),
+    ...(statuses ? { statuses } : {}),
   }
+}
+
+async function resolveStatusesForBindings(
+  payload: NonNullable<Parameters<PayloadHandler>[0]['payload']>,
+  tenantId: number | string,
+  bindings: DomainBinding[],
+  forceRefresh = false,
+): Promise<Record<string, NormalizedCustomHostnameStatus>> {
+  const out: Record<string, NormalizedCustomHostnameStatus> = {}
+  const cfOn = isCloudflareSaaSConfigured()
+
+  for (const b of bindings) {
+    const host = b.domain.toLowerCase()
+    if (!cfOn) {
+      out[host] = await getCustomHostnameByName(host)
+      continue
+    }
+    if (!forceRefresh) {
+      const cached = await getCachedHostnameStatus(payload, tenantId, host)
+      if (cached && cached.status === 'active' && cached.sslStatus === 'active') {
+        out[host] = cached
+        continue
+      }
+    }
+    const live = await getCustomHostnameByName(host)
+    await saveCachedHostnameStatus(payload, tenantId, live)
+    out[host] = live
+  }
+  return out
 }
 
 export const domainBindingsGetHandler: PayloadHandler = async (req) => {
   const auth = await authorize(req)
   if (auth.error) return auth.error
   const tenant = await loadTenant(auth.payload!, auth.tenantId!, req)
-  return Response.json(shape(tenant))
+  const url = new URL(req.url || '', 'http://localhost')
+  const refresh = url.searchParams.get('refresh') === '1'
+  const bindings = (tenant.domains || []).filter((d) => Boolean(d?.domain))
+  const statuses = await resolveStatusesForBindings(
+    auth.payload!,
+    auth.tenantId!,
+    bindings,
+    refresh,
+  )
+  return Response.json(shape(tenant, statuses))
 }
 
 export const domainBindingsPostHandler: PayloadHandler = async (req) => {
@@ -150,6 +204,24 @@ export const domainBindingsPostHandler: PayloadHandler = async (req) => {
 
   const tenant = await loadTenant(payload!, tenantId!, req)
   const current = (tenant.domains || []).filter((d) => Boolean(d?.domain))
+
+  if (action === 'verify') {
+    if (!current.some((d) => d.domain.toLowerCase() === domain)) {
+      return Response.json({ error: `${domain} is not bound to this portal.` }, { status: 404 })
+    }
+    let live = await getCustomHostnameByName(domain)
+    if (isCloudflareSaaSConfigured() && !live.cloudflareId) {
+      live = await provisionCustomHostname(domain, {
+        tenantId: String(tenantId),
+        tenantSlug: tenant.slug || '',
+      })
+    }
+    await saveCachedHostnameStatus(payload!, tenantId!, live)
+    const statuses = await resolveStatusesForBindings(payload!, tenantId!, current, false)
+    statuses[domain] = live
+    return Response.json(shape(tenant, statuses))
+  }
+
   let next: DomainBinding[]
 
   if (action === 'add') {
@@ -198,7 +270,7 @@ export const domainBindingsPostHandler: PayloadHandler = async (req) => {
       next = current.map((d) => ({ ...d, isPrimary: d.domain.toLowerCase() === domain }))
     }
   } else {
-    return Response.json({ error: 'action must be add, remove or set-primary' }, { status: 400 })
+    return Response.json({ error: 'action must be add, remove, verify or set-primary' }, { status: 400 })
   }
 
   await payload!.update({
@@ -210,8 +282,19 @@ export const domainBindingsPostHandler: PayloadHandler = async (req) => {
     req,
   })
 
+  if (action === 'add' && isCloudflareSaaSConfigured()) {
+    const cfStatus = await provisionCustomHostname(domain, {
+      tenantId: String(tenantId),
+      tenantSlug: tenant.slug || '',
+    })
+    await saveCachedHostnameStatus(payload!, tenantId!, cfStatus)
+  } else if (action === 'remove' && isCloudflareSaaSConfigured()) {
+    await deleteCustomHostnameByName(domain).catch(() => undefined)
+  }
+
   // Re-query rather than trusting the update's return — the host resolver caches
   // off this row and a silently-failed write would leave the UI lying.
   const saved = await loadTenant(payload!, tenantId!, req)
-  return Response.json(shape(saved))
+  const statuses = await resolveStatusesForBindings(payload!, tenantId!, next, false)
+  return Response.json(shape(saved, statuses))
 }
